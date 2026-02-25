@@ -1,0 +1,1 @@
+from .specialist import Specialist #This ensures Flask-Migrate detects it.
