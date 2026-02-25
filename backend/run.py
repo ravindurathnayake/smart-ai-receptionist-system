@@ -1,0 +1,14 @@
+from app import create_app
+from app.extensions import db
+
+app = create_app()
+
+if __name__ == "__main__":
+    with app.app_context():
+        try:
+            db.engine.connect()
+            print("Database connected successfully!")
+        except Exception as e:
+            print("Database connection failed:", e)
+
+    app.run()
