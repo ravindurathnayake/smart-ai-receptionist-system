@@ -13,5 +13,7 @@ def create_app():
 
     # IMPORTANT: Import models so Flask-Migrate can detect them
     from app.models import Specialist, Patient, Appointment, Queue
+    from app.routes import appointment_bp
+    app.register_blueprint(appointment_bp, url_prefix="/api")
 
     return app

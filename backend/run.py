@@ -10,5 +10,4 @@ if __name__ == "__main__":
             print("Database connected successfully!")
         except Exception as e:
             print("Database connection failed:", e)
-
     app.run()
