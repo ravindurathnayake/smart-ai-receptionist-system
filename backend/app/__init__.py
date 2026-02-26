@@ -12,6 +12,6 @@ def create_app():
     cors.init_app(app)
 
     # IMPORTANT: Import models so Flask-Migrate can detect them
-    from app.models import Specialist
+    from app.models import Specialist, Patient, Appointment, Queue
 
     return app
