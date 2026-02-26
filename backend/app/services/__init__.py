@@ -1,1 +1,2 @@
 from .appointment_service import book_appointment
+from .appointment_service import get_queue_status

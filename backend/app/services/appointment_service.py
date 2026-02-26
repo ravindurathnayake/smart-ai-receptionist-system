@@ -58,3 +58,26 @@ def book_appointment(full_name, phone_number, specialist_id, symptom, appointmen
         "queue_number": next_queue_number,
         "estimated_wait_time": estimated_wait_time
     }
+
+
+def get_queue_status():
+    """
+    Returns current queue status
+    """
+
+    total_waiting = Queue.query.count()
+
+    last_queue = Queue.query.order_by(Queue.queue_number.desc()).first()
+
+    if last_queue:
+        current_queue_number = last_queue.queue_number
+        estimated_wait_time = last_queue.estimated_wait_time
+    else:
+        current_queue_number = 0
+        estimated_wait_time = 0
+
+    return {
+        "current_queue_number": current_queue_number,
+        "total_waiting": total_waiting,
+        "estimated_wait_time": estimated_wait_time
+    }

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone
 from app.services import book_appointment
+from app.services import book_appointment, get_queue_status
 
 appointment_bp = Blueprint("appointment_bp", __name__)
 
@@ -38,3 +39,16 @@ def book_appointment_route():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@appointment_bp.route("/queue-status", methods=["GET"])
+def queue_status_route():
+    try:
+        result = get_queue_status()
+
+        return jsonify({
+            "message": "Queue status retrieved successfully",
+            "data": result
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500    
