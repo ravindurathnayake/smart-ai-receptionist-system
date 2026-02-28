@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone
 from app.services import book_appointment
 from app.services import book_appointment, get_queue_status
+from app.services import book_appointment, get_queue_status, get_all_specialists
 
 appointment_bp = Blueprint("appointment_bp", __name__)
 
@@ -51,4 +52,18 @@ def queue_status_route():
         }), 200
 
     except Exception as e:
+        return jsonify({"error": str(e)}), 500  
+    
+@appointment_bp.route("/specialists", methods=["GET"])
+def get_specialists_route():
+    try:
+        specialists = get_all_specialists()
+
+        return jsonify({
+            "message": "Specialists retrieved successfully",
+            "data": specialists
+        }), 200
+
+    except Exception as e:
         return jsonify({"error": str(e)}), 500    
+      

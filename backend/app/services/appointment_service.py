@@ -81,3 +81,20 @@ def get_queue_status():
         "total_waiting": total_waiting,
         "estimated_wait_time": estimated_wait_time
     }
+
+
+def get_all_specialists():
+    """
+    Returns list of all specialists
+    """
+    specialists = Specialist.query.all()
+
+    result = []
+    for specialist in specialists:
+        result.append({
+            "id": specialist.id,
+            "name": specialist.name,
+            "department": specialist.department
+        })
+
+    return result
