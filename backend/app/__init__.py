@@ -16,4 +16,7 @@ def create_app():
     from app.routes import appointment_bp
     app.register_blueprint(appointment_bp, url_prefix="/api")
 
+    from app.routes import recommendation_bp
+    app.register_blueprint(recommendation_bp, url_prefix="/api")
+
     return app
