@@ -1,16 +1,26 @@
 from app.extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
+
 
 class Queue(db.Model):
     __tablename__ = "queues"
 
     id = db.Column(db.Integer, primary_key=True)
-    appointment_id = db.Column(db.Integer, db.ForeignKey("appointments.id"), nullable=False)
+
+    appointment_id = db.Column(
+        db.Integer,
+        db.ForeignKey("appointments.id"),
+        nullable=False
+    )
 
     queue_number = db.Column(db.Integer, nullable=False)
-    estimated_wait_time = db.Column(db.Integer, nullable=False)  # minutes
+    estimated_wait_time = db.Column(db.Integer, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # NEW FIELDS
+    status = db.Column(db.String(20), default="Active")  # Active, Completed, Cancelled
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def __repr__(self):
-        return f"<Queue {self.queue_number}>"
+        return f"<Queue {self.queue_number} - {self.status}>"

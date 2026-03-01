@@ -65,9 +65,11 @@ def get_queue_status():
     Returns current queue status
     """
 
-    total_waiting = Queue.query.count()
+    total_waiting = Queue.query.filter_by(status="Active").count()
 
-    last_queue = Queue.query.order_by(Queue.queue_number.desc()).first()
+    last_queue = Queue.query.filter_by(status="Active") \
+    .order_by(Queue.queue_number.desc()) \
+    .first()
 
     if last_queue:
         current_queue_number = last_queue.queue_number
@@ -98,3 +100,23 @@ def get_all_specialists():
         })
 
     return result
+
+def complete_queue(queue_id):
+    """
+    Marks a queue entry as completed
+    """
+
+    queue = Queue.query.get(queue_id)
+
+    if not queue:
+        return None
+
+    queue.status = "Completed"
+    queue.completed_at = datetime.now(timezone.utc)
+
+    db.session.commit()
+
+    return {
+        "queue_id": queue.id,
+        "status": queue.status
+    }
