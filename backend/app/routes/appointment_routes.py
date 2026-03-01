@@ -1,15 +1,27 @@
-from flask import Blueprint, request, jsonify
-from datetime import datetime, timezone
+from flask import Blueprint, request
+from datetime import datetime
 
-from app.services import book_appointment, get_queue_status, get_all_specialists, complete_queue, cancel_appointment
+from app.services import (
+    book_appointment,
+    get_queue_status,
+    get_all_specialists,
+    complete_queue,
+    cancel_appointment
+)
+
+from app.utils.response import success_response, error_response
 
 appointment_bp = Blueprint("appointment_bp", __name__)
 
 
+# BOOK APPOINTMENT
 @appointment_bp.route("/book-appointment", methods=["POST"])
 def book_appointment_route():
     try:
         data = request.get_json()
+
+        if not data:
+            return error_response("Invalid JSON body", 400)
 
         full_name = data.get("full_name")
         phone_number = data.get("phone_number")
@@ -19,10 +31,12 @@ def book_appointment_route():
 
         # Basic validation
         if not all([full_name, specialist_id, symptom, appointment_date_str]):
-            return jsonify({"error": "Missing required fields"}), 400
+            return error_response("Missing required fields", 400)
 
-        # Convert string to datetime
-        appointment_date = datetime.fromisoformat(appointment_date_str)
+        try:
+            appointment_date = datetime.fromisoformat(appointment_date_str)
+        except ValueError:
+            return error_response("Invalid appointment_date format (use ISO format)", 400)
 
         result = book_appointment(
             full_name=full_name,
@@ -32,39 +46,35 @@ def book_appointment_route():
             appointment_date=appointment_date
         )
 
-        return jsonify({
-            "message": "Appointment booked successfully",
-            "data": result
-        }), 201
+        return success_response("Appointment booked successfully", result, 201)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
+        return error_response(str(e), 500)
+
+
+# QUEUE STATUS
 @appointment_bp.route("/queue-status", methods=["GET"])
 def queue_status_route():
     try:
         result = get_queue_status()
-
-        return jsonify({
-            "message": "Queue status retrieved successfully",
-            "data": result
-        }), 200
+        return success_response("Queue status retrieved successfully", result)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500  
-    
+        return error_response(str(e), 500)
+
+
+# GET SPECIALISTS
 @appointment_bp.route("/specialists", methods=["GET"])
 def get_specialists_route():
     try:
         specialists = get_all_specialists()
-
-        return jsonify({
-            "message": "Specialists retrieved successfully",
-            "data": specialists
-        }), 200
+        return success_response("Specialists retrieved successfully", specialists)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500    
+        return error_response(str(e), 500)
+
+
+# COMPLETE QUEUE
 
 @appointment_bp.route("/complete-queue/<int:queue_id>", methods=["PATCH"])
 def complete_queue_route(queue_id):
@@ -72,29 +82,24 @@ def complete_queue_route(queue_id):
         result = complete_queue(queue_id)
 
         if not result:
-            return jsonify({"error": "Queue not found"}), 404
+            return error_response("Queue not found", 404)
 
-        return jsonify({
-            "message": "Queue marked as completed",
-            "data": result
-        }), 200
+        return success_response("Queue marked as completed", result)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500 
-        
+        return error_response(str(e), 500)
 
+
+# CANCEL APPOINTMENT
 @appointment_bp.route("/cancel-appointment/<int:appointment_id>", methods=["PATCH"])
 def cancel_appointment_route(appointment_id):
     try:
         result = cancel_appointment(appointment_id)
 
         if not result:
-            return jsonify({"error": "Appointment not found"}), 404
+            return error_response("Appointment not found", 404)
 
-        return jsonify({
-            "message": "Appointment cancelled successfully",
-            "data": result
-        }), 200
+        return success_response("Appointment cancelled successfully", result)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return error_response(str(e), 500)
