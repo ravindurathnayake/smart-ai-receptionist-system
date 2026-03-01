@@ -120,3 +120,28 @@ def complete_queue(queue_id):
         "queue_id": queue.id,
         "status": queue.status
     }
+
+def cancel_appointment(appointment_id):
+    """
+    Cancels an appointment and updates associated queue
+    """
+
+    appointment = Appointment.query.get(appointment_id)
+
+    if not appointment:
+        return None
+
+    appointment.status = "Cancelled"
+
+    # Find associated queue entry
+    queue = Queue.query.filter_by(appointment_id=appointment_id).first()
+
+    if queue and queue.status == "Active":
+        queue.status = "Cancelled"
+
+    db.session.commit()
+
+    return {
+        "appointment_id": appointment.id,
+        "appointment_status": appointment.status
+    }

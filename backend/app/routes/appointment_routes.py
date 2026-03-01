@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone
 
-from app.services import book_appointment, get_queue_status, get_all_specialists, complete_queue
+from app.services import book_appointment, get_queue_status, get_all_specialists, complete_queue, cancel_appointment
 
 appointment_bp = Blueprint("appointment_bp", __name__)
 
@@ -80,4 +80,21 @@ def complete_queue_route(queue_id):
         }), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500     
+        return jsonify({"error": str(e)}), 500 
+        
+
+@appointment_bp.route("/cancel-appointment/<int:appointment_id>", methods=["PATCH"])
+def cancel_appointment_route(appointment_id):
+    try:
+        result = cancel_appointment(appointment_id)
+
+        if not result:
+            return jsonify({"error": "Appointment not found"}), 404
+
+        return jsonify({
+            "message": "Appointment cancelled successfully",
+            "data": result
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
