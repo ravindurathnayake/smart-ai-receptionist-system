@@ -1,11 +1,13 @@
 from flask import Flask
 from .config import DevelopmentConfig
 from .extensions import db, migrate, cors
+from app.routes.health_routes import health_bp
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(DevelopmentConfig)
+    app.register_blueprint(health_bp)
 
     db.init_app(app)
     migrate.init_app(app, db)
