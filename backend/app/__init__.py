@@ -7,7 +7,7 @@ from app.routes.health_routes import health_bp
 def create_app():
     app = Flask(__name__)
     app.config.from_object(DevelopmentConfig)
-    app.register_blueprint(health_bp)
+    app.register_blueprint(health_bp, url_prefix="/api")
 
     db.init_app(app)
     migrate.init_app(app, db)
