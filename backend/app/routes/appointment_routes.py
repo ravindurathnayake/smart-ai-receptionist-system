@@ -46,6 +46,9 @@ def book_appointment_route():
             appointment_date=appointment_date
         )
 
+        if isinstance(result, dict) and result.get("error"):
+            return error_response(result["error"], 404)
+
         return success_response("Appointment booked successfully", result, 201)
 
     except Exception as e:

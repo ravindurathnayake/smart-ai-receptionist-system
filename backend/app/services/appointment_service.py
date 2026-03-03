@@ -21,6 +21,13 @@ def book_appointment(full_name, phone_number, specialist_id, symptom, appointmen
     db.session.add(patient)
     db.session.commit()
 
+    # Validate specialist exists
+    specialist = Specialist.query.get(specialist_id)
+    if not specialist:
+        return {
+            "error": "Specialist not found"
+        }
+
     # 2️⃣ Create Appointment
     appointment = Appointment(
         patient_id=patient.id,
