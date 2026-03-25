@@ -1,23 +1,16 @@
 from app.services import recommend_specialist, get_queue_status
+from app.ai_models.nlp.model import predict_intent
 
 
-def detect_intent(message):
-    message = message.lower()
-
-    if "queue" in message:
-        return "queue_status"
-
-    if "recommend" in message or "pain" in message or "symptom" in message:
-        return "recommendation"
-
-    if "book" in message:
-        return "booking"
-
-    return "unknown"
+CONFIDENCE_THRESHOLD = 0.6  # you can tune this
 
 
 def process_message(message):
-    intent = detect_intent(message)
+    intent, confidence = predict_intent(message.lower())
+
+    # 🛑 LOW CONFIDENCE HANDLING
+    if confidence < CONFIDENCE_THRESHOLD:
+        return "I'm not fully sure what you mean. Could you please rephrase your question?"
 
     if intent == "queue_status":
         queue = get_queue_status()
@@ -31,5 +24,8 @@ def process_message(message):
 
     if intent == "booking":
         return "To book an appointment, please use the booking form."
+
+    if intent == "greeting":
+        return "Hello! How can I assist you today?"
 
     return "I'm sorry, I didn't understand your request."
