@@ -24,4 +24,7 @@ def create_app():
     from app.routes import chatbot_bp
     app.register_blueprint(chatbot_bp, url_prefix="/api")
 
+    from app.routes.chat_routes import chat_bp
+    app.register_blueprint(chat_bp, url_prefix="/api")
+
     return app
