@@ -1,0 +1,61 @@
+/* =============================================
+   KioskHome.css
+   Styles for the Kiosk Home screen
+   ============================================= */
+
+/* AI ambient pulse background */
+.ai-pulse-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0, 94, 184, 0.08) 0%, rgba(0, 71, 141, 0) 70%);
+    filter: blur(80px);
+    z-index: -10;
+}
+
+/* Floating animation for the bot avatar */
+@keyframes floatingBot {
+    0%   { transform: translateY(0px); }
+    50%  { transform: translateY(-15px); }
+    100% { transform: translateY(0px); }
+}
+.floating-bot {
+    animation: floatingBot 4s ease-in-out infinite;
+}
+
+/* Glow effect for high-end feel */
+.glow-effect {
+    box-shadow: 0 0 50px 10px rgba(0, 94, 184, 0.15);
+}
+
+/* Glassmorphism panel */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.70);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+/* Ticker animation for the live queue status */
+@keyframes scrollTicker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.animate-scroll {
+    display: flex;
+    width: max-content;
+    animation: scrollTicker 30s linear infinite;
+}
+
+.scrolling-ticker {
+    width: 100%;
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* Hide scrollbars but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

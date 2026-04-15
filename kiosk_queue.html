@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Check Queue Status | The Ethereal Clinic</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "inverse-surface": "#2e3132",
+                  "surface-dim": "#d9dadb",
+                  "surface-container-high": "#e7e8e9",
+                  "primary-container": "#005eb8",
+                  "on-primary-container": "#c8daff",
+                  "secondary-container": "#91f78e",
+                  "on-secondary-fixed-variant": "#005313",
+                  "on-primary-fixed": "#001b3d",
+                  "outline-variant": "#c2c6d4",
+                  "on-error-container": "#93000a",
+                  "primary-fixed-dim": "#a9c7ff",
+                  "on-secondary": "#ffffff",
+                  "on-background": "#191c1d",
+                  "outline": "#727783",
+                  "error": "#ba1a1a",
+                  "secondary-fixed": "#94f990",
+                  "on-secondary-container": "#00731e",
+                  "on-primary-fixed-variant": "#00468c",
+                  "on-tertiary-fixed": "#001f26",
+                  "on-tertiary-container": "#8ee7ff",
+                  "primary-fixed": "#d6e3ff",
+                  "secondary-fixed-dim": "#78dc77",
+                  "surface-bright": "#f8f9fa",
+                  "on-tertiary-fixed-variant": "#004e5c",
+                  "error-container": "#ffdad6",
+                  "surface-container-highest": "#e1e3e4",
+                  "surface-container-lowest": "#ffffff",
+                  "surface-container-low": "#f3f4f5",
+                  "on-surface-variant": "#424752",
+                  "on-tertiary": "#ffffff",
+                  "inverse-primary": "#a9c7ff",
+                  "tertiary-fixed-dim": "#79d3ea",
+                  "on-surface": "#191c1d",
+                  "surface-variant": "#e1e3e4",
+                  "tertiary-container": "#00697b",
+                  "inverse-on-surface": "#f0f1f2",
+                  "surface-container": "#edeeef",
+                  "tertiary": "#004f5d",
+                  "on-error": "#ffffff",
+                  "background": "#f8f9fa",
+                  "surface-tint": "#005db6",
+                  "on-secondary-fixed": "#002204",
+                  "primary": "#00478d",
+                  "on-primary": "#ffffff",
+                  "tertiary-fixed": "#abedff",
+                  "surface": "#f8f9fa",
+                  "secondary": "#006e1c"
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.25rem",
+                  "lg": "0.5rem",
+                  "xl": "0.75rem",
+                  "full": "9999px"
+          },
+          "fontFamily": {
+                  "headline": ["Manrope"],
+                  "body": ["Inter"],
+                  "label": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, .display-font { font-family: 'Manrope', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex">
+<!-- SideNavBar Anchor -->
+<aside class="hidden md:flex flex-col gap-6 p-6 w-80 h-screen bg-[#f3f4f5] dark:bg-gray-800 rounded-r-[1.5rem] shadow-[0_12px_40px_rgba(0,71,141,0.06)] z-20">
+<div class="flex flex-col gap-2 mb-8">
+<img alt="MediAssist AI Logo" class="h-16 w-auto object-contain self-start" src="https://lh3.googleusercontent.com/aida/ADBb0ujXwF6C1p4tSb8vEq_Vmwl_53J0InGaheovhXLH7KGxUAskWVzcmzRsAs4hNU6BDpnzzgqIddtDEE2uKDp7voQktbfUaXQqNCZbJy-zXfZepWAjM1L0U9AF10_W9r1H4ZajR8yZC60FtPSzwt4s6LU5DYKM4PuwSNmLqlHjnd1GpTrYwyE43IkdQkjzasfMPYu577RrcaQ7m44ZjDXHlFvqJh3bkIFwJbJEfn-rtsmpCtyZlecRtVcsOJwJGz1hb3L15Gl0yN9F_Q"/>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-bold">Home</span>
+</a><a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+<span class="font-bold">AI Assistant</span>
+</a>
+<!-- Active State: Queue Status -->
+<a class="flex items-center gap-4 px-6 py-4 bg-[#005eb8] text-white rounded-[1.5rem] shadow-lg scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="hourglass_empty">hourglass_empty</span>
+<span class="font-bold">Queue Status</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="font-bold">Book Appointment</span>
+</a><a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="how_to_reg">how_to_reg</span>
+<span class="font-bold">Check-In / Check-Out</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="font-bold">Hospital Map</span>
+</a>
+</nav>
+<div class="mt-auto">
+<div class="p-6 bg-surface-container-low rounded-[1.5rem] border-dashed border-2 border-outline-variant/30 text-center">
+<span class="material-symbols-outlined text-primary text-3xl mb-2" data-icon="support_agent">support_agent</span>
+<p class="text-sm font-bold text-on-surface-variant">Need Assistance?</p>
+<button class="mt-4 w-full py-3 bg-primary text-on-primary rounded-full font-bold text-sm shadow-md hover:opacity-90 transition-opacity">Call for Help</button>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 flex flex-col relative overflow-hidden">
+<!-- Background Accents -->
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary-fixed-dim/20 blur-[100px] rounded-full"></div>
+<div class="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-secondary-fixed/10 blur-[120px] rounded-full"></div>
+<!-- Top Navigation Bar -->
+<header class="flex justify-between items-center w-full px-12 py-8 z-10">
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="text-3xl font-bold tracking-tight text-[#00478d] dark:text-blue-400">The Ethereal Clinic</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-gray-500 hover:bg-[#f3f4f5] p-2 rounded-full transition-colors cursor-pointer" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-gray-500 hover:bg-[#f3f4f5] p-2 rounded-full transition-colors cursor-pointer" data-icon="help">help</span>
+</div>
+<img alt="Patient Profile Avatar" class="w-12 h-12 rounded-full object-cover shadow-sm border-2 border-white" data-alt="professional medical staff profile headshot with warm friendly smile in a clean modern clinic setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATgiHO9yp7wgUE2ubMfBTSn0KhahaZR6PC1BiyF1d8ZWvumAyPbUlKjhQWgCX7HIImSaRJZN1fsIOq034wcwF3kXNmzwVcUL2R6dNlL0unwVjexeNr7tftoTyv70S8QM1wuB-5SYnYeNWKqGogbeNHxc_y3Wa-2LLr2ReI2B5MUN8CG4Cw3t0npnMlF8x5-sYvDDiIiwXTpw_abHYNcF_NNn_Aka4eW1ZgDgO1GFYxk8fQntKfk231MDv3UK4GSCYV3qU9BBnGqXo"/>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 px-12 pb-12 z-10 flex flex-col">
+<div class="mb-10 text-center max-w-2xl mx-auto">
+<p class="text-secondary font-bold tracking-widest uppercase text-xs mb-2">Live Status Update</p>
+<h2 class="display-font text-5xl font-extrabold text-on-surface mb-4 leading-tight">Your health is our priority.</h2>
+<p class="text-on-surface-variant text-lg">We’re working diligently to serve you. Please relax in our lounge area; you will be notified when it's your turn.</p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-8 flex-1">
+<!-- Primary Queue Card (Large) -->
+<div class="col-span-12 lg:col-span-8 glass-card rounded-[2.5rem] p-10 flex flex-col justify-between shadow-[0_12px_40px_rgba(0,71,141,0.06)] relative overflow-hidden border border-white/40">
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-8">
+<div>
+<span class="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-bold">Currently Serving</span>
+<div class="mt-4 flex items-baseline gap-4">
+<span class="display-font text-8xl font-black text-primary">#142</span>
+<span class="text-on-surface-variant font-medium">Counter 04</span>
+</div>
+</div>
+<div class="text-right">
+<span class="text-on-surface-variant text-sm font-semibold block mb-2">Your Ticket</span>
+<span class="display-font text-5xl font-bold text-on-surface">#148</span>
+</div>
+</div>
+<!-- Wait Time Section -->
+<div class="mt-12 bg-surface-container-low/50 rounded-3xl p-8 flex items-center gap-8">
+<div class="w-24 h-24 rounded-full border-4 border-primary/20 flex items-center justify-center relative">
+<div class="absolute inset-0 border-4 border-primary rounded-full" style="clip-path: polygon(0 0, 100% 0, 100% 70%, 0 70%);"></div>
+<span class="material-symbols-outlined text-4xl text-primary" data-icon="schedule">schedule</span>
+</div>
+<div>
+<h3 class="text-3xl font-extrabold text-on-surface">~ 18 mins</h3>
+<p class="text-on-surface-variant">Estimated wait until your turn</p>
+</div>
+<div class="ml-auto bg-secondary-container text-on-secondary-container px-6 py-3 rounded-2xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-xl" data-icon="person_search" style="font-variation-settings: 'FILL' 1;">person_search</span>
+                6 people ahead
+              </div>
+</div>
+</div>
+<!-- Progress/Timeline -->
+<div class="mt-12 relative z-10">
+<h4 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-6">Your Journey Today</h4>
+<div class="flex items-center w-full px-4">
+<!-- Step 1: Done -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<span class="mt-3 text-xs font-bold text-secondary">Check-in</span>
+<div class="absolute h-1 top-4 left-1/2 w-full bg-secondary"></div>
+</div>
+<!-- Step 2: Current -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center z-10 ring-4 ring-primary-fixed">
+<span class="material-symbols-outlined text-lg" data-icon="hourglass_top">hourglass_top</span>
+</div>
+<span class="mt-3 text-xs font-bold text-primary">In Queue</span>
+<div class="absolute h-1 top-4 left-1/2 w-full bg-surface-container-highest"></div>
+</div>
+<!-- Step 3: Pending -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-outline flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-sm" data-icon="stethoscope">stethoscope</span>
+</div>
+<span class="mt-3 text-xs font-bold text-outline">Consultation</span>
+<div class="absolute h-1 top-4 left-1/2 w-full bg-surface-container-highest"></div>
+</div>
+<!-- Step 4: Pending -->
+<div class="flex flex-col items-center flex-1 relative">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-outline flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-sm" data-icon="medication">medication</span>
+</div>
+<span class="mt-3 text-xs font-bold text-outline">Pharmacy</span>
+</div>
+</div>
+</div>
+<!-- Decorative Background Element -->
+<div class="absolute bottom-0 right-0 opacity-10 -mr-16 -mb-16">
+<span class="material-symbols-outlined text-[300px]" data-icon="pulse_alert">pulse_alert</span>
+</div>
+</div>
+<!-- Sidebar Info Cards -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+<!-- Appointment Quick Info -->
+<div class="bg-surface-container-lowest p-8 rounded-[2rem] shadow-sm border border-outline-variant/10">
+<h4 class="text-lg font-bold mb-6 text-primary flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="info">info</span>
+              Details
+            </h4>
+<div class="space-y-6">
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-tighter mb-1">Clinic Department</p>
+<p class="text-on-surface font-semibold">General Cardiology - West Wing</p>
+</div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-tighter mb-1">Assigned Specialist</p>
+<div class="flex items-center gap-3">
+<img alt="Doctor Profile" class="w-10 h-10 rounded-full object-cover" data-alt="close up of a professional male doctor with glasses and stethoscope in medical attire with neutral clinical background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmIvjZRhfhIaH78qJmB16DT1d-wf32Es1BK4QBq4BPgWYERIowVIPhsTmJp-tYAezjGyCTIFW9LyHG8lYbX5ZxYYCkEdeXCqaBdbTELmbmuZGPYISJYqCnPOf0XFL2P-pQSSRXEIKh886WqzJmosxM2N5Gb_WKlGdbVi_NY709h8ApzDUkOZjTfM8azM3r62rWVMZyCQackDU34IUORaVgEpxIHGLjhEMdsBAj5rZUrGCmlCCHv1zZihpkO6HiFDYSjGKyS4M1p3Y"/>
+<p class="text-on-surface font-semibold">Dr. Anura Perera</p>
+</div>
+</div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-tighter mb-1">Estimated Duration</p>
+<p class="text-on-surface font-semibold">15 - 20 minutes</p>
+</div>
+</div>
+</div>
+<!-- AI Assistant Integration Card -->
+<div class="bg-primary flex-1 p-8 rounded-[2rem] text-white relative overflow-hidden flex flex-col justify-between">
+<!-- Glow Effect -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 blur-3xl rounded-full animate-pulse"></div>
+<div>
+<div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-white" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<h3 class="text-2xl font-bold mb-3">Ask MediAssist AI</h3>
+<p class="text-white/80 leading-relaxed">Have questions about your wait or need directions to the lab? I'm here to help.</p>
+</div>
+<button class="mt-8 bg-white text-primary w-full py-4 rounded-full font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-opacity-90 transition-all">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+              Talk to Assistant
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Mobile Bottom NavBar (Hidden on Web) -->
+<nav class="md:hidden flex justify-around items-center w-full bg-surface-container-lowest py-4 px-6 border-t border-outline-variant/10 z-20">
+<a class="flex flex-col items-center gap-1 text-gray-500" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" data-icon="hourglass_empty" style="font-variation-settings: 'FILL' 1;">hourglass_empty</span>
+<span class="text-[10px] font-bold">Queue</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="text-[10px] font-bold">Book</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="text-[10px] font-bold">Map</span>
+</a>
+</nav>
+</main>
+</body></html>

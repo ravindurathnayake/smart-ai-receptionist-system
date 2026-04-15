@@ -1,0 +1,77 @@
+/* =============================================
+   KioskRegistrationStep2.css
+   Styles for the Symptoms selection (Step 2)
+   ============================================= */
+
+/* Active nav pill for registration flow */
+.nav-item-active {
+    background-color: #005eb8;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 94, 184, 0.30);
+}
+
+/* Glass card effect for bento grid items */
+.symptom-card {
+    background: rgba(255, 255, 255, 0.80);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(194, 198, 212, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.symptom-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 71, 141, 0.08);
+    border-color: #005eb8;
+}
+
+.symptom-card-active {
+    background-color: #91f78e; /* secondary-container */
+    border-color: #00731e; /* on-secondary-container */
+}
+
+/* Special styling for emergency card */
+.emergency-card:hover {
+    background-color: #ffdad6; /* error-container */
+    border-color: #ba1a1a; /* error */
+}
+
+/* AI ambient blobs */
+.ai-pulse-bg {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: #005db6;
+    filter: blur(80px);
+    opacity: 0.1;
+    z-index: 0;
+    border-radius: 100%;
+}
+
+/* Custom textarea styling */
+.symptom-textarea {
+    background-color: #f3f4f5; /* surface-container-low */
+    border: none;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+    resize: none;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+}
+
+.symptom-textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 71, 141, 0.2);
+    background-color: #ffffff;
+}
+
+/* Animation for back/next buttons */
+.btn-kiosk-action {
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-kiosk-action:active {
+    transform: scale(0.95);
+}

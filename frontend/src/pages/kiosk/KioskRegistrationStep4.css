@@ -1,0 +1,69 @@
+/* =============================================
+   KioskRegistrationStep4.css
+   Styles for the Registration Confirmation (Step 4)
+   ============================================= */
+
+/* Active nav pill for registration flow */
+.nav-item-active {
+    background-color: #005eb8;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 94, 184, 0.30);
+}
+
+/* Glass card effect for bento sections */
+.glass-card {
+    background: rgba(255, 255, 255, 0.80);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* AI ambient blobs */
+.ai-pulse-bg {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(0, 93, 182, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+    filter: blur(40px);
+    z-index: 0;
+}
+
+/* Detail value styling */
+.detail-label {
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 700;
+    color: #727783; /* outline */
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.detail-value {
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 600;
+    color: #191c1d; /* on-surface */
+}
+
+/* Symptom tag styling */
+.symptom-tag {
+    background-color: #91f78e; /* secondary-container */
+    color: #00731e; /* on-secondary-container */
+    transition: all 0.2s ease;
+}
+
+.symptom-tag:hover {
+    transform: scale(1.05);
+}
+
+/* Photo preview frame */
+.photo-preview-frame {
+    border: 1px solid rgba(194, 198, 212, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 71, 141, 0.03);
+}
+
+/* Action button animations */
+.btn-final {
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-final:active {
+    transform: scale(0.97);
+}

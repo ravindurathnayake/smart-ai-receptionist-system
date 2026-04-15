@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Empathetic Concierge - Symptoms Registration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#94f990",
+                        "on-tertiary-fixed": "#001f26",
+                        "tertiary-fixed-dim": "#79d3ea",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#424752",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1d",
+                        "on-secondary-container": "#00731e",
+                        "primary-container": "#005eb8",
+                        "outline": "#727783",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-surface": "#191c1d",
+                        "on-secondary-fixed": "#002204",
+                        "inverse-on-surface": "#f0f1f2",
+                        "inverse-primary": "#a9c7ff",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#004e5c",
+                        "primary": "#00478d",
+                        "on-tertiary-container": "#8ee7ff",
+                        "on-primary-container": "#c8daff",
+                        "surface-container-low": "#f3f4f5",
+                        "on-primary-fixed": "#001b3d",
+                        "tertiary": "#004f5d",
+                        "surface": "#f8f9fa",
+                        "on-primary-fixed-variant": "#00468c",
+                        "outline-variant": "#c2c6d4",
+                        "surface-bright": "#f8f9fa",
+                        "primary-fixed": "#d6e3ff",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#edeeef",
+                        "surface-tint": "#005db6",
+                        "surface-dim": "#d9dadb",
+                        "secondary-container": "#91f78e",
+                        "background": "#f8f9fa",
+                        "tertiary-container": "#00697b",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "inverse-surface": "#2e3132",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#006e1c",
+                        "secondary-fixed-dim": "#78dc77",
+                        "surface-container-high": "#e7e8e9",
+                        "tertiary-fixed": "#abedff",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#e1e3e4",
+                        "on-secondary-fixed-variant": "#005313"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* No scrolling for kiosk layout */
+            width: 1280px;
+            height: 1024px;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ai-pulse-bg {
+            background: radial-gradient(circle, rgba(0,93,182,0.08) 0%, rgba(248,249,250,0) 70%);
+        }
+    </style>
+</head>
+<body class="relative bg-surface text-on-surface select-none">
+<!-- TopNavBar Implementation -->
+<header class="flex justify-between items-center px-8 py-4 w-full z-50 bg-white dark:bg-slate-900 sticky top-0">
+<div class="text-2xl font-bold text-blue-900 dark:text-white font-headline">The Empathetic Concierge</div>
+<div class="flex items-center gap-8">
+<nav class="flex gap-6 items-center">
+<button class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors px-3 py-1 rounded-lg">
+<span class="material-symbols-outlined">language</span>
+</button>
+<button class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors px-3 py-1 rounded-lg">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors px-3 py-1 rounded-lg">
+<span class="material-symbols-outlined">info</span>
+</button>
+</nav>
+<div class="h-12 w-12 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="Hospital Logo" data-alt="professional minimalist hospital logo with abstract medical cross in deep blue and teal on white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzJVz4Q8_Ogsr4-CFCd8j3fh_v5VnVa89v-R4P9eQn8kdKdLLXLYTSwLIieVLFwIpd8C7VHKB9_PYLAWNSMPXiYsW8oCaJ4_aMEc1NHSnC_PeZOSJNiECcoe1FBbQSuJSyakAmHG0fSkx7imnC2RtBDtsB7bU0GhCGUyZRuMtlawU7pevVM06dOO2tYD4Z8abyB2BppMevJRXW58WoCvfel_IVnS1VkaeppYz7If3HSNYRLmDjkl0EKbTUWM29fzX9n-yVUzz0RSo"/>
+</div>
+</div>
+</header>
+<div class="flex h-[calc(1024px-80px-96px)]">
+<!-- SideNavBar Implementation -->
+<aside class="fixed left-0 top-20 h-full w-72 flex flex-col py-8 bg-slate-50 dark:bg-slate-950">
+<div class="px-8 mb-10">
+<h2 class="text-xl font-bold font-headline text-on-surface">Registration</h2>
+<p class="text-sm font-medium font-body text-slate-500">Step 2 of 4</p>
+</div>
+<div class="flex flex-col gap-2">
+<div class="text-slate-500 dark:text-slate-400 ml-4 pl-4 py-4 flex items-center gap-4 transition-opacity">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-medium font-body">Basic Info</span>
+</div>
+<div class="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-l-full ml-4 pl-4 py-4 flex items-center gap-4">
+<span class="material-symbols-outlined" data-icon="medical_services" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+<span class="font-bold font-body">Symptoms</span>
+</div>
+<div class="text-slate-500 dark:text-slate-400 ml-4 pl-4 py-4 flex items-center gap-4 transition-opacity">
+<span class="material-symbols-outlined" data-icon="face">face</span>
+<span class="font-medium font-body">Face Capture</span>
+</div>
+<div class="text-slate-500 dark:text-slate-400 ml-4 pl-4 py-4 flex items-center gap-4 transition-opacity">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span class="font-medium font-body">Confirmation</span>
+</div>
+</div>
+<!-- AI Pulse Component -->
+<div class="mt-auto px-8 pb-12 flex flex-col items-center">
+<div class="relative w-24 h-24 mb-4">
+<div class="absolute inset-0 ai-pulse-bg rounded-full animate-pulse"></div>
+<div class="relative w-full h-full bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-lg border border-primary-container/20 overflow-hidden">
+<img alt="AI Concierge" data-alt="friendly ai concierge avatar gentle soft features serene expression hospital uniform minimalist 3d render" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAi1a054Ym8O4AMNRWHn6LHfsNi6cjvxkY4c5Wwtddm2FB6t3WQkmkiRBw7GKKT_W1a5uFvnTHUPjIRKFx5QZqLcr_9sNOaNambljJm52iZhgQe8Bf-cwtyjorAw67KJ46tWjEyaymo7etWs33-OZ0XuZA9CZZazRDLtJPfuf01S-Onc5sxvW7lew4p1k_H6DGQm8b8zjE8-aYHOc1XHOZ3NLQ3FqoRWxwyulTq-mp-IlLJkXUWrEIVcCzg3CqKZrJ17CeIzECZsa0"/>
+</div>
+</div>
+<p class="text-xs text-center text-slate-500 font-medium">I'm here to help you navigate your care.</p>
+</div>
+</aside>
+<!-- Main Content Area (Bento Grid Layout) -->
+<main class="ml-72 flex-1 p-12 relative overflow-hidden">
+<div class="max-w-4xl mx-auto h-full flex flex-col">
+<header class="mb-10">
+<h1 class="text-4xl font-bold font-headline tracking-tight text-on-surface mb-2">How are you feeling?</h1>
+<p class="text-lg text-on-surface-variant font-body">Please select the category that best describes your visit today.</p>
+</header>
+<!-- Touch-friendly Bento Grid -->
+<div class="grid grid-cols-3 gap-6 mb-10">
+<!-- General Checkup -->
+<button class="bg-surface-container-lowest p-8 rounded-[2rem] border border-outline-variant/10 shadow-sm hover:bg-secondary-container transition-all group flex flex-col items-center text-center gap-4 active:scale-95">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center text-primary group-hover:bg-on-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="stethoscope">stethoscope</span>
+</div>
+<div>
+<h3 class="font-bold text-xl font-headline mb-1">General Checkup</h3>
+<p class="text-sm text-on-surface-variant group-hover:text-on-secondary-container">Routine physical or screening</p>
+</div>
+</button>
+<!-- Consultation -->
+<button class="bg-surface-container-lowest p-8 rounded-[2rem] border border-outline-variant/10 shadow-sm hover:bg-secondary-container transition-all group flex flex-col items-center text-center gap-4 active:scale-95">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center text-primary group-hover:bg-on-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="chat">chat</span>
+</div>
+<div>
+<h3 class="font-bold text-xl font-headline mb-1">Consultation</h3>
+<p class="text-sm text-on-surface-variant group-hover:text-on-secondary-container">Discussing specific health concerns</p>
+</div>
+</button>
+<!-- Laboratory -->
+<button class="bg-surface-container-lowest p-8 rounded-[2rem] border border-outline-variant/10 shadow-sm hover:bg-secondary-container transition-all group flex flex-col items-center text-center gap-4 active:scale-95">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center text-primary group-hover:bg-on-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="biotech">biotech</span>
+</div>
+<div>
+<h3 class="font-bold text-xl font-headline mb-1">Laboratory</h3>
+<p class="text-sm text-on-surface-variant group-hover:text-on-secondary-container">Blood tests, X-rays, or imaging</p>
+</div>
+</button>
+<!-- Emergency -->
+<button class="bg-surface-container-lowest p-8 rounded-[2rem] border border-error-container/30 shadow-sm hover:bg-error-container transition-all group flex flex-col items-center text-center gap-4 active:scale-95">
+<div class="w-16 h-16 rounded-full bg-error-container/50 flex items-center justify-center text-error group-hover:bg-error group-hover:text-white">
+<span class="material-symbols-outlined text-3xl" data-icon="e911_emergency">e911_emergency</span>
+</div>
+<div>
+<h3 class="font-bold text-xl font-headline mb-1">Emergency</h3>
+<p class="text-sm text-on-surface-variant">Urgent care or acute injury</p>
+</div>
+</button>
+<!-- Pharmacy -->
+<button class="bg-surface-container-lowest p-8 rounded-[2rem] border border-outline-variant/10 shadow-sm hover:bg-secondary-container transition-all group flex flex-col items-center text-center gap-4 active:scale-95">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center text-primary group-hover:bg-on-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="medication">medication</span>
+</div>
+<div>
+<h3 class="font-bold text-xl font-headline mb-1">Pharmacy</h3>
+<p class="text-sm text-on-surface-variant group-hover:text-on-secondary-container">Prescription refills or pickups</p>
+</div>
+</button>
+<!-- Follow-up -->
+<button class="bg-surface-container-lowest p-8 rounded-[2rem] border border-outline-variant/10 shadow-sm hover:bg-secondary-container transition-all group flex flex-col items-center text-center gap-4 active:scale-95">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center text-primary group-hover:bg-on-secondary">
+<span class="material-symbols-outlined text-3xl" data-icon="event_repeat">event_repeat</span>
+</div>
+<div>
+<h3 class="font-bold text-xl font-headline mb-1">Follow-up</h3>
+<p class="text-sm text-on-surface-variant group-hover:text-on-secondary-container">Scheduled post-visit check</p>
+</div>
+</button>
+</div>
+<!-- Additional Details -->
+<div class="flex-1 flex flex-col gap-4">
+<label class="text-lg font-bold font-headline text-on-surface ml-2">Additional details</label>
+<textarea class="w-full h-40 bg-surface-container-low rounded-[1.5rem] border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest p-6 text-lg font-body text-on-surface placeholder:text-outline/60 resize-none transition-all shadow-inner" placeholder="Please describe any other symptoms or specific notes you have..."></textarea>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar Implementation -->
+<footer class="fixed bottom-0 right-0 left-72 z-40 flex justify-between items-center px-16 pb-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-100 dark:border-slate-800 shadow-[0_-12px_40px_rgba(0,71,141,0.06)] pt-6">
+<button class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full px-12 py-4 hover:brightness-110 active:scale-95 transition-all font-bold font-headline text-lg">
+<span class="material-symbols-outlined">arrow_back</span>
+            Back
+        </button>
+<div class="flex gap-4">
+<button class="bg-transparent text-slate-500 font-bold font-headline text-lg px-8 py-4 hover:text-primary transition-colors">
+                Skip for Now
+            </button>
+<button class="flex items-center gap-2 bg-blue-700 text-white rounded-full px-12 py-4 shadow-lg hover:brightness-110 active:scale-95 transition-all font-bold font-headline text-lg">
+                Next Step
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</footer>
+<!-- Subtle Texture Overlay -->
+<div class="fixed inset-0 pointer-events-none opacity-[0.03] z-[60]" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjDI7Z4b4W5Jss0097to0urdahlrwVSmZAHtw561xYa3QDXBoLdSkcOxit93Nn7pHgnRMe3oBRMxJGKjuwrCH1W5EjmoV6NTVtlpPkWa7vGgJ7Je9dB0Va7HZGpZzrkMJj6jTb7YYFRb2_vSb5sgdOFoI-fm7naUicRFTkJP6kCBB4aYEZsQHQcTBelvx2bHS9KHGJXqyJ0rA5jHqKOM605l71OAkw7te5cNh4O3s77rPxjbZ-nbqD4Bo3MbXSnIc3vFUGVzj-800');"></div>
+</body></html>

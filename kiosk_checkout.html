@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e1e3e4",
+                    "on-primary-container": "#c8daff",
+                    "on-secondary": "#ffffff",
+                    "surface-tint": "#005db6",
+                    "surface-container-high": "#e7e8e9",
+                    "primary-fixed": "#d6e3ff",
+                    "secondary-fixed-dim": "#78dc77",
+                    "outline": "#727783",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#00697b",
+                    "primary-container": "#005eb8",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#004e5c",
+                    "on-surface": "#191c1d",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f8f9fa",
+                    "primary": "#00478d",
+                    "inverse-primary": "#a9c7ff",
+                    "on-secondary-fixed-variant": "#005313",
+                    "outline-variant": "#c2c6d4",
+                    "on-surface-variant": "#424752",
+                    "surface": "#f8f9fa",
+                    "on-primary-fixed": "#001b3d",
+                    "tertiary": "#004f5d",
+                    "secondary": "#006e1c",
+                    "surface-dim": "#d9dadb",
+                    "on-tertiary-container": "#8ee7ff",
+                    "on-tertiary": "#ffffff",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface-container-low": "#f3f4f5",
+                    "surface-container": "#edeeef",
+                    "on-primary": "#ffffff",
+                    "inverse-surface": "#2e3132",
+                    "background": "#f8f9fa",
+                    "on-tertiary-fixed": "#001f26",
+                    "on-secondary-fixed": "#002204",
+                    "tertiary-fixed-dim": "#79d3ea",
+                    "primary-fixed-dim": "#a9c7ff",
+                    "secondary-fixed": "#94f990",
+                    "on-error": "#ffffff",
+                    "on-background": "#191c1d",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#91f78e",
+                    "on-primary-fixed-variant": "#00468c",
+                    "tertiary-fixed": "#abedff",
+                    "on-secondary-container": "#00731e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1rem",
+                    "3xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .ai-pulse {
+            box-shadow: 0 0 40px 10px rgba(0, 93, 182, 0.1);
+        }
+        .editorial-gradient {
+            background: linear-gradient(135deg, #00478d 0%, #005eb8 100%);
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex overflow-hidden font-body">
+<!-- SideNavBar: Layout and styling from SCREEN_121 -->
+<aside class="hidden md:flex flex-col gap-6 p-6 w-80 h-screen sticky top-0 shrink-0 z-40 bg-white border-r border-outline-variant/10 shadow-[0_12px_40px_rgba(0,71,141,0.06)]">
+<div class="flex flex-col gap-2 mb-8">
+<img alt="MediAssist AI Logo" class="h-16 w-auto object-contain self-start" src="https://lh3.googleusercontent.com/aida/ADBb0ujXwF6C1p4tSb8vEq_Vmwl_53J0InGaheovhXLH7KGxUAskWVzcmzRsAs4hNU6BDpnzzgqIddtDEE2uKDp7voQktbfUaXQqNCZbJy-zXfZepWAjM1L0U9AF10_W9r1H4ZajR8yZC60FtPSzwt4s6LU5DYKM4PuwSNmLqlHjnd1GpTrYwyE43IkdQkjzasfMPYu577RrcaQ7m44ZjDXHlFvqJh3bkIFwJbJEfn-rtsmpCtyZlecRtVcsOJwJGz1hb3L15Gl0yN9F_Q"/>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] opacity-70 hover:bg-blue-50 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-bold">Home</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] opacity-70 hover:bg-blue-50 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="font-bold">AI Assistant</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] opacity-70 hover:bg-blue-50 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined">hourglass_empty</span>
+<span class="font-bold">Queue Status</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] opacity-70 hover:bg-blue-50 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-bold">Book Appointment</span>
+</a>
+<!-- Active State: Check-In / Check-Out -->
+<a class="flex items-center gap-4 px-6 py-4 bg-[#005eb8] text-white rounded-[1.5rem] shadow-lg scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">how_to_reg</span>
+<span class="font-bold">Check-In / Check-Out</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] opacity-70 hover:bg-blue-50 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-bold">Hospital Map</span>
+</a>
+</nav>
+<div class="mt-auto">
+<div class="p-6 bg-surface-container-low rounded-[1.5rem] border-dashed border-2 border-outline-variant/30 text-center">
+<span class="material-symbols-outlined text-primary text-3xl mb-2">support_agent</span>
+<p class="text-sm font-bold text-on-surface-variant">Need Assistance?</p>
+<button class="mt-4 w-full py-3 bg-primary text-on-primary rounded-full font-bold text-sm shadow-md hover:opacity-90 transition-opacity">Call for Help</button>
+</div>
+<div class="my-4 border-t border-outline-variant/30"></div>
+<button class="flex items-center gap-4 px-6 py-4 w-full text-error opacity-70 hover:bg-error-container/20 rounded-[1.5rem] transition-all">
+<span class="material-symbols-outlined">exit_to_app</span>
+<span class="font-bold">Sign Out</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 relative overflow-y-auto bg-surface">
+<!-- TopAppBar: Layout and content from SCREEN_121 -->
+<header class="flex justify-between items-center w-full px-12 py-8 sticky top-0 z-30 bg-white border-b border-outline-variant/10 shadow-[0_12px_40px_rgba(0,71,141,0.06)] font-headline">
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div>
+<h2 class="text-3xl font-bold tracking-tight text-[#00478d]">Check-Out</h2>
+<p class="text-on-surface-variant text-sm font-label">The Ethereal Clinic</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<button class="p-3 rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-gray-500">notifications</span>
+</button>
+<button class="p-3 rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-gray-500">help</span>
+</button>
+</div>
+<div class="flex flex-col items-end mr-4">
+<span class="font-bold text-on-surface text-sm font-body">Anura Perera</span>
+<span class="text-xs text-on-surface-variant font-body">Patient</span>
+</div>
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md flex items-center">
+<img alt="Patient Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA23aVCJXaRc1i8jL1PPpipEVeuTIpYnsVezSeevgF5FPk5FUMf7Z5w6uELKIn5A6zrpzdpxTXYgN2IdZijFHV_C366ri2faiSYn-zKJZ41nnsWUl3z1zMSjIYkSCNHzOSu-BuNR1jJMLecSrqAwIC7heiPxzB_r3w9Ve8Cualxp2sbnUhFoBi2mUWm4GB-ndZYlxmqdR4A1fCpc4ZBQ-vtLDgjYfzv_BUU54UxJL7mB_gnfHTbesqkOHwzQ0SY1vnWLPfVTEcIPTI"/>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="max-w-6xl mx-auto px-12 py-12">
+<!-- Hero Welcome Section -->
+<div class="text-center mb-16">
+<div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-secondary-container/30 mb-6 relative">
+<div class="absolute inset-0 rounded-full ai-pulse animate-pulse bg-secondary/10"></div>
+<span class="material-symbols-outlined text-secondary text-5xl" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+</div>
+<h2 class="text-5xl font-extrabold text-on-surface tracking-tight mb-4 font-headline">Visit Complete</h2>
+<p class="text-xl text-on-surface-variant max-w-2xl mx-auto font-light leading-relaxed">Thank you for choosing MediAssist AI. We hope your experience today was seamless and comfortable.</p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Summary Card -->
+<div class="col-span-8 bg-surface-container-lowest rounded-3xl p-10 shadow-sm border border-outline-variant/10 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+<h3 class="text-2xl font-bold mb-8 flex items-center gap-3 font-headline">
+<span class="material-symbols-outlined text-primary">receipt_long</span>
+                    Visit Summary
+                </h3>
+<div class="space-y-8">
+<div class="grid grid-cols-2 gap-12">
+<div>
+<p class="text-sm text-on-surface-variant font-medium uppercase tracking-wider mb-2 font-label">Patient</p>
+<p class="text-2xl font-bold">Aruni Perera</p>
+</div>
+<div>
+<p class="text-sm text-on-surface-variant font-medium uppercase tracking-wider mb-2 font-label">Appointment</p>
+<p class="text-2xl font-bold">General Wellness Check</p>
+</div>
+</div>
+<div class="pt-8 border-t border-surface-container-low">
+<p class="text-sm text-on-surface-variant font-medium uppercase tracking-wider mb-6 font-label">Activity Timeline</p>
+<div class="space-y-6">
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 bg-surface-container-low rounded-2xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">login</span>
+</div>
+<div class="flex-1">
+<p class="font-bold text-lg">Check-in Completed</p>
+<p class="text-on-surface-variant">08:45 AM • Main Lobby</p>
+</div>
+<span class="text-secondary font-bold">Verified</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 bg-surface-container-low rounded-2xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">stethoscope</span>
+</div>
+<div class="flex-1">
+<p class="font-bold text-lg">Consultation with Dr. Silva</p>
+<p class="text-on-surface-variant">09:15 AM • Room 302</p>
+</div>
+<span class="text-secondary font-bold">Closed</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 bg-surface-container-low rounded-2xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">medication</span>
+</div>
+<div class="flex-1">
+<p class="font-bold text-lg">Pharmacy Collection</p>
+<p class="text-on-surface-variant">10:05 AM • Ground Floor</p>
+</div>
+<span class="text-secondary font-bold">Picked Up</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Card Stack -->
+<div class="col-span-4 space-y-8">
+<!-- Receipt Action -->
+<div class="bg-surface-container-lowest rounded-3xl p-8 shadow-sm border border-outline-variant/10 text-center">
+<div class="w-16 h-16 bg-primary-fixed rounded-2xl flex items-center justify-center mx-auto mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">phone_android</span>
+</div>
+<h4 class="text-xl font-bold mb-2 font-headline">Digital Receipt</h4>
+<p class="text-on-surface-variant mb-8 px-4">Send a secure copy of your visit details to your MediAssist mobile app.</p>
+<button class="w-full py-4 px-6 rounded-full bg-surface-container-highest text-on-primary-fixed-variant font-bold hover:bg-surface-container-high transition-all active:scale-95 font-label">
+                        Collect Digital Receipt
+                    </button>
+</div>
+<!-- Next Step Card -->
+<div class="bg-primary/5 rounded-3xl p-8 border border-primary/10">
+<h4 class="font-bold mb-4 flex items-center gap-2 font-headline">
+<span class="material-symbols-outlined text-primary">info</span>
+                        Next Steps
+                    </h4>
+<ul class="space-y-3 text-sm text-on-surface-variant font-body">
+<li class="flex gap-3">
+<span class="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 shrink-0"></span>
+                            Lab results will be available in 24h.
+                        </li>
+<li class="flex gap-3">
+<span class="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 shrink-0"></span>
+                            Follow-up scheduled for Aug 12th.
+                        </li>
+</ul>
+</div>
+</div>
+<!-- Large Image Content Row -->
+<div class="col-span-12 mt-4 relative rounded-[2rem] overflow-hidden h-64 shadow-xl">
+<img alt="A serene modern hospital corridor with soft daylight filtering through large windows and lush indoor plants" class="w-full h-full object-cover" data-alt="Modern hospital interior with minimalist architectural design soft warm lighting and comfortable seating areas for patients" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1W2IQ2nsF7f14iSpBLz3BlnxJ3PM1asJ1baGYox6Subqg2IVAyONRL1pPhm-gSp7dsNsPrHHE4SRrao84Bzw21H18octhNv3v3dwIT8mCbT8HPMpcxGuDeikf03a-GEmmVFbuJgO5HqtCo1ciJylcsKnQMR1uRiG-QdJFZlDYRcGYrEejFpOrV12qbFQnmmSjA7OtV8xi57cmRPvNIUe9tvRzxsRQEKJxRqPeHe0VetTfd3ySE2bjG_IFgnqHzyYrAZivrJv4cLc"/>
+<div class="absolute inset-0 bg-gradient-to-r from-primary/80 to-transparent flex items-center px-12">
+<div class="max-w-md text-white">
+<p class="text-primary-fixed font-bold tracking-widest uppercase text-xs mb-3 font-label">Health Tip</p>
+<h3 class="text-2xl font-bold mb-4 italic font-headline">"Wellness is a journey, not a destination."</h3>
+<p class="text-white/80 font-body">Remember to stay hydrated and take a short walk every hour. See you soon!</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Action Footer -->
+<div class="mt-20 flex flex-col items-center">
+<button class="editorial-gradient text-white text-xl font-bold px-16 py-6 rounded-full shadow-2xl shadow-blue-400/30 hover:scale-[1.02] transition-all active:scale-95 flex items-center gap-4 font-headline">
+                Finish Session
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="mt-8 text-on-surface-variant/60 text-sm font-medium font-body">Session will auto-close in 45 seconds</p>
+</div>
+</div>
+</main>
+</body></html>
