@@ -1,0 +1,107 @@
+.patients-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.patient-search-bar {
+    background: #ffffff;
+    padding: 1rem 1.5rem;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+}
+
+.search-input-field {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-weight: 500;
+    color: #1c1b1f;
+}
+
+.search-input-field::placeholder {
+    color: #727783;
+}
+
+.patient-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .patient-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    .patient-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.patient-card {
+    background: #ffffff;
+    border-radius: 2.25rem;
+    padding: 2rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.patient-card:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+    transform: translateY(-4px);
+    border-color: rgba(0, 71, 141, 0.1);
+}
+
+.patient-avatar-large {
+    width: 64px;
+    height: 64px;
+    border-radius: 1.25rem;
+    background: rgba(0, 71, 141, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00478d;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.patient-info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.patient-info-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #727783;
+    letter-spacing: 0.05em;
+    width: 80px;
+}
+
+.patient-info-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1c1b1f;
+}
+
+.patient-card-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.03);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}

@@ -247,7 +247,10 @@ const KioskHome = () => {
           <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>logout</span>
           <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">Check-Out</span>
         </button>
-        <button className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group">
+        <button 
+          onClick={() => navigate('/admin/login')}
+          className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
+        >
           <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
           <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">Admin</span>
         </button>
