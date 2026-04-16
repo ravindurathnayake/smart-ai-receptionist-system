@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './KioskSearchDoctors.css';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -79,20 +80,20 @@ const DOCTORS = [
 // ─── Shared Components (identical to KioskAIAssistant) ────────────────────────
 
 const SideNav = () => {
+    const navigate = useNavigate();
     const navItems = [
-        { icon: 'home', label: 'Home', active: false },
-        { icon: 'smart_toy', label: 'AI Assistant', active: false },
-        { icon: 'hourglass_empty', label: 'Queue Status', active: false },
-        { icon: 'calendar_month', label: 'Book Appointment', active: false },
-        { icon: 'how_to_reg', label: 'Check-In / Check-Out', active: false },
-        { icon: 'medical_information', label: 'Find Doctors', active: true },
-        { icon: 'map', label: 'Hospital Map', active: false },
+        { icon: 'home',             label: 'Home',                 path: '/' },
+        { icon: 'smart_toy',        label: 'AI Assistant',         path: '/assistant' },
+        { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
+        { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors', active: true  },
+        { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
+        { icon: 'map',              label: 'Hospital Map',         path: '#' },
     ];
 
     return (
         <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0">
             {/* Logo */}
-            <div className="p-6 pb-4">
+            <div className="p-6 pb-4 cursor-pointer" onClick={() => navigate('/')}>
                 <img
                     alt="MediAssist AI Logo"
                     className="h-auto w-full object-contain"
@@ -102,12 +103,13 @@ const SideNav = () => {
 
             {/* Nav links */}
             <nav className="flex-1 flex flex-col px-3 mt-4 gap-1">
-                {navItems.map(({ icon, label, active }) => (
-                    <a
+                {navItems.map(({ icon, label, path, active }) => (
+                    <div
                         key={label}
-                        href="#"
-                        className={`flex items-center gap-4 px-5 py-3 rounded-xl transition-all font-semibold text-sm ${active ? 'nav-item-active' : 'text-primary hover:bg-slate-50'
-                            }`}
+                        onClick={() => path !== '#' && navigate(path)}
+                        className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm cursor-pointer ${
+                            active ? 'nav-item-active' : 'text-primary hover:bg-slate-50'
+                        }`}
                     >
                         <span
                             className="material-symbols-outlined text-[22px]"
@@ -116,7 +118,7 @@ const SideNav = () => {
                             {icon}
                         </span>
                         <span>{label}</span>
-                    </a>
+                    </div>
                 ))}
             </nav>
 
@@ -125,11 +127,14 @@ const SideNav = () => {
                 <div className="p-5 bg-slate-50 rounded-xl border border-dashed border-outline-variant/40 text-center mb-4">
                     <span className="material-symbols-outlined text-primary text-2xl mb-2 block">support_agent</span>
                     <p className="text-xs font-bold text-primary mb-3">Need Assistance?</p>
-                    <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity">
+                    <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity" onClick={() => navigate('/assistant')}>
                         Call for Help
                     </button>
                 </div>
-                <button className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4">
+                <button 
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4"
+                >
                     <span className="material-symbols-outlined">logout</span>
                     <span className="font-bold text-sm">Sign Out</span>
                 </button>
@@ -138,46 +143,54 @@ const SideNav = () => {
     );
 };
 
-const TopBar = () => (
-    <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
-        <div className="flex items-center gap-3">
-            <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors">
-                <span className="material-symbols-outlined text-slate-600">arrow_back</span>
-            </button>
-            <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">
-                MediAssist AI
-            </h1>
-            <div className="h-4 w-px bg-outline-variant mx-1" />
-            <span className="text-slate-500 font-medium text-sm">Doctor Search</span>
-        </div>
-        <div className="flex items-center gap-6">
-            <div className="flex gap-2">
-                <button className="p-2 text-slate-400 hover:text-primary transition-colors rounded-full hover:bg-slate-50">
-                    <span className="material-symbols-outlined">notifications</span>
+const TopBar = () => {
+    const navigate = useNavigate();
+    return (
+        <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
+            <div className="flex items-center gap-3">
+                <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
+                    <span className="material-symbols-outlined text-slate-600">arrow_back</span>
                 </button>
-                <button className="p-2 text-slate-400 hover:text-primary transition-colors rounded-full hover:bg-slate-50">
-                    <span className="material-symbols-outlined">help</span>
-                </button>
+                <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">
+                    MediAssist AI
+                </h1>
+                <div className="h-4 w-px bg-outline-variant mx-1" />
+                <span className="text-slate-500 font-medium text-sm">Find Doctors</span>
             </div>
-            {/* Patient pill */}
-            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
-                <div className="text-right">
-                    <p className="text-sm font-bold text-on-surface leading-none">Anura Perera</p>
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
+            <div className="flex items-center gap-6">
+                <div className="flex gap-3">
+                    <span 
+                        onClick={() => navigate('/assistant')}
+                        className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">
+                        notifications
+                    </span>
+                    <span 
+                        onClick={() => navigate('/assistant')}
+                        className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">
+                        help
+                    </span>
                 </div>
-                <img
-                    alt="User profile"
-                    className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow-sm"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAr0o4DNe3vEW1A2n82-rEzAd7eXnKxPKknXfp8_U6S_eI126VAB8P8VDNBKFFuw1RpGFl2DsAg-RL63Vp6LpyGXlERBkQL6UO0YjKoD-z1VAuzjNMSXhAqX6xgSVequC0TZCR-1taDwBnIOHJx8tymp0_lFigkueAphjc1DVmKqqt63NJAyDbj483cT5B8_YJy_MsqOiMuB4AUohYCCyhxAW8SG5ldVtEmqL9FCZBSXOPSg590X5qzoSm9X27VJPWvbHHIVp5D0g"
-                />
+                {/* Patient pill */}
+                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
+                    <div className="text-right">
+                        <p className="text-sm font-bold text-on-surface leading-none">Anura Perera</p>
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
+                    </div>
+                    <img
+                        alt="User profile"
+                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow-sm"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBht8v8MUCoalsCJKH_f177xanYgg1TmGV36SAVTRwabFw5fo8NfAwbNNXkZ-Mmo7Jn6eHWvlFVmsd8T9-FsJNR6ziPDbMF6GPVO954kIMIxX4MYklrUV0IPpfcfs4EFmWtou_-wjzEwT7BKIGNz0at73I4ilP-6BSIJ1lV8aFAriHreEzO4O-O4sWp_bjI2KvTyGQIx0fVPu_20gnSTy0H98j7V4Dxz38Ksq6fZDZmc2oOxRB8RUKmpo-a9aE5T_kZwNLVn0gm7Eg"
+                    />
+                </div>
             </div>
-        </div>
-    </header>
-);
+        </header>
+    );
+};
 
 // ─── Doctor Card ──────────────────────────────────────────────────────────────
 
 const DoctorCard = ({ doctor }) => {
+    const navigate = useNavigate();
     const { name, specialty, rating, reviews, nextSlot, featured, photo } = doctor;
 
     return (
@@ -228,12 +241,13 @@ const DoctorCard = ({ doctor }) => {
                 <p className="text-[10px] uppercase font-bold text-outline tracking-wider">Next Available</p>
                 <div className="flex items-center justify-between">
                     <span className="text-on-surface font-semibold text-sm">{nextSlot}</span>
-                    <button className="text-primary text-xs font-bold hover:underline">View Slots</button>
+                    <button className="text-primary text-xs font-bold hover:underline" onClick={() => navigate('/sessions')}>View Slots</button>
                 </div>
             </div>
 
             {/* CTA button */}
             <button
+                onClick={() => navigate('/sessions')}
                 className={`w-full py-3 rounded-full font-bold text-sm tracking-wide transition-all hover:scale-[1.02] active:scale-95 ${featured
                     ? 'bg-gradient-to-r from-primary to-primary-container text-white shadow-lg shadow-primary/20'
                     : 'bg-surface-container-highest text-on-primary-fixed-variant hover:bg-primary-fixed'
@@ -247,21 +261,24 @@ const DoctorCard = ({ doctor }) => {
 
 // ─── Floating AI Chip ─────────────────────────────────────────────────────────
 
-const AIFloatingChip = () => (
-    <button className="ai-float-chip" aria-label="Open AI Assistant">
-        <div className="ai-float-glow" />
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center text-white shrink-0">
-            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                smart_toy
-            </span>
-        </div>
-        <div className="text-left relative z-10">
-            <p className="text-[10px] font-bold text-primary uppercase tracking-tight">AI Assistant</p>
-            <p className="text-sm font-bold text-on-surface">How can I help you today, Anura?</p>
-        </div>
-        <div className="ai-live-dot relative z-10 ml-1" />
-    </button>
-);
+const AIFloatingChip = () => {
+    const navigate = useNavigate();
+    return (
+        <button className="ai-float-chip" aria-label="Open AI Assistant" onClick={() => navigate('/assistant')}>
+            <div className="ai-float-glow" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center text-white shrink-0">
+                <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    smart_toy
+                </span>
+            </div>
+            <div className="text-left relative z-10">
+                <p className="text-[10px] font-bold text-primary uppercase tracking-tight">AI Assistant</p>
+                <p className="text-sm font-bold text-on-surface">How can I help you today, Anura?</p>
+            </div>
+            <div className="ai-live-dot relative z-10 ml-1" />
+        </button>
+    );
+};
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -444,5 +461,6 @@ const KioskSearchDoctors = () => {
         </div>
     );
 };
+
 
 export default KioskSearchDoctors;

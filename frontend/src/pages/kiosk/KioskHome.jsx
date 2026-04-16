@@ -1,7 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './KioskHome.css';
 
 const KioskHome = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-background font-body text-on-surface h-full flex flex-col overflow-hidden w-screen h-screen">
       {/* Top Navigation Shell */}
@@ -9,7 +12,7 @@ const KioskHome = () => {
         <div className="flex justify-between items-center w-full max-w-[1920px] mx-auto">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
-              <img alt="MediAssist AI Logo" className="h-16 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/ADBb0ujXwF6C1p4tSb8vEq_Vmwl_53J0InGaheovhXLH7KGxUAskWVzcmzRsAs4hNU6BDpnzzgqIddtDEE2uKDp7voQktbfUaXQqNCZbJy-zXfZepWAjM1L0U9AF10_W9r1H4ZajR8yZC60FtPSzwt4s6LU5DYKM4PuwSNmLqlHjnd1GpTrYwyE43IkdQkjzasfMPYu577RrcaQ7m44ZjDXHlFvqJh3bkIFwJbJEfn-rtsmpCtyZlecRtVcsOJwJGz1hb3L15Gl0yN9F_Q" />
+              <img alt="MediAssist AI Logo" className="h-16 w-auto object-contain cursor-pointer" onClick={() => navigate('/')} src="https://lh3.googleusercontent.com/aida/ADBb0ujXwF6C1p4tSb8vEq_Vmwl_53J0InGaheovhXLH7KGxUAskWVzcmzRsAs4hNU6BDpnzzgqIddtDEE2uKDp7voQktbfUaXQqNCZbJy-zXfZepWAjM1L0U9AF10_W9r1H4ZajR8yZC60FtPSzwt4s6LU5DYKM4PuwSNmLqlHjnd1GpTrYwyE43IkdQkjzasfMPYu577RrcaQ7m44ZjDXHlFvqJh3bkIFwJbJEfn-rtsmpCtyZlecRtVcsOJwJGz1hb3L15Gl0yN9F_Q" />
             </div>
             <div className="h-8 w-px bg-outline-variant/30 mx-4"></div>
             <div className="flex gap-4">
@@ -23,7 +26,7 @@ const KioskHome = () => {
               <div className="font-headline font-bold text-lg leading-none">Ayubowan, Welcome</div>
               <div className="text-sm text-on-surface-variant font-medium">Colombo Central General Hospital</div>
             </div>
-            <div className="bg-surface-container-highest p-3 rounded-xl">
+            <div className="bg-surface-container-highest p-3 rounded-xl cursor-pointer hover:bg-surface-container-high transition-colors" onClick={() => navigate('/queue')}>
               <span className="material-symbols-outlined text-primary" data-icon="clinical_notes">clinical_notes</span>
             </div>
           </div>
@@ -37,7 +40,10 @@ const KioskHome = () => {
 
         {/* Emergency Assistance Button - Top Right Positioning */}
         <div className="absolute top-4 right-8 z-20">
-          <button className="bg-error-container/90 backdrop-blur-md text-on-error-container py-3 px-8 rounded-full flex items-center justify-center gap-3 shadow-lg hover:bg-error-container transition-all active:scale-95 border border-error/20">
+          <button 
+            onClick={() => navigate('/assistant')}
+            className="bg-error-container/90 backdrop-blur-md text-on-error-container py-3 px-8 rounded-full flex items-center justify-center gap-3 shadow-lg hover:bg-error-container transition-all active:scale-95 border border-error/20"
+          >
             <span className="material-symbols-outlined text-xl animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>emergency</span>
             <span className="font-headline font-bold text-base tracking-wider uppercase">Emergency Assistance</span>
           </button>
@@ -46,7 +52,7 @@ const KioskHome = () => {
         {/* Central AI Chatbot Section */}
         <div className="w-full max-w-4xl flex flex-col items-center text-center gap-6 relative z-10 mt-auto">
           {/* Friendly AI Bot Avatar */}
-          <div className="relative group">
+          <div className="relative group cursor-pointer" onClick={() => navigate('/assistant')}>
             <div className="absolute -inset-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700"></div>
             <div className="floating-bot relative">
               <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-white p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] glow-effect flex items-center justify-center">
@@ -72,12 +78,23 @@ const KioskHome = () => {
           <div className="w-full max-w-2xl space-y-3">
             <div className="glass-panel p-2 rounded-[2.5rem] shadow-2xl border border-white/50 flex items-center gap-2">
               <div className="flex-grow relative">
-                <input className="w-full bg-transparent border-none focus:outline-none text-xl py-4 px-8 font-medium placeholder:text-on-surface-variant/40" placeholder="Type your message..." type="text" />
+                <input 
+                  className="w-full bg-transparent border-none focus:outline-none text-xl py-4 px-8 font-medium placeholder:text-on-surface-variant/40" 
+                  placeholder="Type your message..." 
+                  type="text" 
+                  onKeyPress={(e) => e.key === 'Enter' && navigate('/assistant')}
+                />
               </div>
-              <button className="bg-primary text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all flex-shrink-0">
+              <button 
+                onClick={() => navigate('/assistant')}
+                className="bg-primary text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all flex-shrink-0"
+              >
                 <span className="material-symbols-outlined text-2xl" data-icon="mic" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
               </button>
-              <button className="bg-primary text-white px-8 py-3 md:py-4 rounded-full font-bold text-lg shadow-xl hover:bg-primary-container transition-all active:scale-95 flex-shrink-0 mr-1">
+              <button 
+                onClick={() => navigate('/assistant')}
+                className="bg-primary text-white px-8 py-3 md:py-4 rounded-full font-bold text-lg shadow-xl hover:bg-primary-container transition-all active:scale-95 flex-shrink-0 mr-1"
+              >
                 Send
               </button>
             </div>
@@ -91,7 +108,10 @@ const KioskHome = () => {
         <div className="w-full max-w-7xl mt-auto mb-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
             {/* Check-in */}
-            <button className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden">
+            <button 
+              onClick={() => navigate('/checkin-out')}
+              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
+            >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">check_circle</span>
               </div>
@@ -109,7 +129,10 @@ const KioskHome = () => {
             </button>
 
             {/* New Patient */}
-            <button className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden">
+            <button 
+              onClick={() => navigate('/register/step1')}
+              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
+            >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">person_add</span>
               </div>
@@ -127,7 +150,10 @@ const KioskHome = () => {
             </button>
 
             {/* Information / Find Doctor */}
-            <button className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden">
+            <button 
+              onClick={() => navigate('/doctors')}
+              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
+            >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">medical_information</span>
               </div>
@@ -166,7 +192,7 @@ const KioskHome = () => {
       </main>
 
       {/* Bottom Queue Ticker */}
-      <footer className="bg-white/90 backdrop-blur-lg h-16 flex items-center overflow-hidden border-t border-outline-variant/10 relative z-50 shrink-0">
+      <footer className="bg-white/90 backdrop-blur-lg h-16 flex items-center overflow-hidden border-t border-outline-variant/10 relative z-50 shrink-0 cursor-pointer" onClick={() => navigate('/queue')}>
         <div className="px-10 h-full flex items-center bg-primary text-white font-headline font-bold text-lg whitespace-nowrap shadow-[10px_0_30px_rgba(0,0,0,0.1)] relative z-10">
           LIVE QUEUE STATUS
         </div>
@@ -214,15 +240,21 @@ const KioskHome = () => {
 
       {/* Side Navigation Accessibility Hub */}
       <aside className="fixed left-6 top-1/2 -translate-y-1/2 h-auto w-20 flex flex-col gap-6 py-8 z-50">
-        <button className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group">
+        <button 
+          onClick={() => navigate('/checkout')}
+          className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
+        >
           <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>logout</span>
           <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">Check-Out</span>
         </button>
         <button className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>login</span>
-          <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">Login</span>
+          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
+          <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">Admin</span>
         </button>
-        <button className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group">
+        <button 
+          onClick={() => navigate('/assistant')}
+          className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
+        >
           <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>live_help</span>
           <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">Help</span>
         </button>

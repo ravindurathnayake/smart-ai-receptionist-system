@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './KioskCheckOut.css';
 
 // ─── Shared Components (identical to KioskAIAssistant) ────────────────────────
 
 const SideNav = () => {
+    const navigate = useNavigate();
     const navItems = [
-        { icon: 'home',            label: 'Home',                 active: false },
-        { icon: 'smart_toy',       label: 'AI Assistant',         active: false },
-        { icon: 'hourglass_empty', label: 'Queue Status',         active: false },
-        { icon: 'calendar_month',  label: 'Book Appointment',     active: false },
-        { icon: 'how_to_reg',      label: 'Check-In / Check-Out', active: true  },
-        { icon: 'medical_information', label: 'Find Doctors',     active: false },
-        { icon: 'map',             label: 'Hospital Map',         active: false },
+        { icon: 'home',             label: 'Home',                 path: '/' },
+        { icon: 'smart_toy',        label: 'AI Assistant',         path: '/assistant' },
+        { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
+        { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
+        { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out', active: true  },
+        { icon: 'map',              label: 'Hospital Map',         path: '#' },
     ];
 
     return (
         <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0">
-            <div className="p-6 pb-4">
+            <div className="p-6 pb-4 cursor-pointer" onClick={() => navigate('/')}>
                 <img
                     alt="MediAssist AI Logo"
                     className="h-auto w-full object-contain"
@@ -24,11 +25,11 @@ const SideNav = () => {
                 />
             </div>
             <nav className="flex-1 flex flex-col px-3 mt-4 gap-1">
-                {navItems.map(({ icon, label, active }) => (
-                    <a
+                {navItems.map(({ icon, label, path, active }) => (
+                    <div
                         key={label}
-                        href="#"
-                        className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm ${
+                        onClick={() => path !== '#' && navigate(path)}
+                        className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm cursor-pointer ${
                             active ? 'nav-item-active' : 'text-primary hover:bg-slate-50'
                         }`}
                     >
@@ -39,18 +40,21 @@ const SideNav = () => {
                             {icon}
                         </span>
                         <span>{label}</span>
-                    </a>
+                    </div>
                 ))}
             </nav>
             <div className="px-4 pb-5 mt-auto">
                 <div className="p-5 bg-slate-50 rounded-xl border border-dashed border-outline-variant/40 text-center mb-4">
                     <span className="material-symbols-outlined text-primary text-2xl mb-2 block">support_agent</span>
                     <p className="text-xs font-bold text-primary mb-3">Need Assistance?</p>
-                    <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity">
+                    <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity" onClick={() => navigate('/assistant')}>
                         Call for Help
                     </button>
                 </div>
-                <button className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4">
+                <button 
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4"
+                >
                     <span className="material-symbols-outlined">logout</span>
                     <span className="font-bold text-sm">Sign Out</span>
                 </button>
@@ -59,41 +63,49 @@ const SideNav = () => {
     );
 };
 
-const TopBar = () => (
-    <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/10 shadow-[0_4px_20px_rgba(0,71,141,0.04)] z-30 shrink-0 font-headline">
-        <div className="flex items-center gap-3">
-            <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors">
-                <span className="material-symbols-outlined text-slate-600">arrow_back</span>
-            </button>
-            <div>
-                <h1 className="text-xl font-extrabold tracking-tight text-primary leading-tight">Check-Out</h1>
-                <p className="text-xs text-on-surface-variant font-medium font-body leading-none">The Ethereal Clinic</p>
-            </div>
-        </div>
-        <div className="flex items-center gap-5">
-            <div className="flex gap-1">
-                <button className="p-2 text-slate-400 hover:text-primary rounded-full hover:bg-slate-50 transition-colors">
-                    <span className="material-symbols-outlined">notifications</span>
+const TopBar = () => {
+    const navigate = useNavigate();
+    return (
+        <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
+            <div className="flex items-center gap-3">
+                <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
+                    <span className="material-symbols-outlined text-slate-600">arrow_back</span>
                 </button>
-                <button className="p-2 text-slate-400 hover:text-primary rounded-full hover:bg-slate-50 transition-colors">
-                    <span className="material-symbols-outlined">help</span>
-                </button>
+                <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">
+                    MediAssist AI
+                </h1>
+                <div className="h-4 w-px bg-outline-variant mx-1" />
+                <span className="text-slate-500 font-medium text-sm">Check-Out</span>
             </div>
-            {/* Patient pill — exact match to KioskAIAssistant */}
-            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
-                <div className="text-right">
-                    <p className="text-sm font-bold text-on-surface leading-none font-body">Anura Perera</p>
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5 font-body">Patient</p>
+            <div className="flex items-center gap-6">
+                <div className="flex gap-3">
+                    <span 
+                        onClick={() => navigate('/assistant')}
+                        className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">
+                        notifications
+                    </span>
+                    <span 
+                        onClick={() => navigate('/assistant')}
+                        className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">
+                        help
+                    </span>
                 </div>
-                <img
-                    alt="Patient profile"
-                    className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow-sm"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuA23aVCJXaRc1i8jL1PPpipEVeuTIpYnsVezSeevgF5FPk5FUMf7Z5w6uELKIn5A6zrpzdpxTXYgN2IdZijFHV_C366ri2faiSYn-zKJZ41nnsWUl3z1zMSjIYkSCNHzOSu-BuNR1jJMLecSrqAwIC7heiPxzB_r3w9Ve8Cualxp2sbnUhFoBi2mUWm4GB-ndZYlxmqdR4A1fCpc4ZBQ-vtLDgjYfzv_BUU54UxJL7mB_gnfHTbesqkOHwzQ0SY1vnWLPfVTEcIPTI"
-                />
+                {/* Patient pill — exact match to KioskAIAssistant */}
+                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
+                    <div className="text-right">
+                        <p className="text-sm font-bold text-on-surface leading-none">Anura Perera</p>
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
+                    </div>
+                    <img
+                        alt="User profile photo"
+                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow-sm"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBht8v8MUCoalsCJKH_f177xanYgg1TmGV36SAVTRwabFw5fo8NfAwbNNXkZ-Mmo7Jn6eHWvlFVmsd8T9-FsJNR6ziPDbMF6GPVO954kIMIxX4MYklrUV0IPpfcfs4EFmWtou_-wjzEwT7BKIGNz0at73I4ilP-6BSIJ1lV8aFAriHreEzO4O-O4sWp_bjI2KvTyGQIx0fVPu_20gnSTy0H98j7V4Dxz38Ksq6fZDZmc2oOxRB8RUKmpo-a9aE5T_kZwNLVn0gm7Eg"
+                    />
+                </div>
             </div>
-        </div>
-    </header>
-);
+        </header>
+    );
+};
 
 // ─── Visit Summary card (left 8 cols) ────────────────────────────────────────
 

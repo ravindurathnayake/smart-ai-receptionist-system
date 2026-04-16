@@ -1,4 +1,4 @@
-import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import KioskHome from './pages/kiosk/KioskHome';
 import KioskAIAssistant from './pages/kiosk/KioskAIAssistant';
 import KioskQueueStatus from './pages/kiosk/KioskQueueStatus';
@@ -13,23 +13,25 @@ import KioskRegistrationStep3 from './pages/kiosk/KioskRegistrationStep3';
 import KioskRegistrationStep4 from './pages/kiosk/KioskRegistrationStep4';
 import './App.css';
 
-// Switch between pages here for preview.
-// Options: 'home' | 'assistant' | 'queue' | 'doctors' | 'sessions' | 'checkin' | 'manualcheckin' | 'checkout' | 'register-step1' | 'register-step2' | 'register-step3' | 'register-step4'
-const CURRENT_PAGE = 'register-step4';
-
 function App() {
-  if (CURRENT_PAGE === 'assistant')     return <KioskAIAssistant />;
-  if (CURRENT_PAGE === 'queue')         return <KioskQueueStatus />;
-  if (CURRENT_PAGE === 'doctors')       return <KioskSearchDoctors />;
-  if (CURRENT_PAGE === 'sessions')      return <KioskSessions />;
-  if (CURRENT_PAGE === 'checkin')       return <KioskCheckInOut />;
-  if (CURRENT_PAGE === 'manualcheckin') return <KioskManualCheckIn />;
-  if (CURRENT_PAGE === 'checkout')      return <KioskCheckOut />;
-  if (CURRENT_PAGE === 'register-step1') return <KioskRegistrationStep1 />;
-  if (CURRENT_PAGE === 'register-step2') return <KioskRegistrationStep2 />;
-  if (CURRENT_PAGE === 'register-step3') return <KioskRegistrationStep3 />;
-  if (CURRENT_PAGE === 'register-step4') return <KioskRegistrationStep4 />;
-  return <KioskHome />;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<KioskHome />} />
+        <Route path="/assistant" element={<KioskAIAssistant />} />
+        <Route path="/queue" element={<KioskQueueStatus />} />
+        <Route path="/doctors" element={<KioskSearchDoctors />} />
+        <Route path="/sessions" element={<KioskSessions />} />
+        <Route path="/checkin-out" element={<KioskCheckInOut />} />
+        <Route path="/manual-checkin" element={<KioskManualCheckIn />} />
+        <Route path="/checkout" element={<KioskCheckOut />} />
+        <Route path="/register/step1" element={<KioskRegistrationStep1 />} />
+        <Route path="/register/step2" element={<KioskRegistrationStep2 />} />
+        <Route path="/register/step3" element={<KioskRegistrationStep3 />} />
+        <Route path="/register/step4" element={<KioskRegistrationStep4 />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;
