@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import Logo from '../../components/common/Logo';
 import './AdminLayout.css';
 
 const AdminLayout = () => {
@@ -18,18 +19,15 @@ const AdminLayout = () => {
     <div className="admin-layout-container text-on-surface">
       {/* Sidebar */}
       <aside className="admin-sidebar">
-        <div className="admin-logo-section">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-              <span className="material-symbols-rounded">medical_services</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold font-display text-primary leading-none tracking-tight">MediAssist AI</h1>
-              <span className="text-[10px] uppercase tracking-widest text-outline font-semibold">Admin Console</span>
+        <div className="flex flex-col h-full">
+          <div className="admin-logo-section mb-10 px-2">
+            <Logo size="sm" className="mb-2" />
+            <div className="pl-8 inline-block">
+              <span className="text-[10px] uppercase tracking-widest text-outline font-black opacity-60">Admin Console</span>
             </div>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="space-y-1 flex-1">
             {menuItems.map((item) => (
               <NavLink
                 key={item.path}
@@ -46,29 +44,29 @@ const AdminLayout = () => {
               </NavLink>
             ))}
           </nav>
-        </div>
 
-        <div className="admin-sidebar-support space-y-4">
-          <div className="support-card">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="material-symbols-rounded text-primary text-xl">help_outline</span>
-              <span className="font-bold text-sm text-primary">Support</span>
+          <div className="admin-sidebar-support space-y-4">
+            <div className="support-card">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="material-symbols-rounded text-primary text-xl">help_outline</span>
+                <span className="font-bold text-sm text-primary">Support</span>
+              </div>
+              <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
+                Need assistance with the system? Our tech team is online.
+              </p>
+              <button className="w-full py-2.5 px-4 bg-white border border-outline-variant/30 hover:border-primary/30 rounded-xl text-[13px] font-bold text-primary transition-all shadow-sm">
+                Contact Tech Support
+              </button>
             </div>
-            <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-              Need assistance with the system? Our tech team is online.
-            </p>
-            <button className="w-full py-2.5 px-4 bg-white border border-outline-variant/30 hover:border-primary/30 rounded-xl text-[13px] font-bold text-primary transition-all shadow-sm">
-              Contact Tech Support
+
+            <button 
+              onClick={() => navigate('/')}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-error hover:bg-error-container/20 transition-all duration-300 group"
+            >
+              <span className="material-symbols-rounded text-[22px]">logout</span>
+              <span className="font-semibold text-[15px]">Sign Out</span>
             </button>
           </div>
-
-          <button 
-            onClick={() => navigate('/')}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-error hover:bg-error-container/20 transition-all duration-300 group"
-          >
-            <span className="material-symbols-rounded text-[22px]">logout</span>
-            <span className="font-semibold text-[15px]">Sign Out</span>
-          </button>
         </div>
       </aside>
 

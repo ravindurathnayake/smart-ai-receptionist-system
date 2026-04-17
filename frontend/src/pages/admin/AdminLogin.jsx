@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Logo from '../../components/common/Logo';
 import './AdminLogin.css';
 
 const AdminLogin = () => {
@@ -24,13 +25,8 @@ const AdminLogin = () => {
   return (
     <div className="login-container">
       <div className="login-card">
-        <div className="login-header">
-          <img 
-            src="https://lh3.googleusercontent.com/aida/ADBb0ujXwF6C1p4tSb8vEq_Vmwl_53J0InGaheovhXLH7KGxUAskWVzcmzRsAs4hNU6BDpnzzgqIddtDEE2uKDp7voQktbfUaXQqNCZbJy-zXfZepWAjM1L0U9AF10_W9r1H4ZajR8yZC60FtPSzwt4s6LU5DYKM4PuwSNmLqlHjnd1GpTrYwyE43IkdQkjzasfMPYu577RrcaQ7m44ZjDXHlFvqJh3bkIFwJbJEfn-rtsmpCtyZlecRtVcsOJwJGz1hb3L15Gl0yN9F_Q" 
-            alt="MediAssist AI Logo" 
-            className="login-logo"
-          />
-          <h1 className="login-title">Admin Console</h1>
+        <div className="login-header flex flex-col items-center">
+          <Logo size="lg" className="mb-6" />
           <p className="login-subtitle">Sign in to manage hospital operations.</p>
         </div>
 

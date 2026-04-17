@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import Logo from '../../components/common/Logo';
 import './KioskHome.css';
 
 const KioskHome = () => {
@@ -11,9 +12,10 @@ const KioskHome = () => {
       <header className="bg-transparent backdrop-blur-none w-full top-0 px-8 py-4 z-40 border-b border-outline-variant/10 shrink-0">
         <div className="flex justify-between items-center w-full max-w-[1920px] mx-auto">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <img alt="MediAssist AI Logo" className="h-16 w-auto object-contain cursor-pointer" onClick={() => navigate('/')} src="https://lh3.googleusercontent.com/aida/ADBb0ujXwF6C1p4tSb8vEq_Vmwl_53J0InGaheovhXLH7KGxUAskWVzcmzRsAs4hNU6BDpnzzgqIddtDEE2uKDp7voQktbfUaXQqNCZbJy-zXfZepWAjM1L0U9AF10_W9r1H4ZajR8yZC60FtPSzwt4s6LU5DYKM4PuwSNmLqlHjnd1GpTrYwyE43IkdQkjzasfMPYu577RrcaQ7m44ZjDXHlFvqJh3bkIFwJbJEfn-rtsmpCtyZlecRtVcsOJwJGz1hb3L15Gl0yN9F_Q" />
-            </div>
+            <Logo 
+              className="cursor-pointer" 
+              onClick={() => navigate('/')} 
+            />
             <div className="h-8 w-px bg-outline-variant/30 mx-4"></div>
             <div className="flex gap-4">
               <button className="px-6 py-2 rounded-full bg-primary text-white font-bold shadow-lg shadow-primary/20">English</button>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Logo from '../../components/common/Logo';
 import './KioskManualCheckIn.css';
 
 // ─── Shared Components (identical to KioskAIAssistant) ────────────────────────
@@ -18,11 +19,7 @@ const SideNav = () => {
     return (
         <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0">
             <div className="p-6 pb-4 cursor-pointer" onClick={() => navigate('/')}>
-                <img
-                    alt="MediAssist AI Logo"
-                    className="h-auto w-full object-contain"
-                    src="https://lh3.googleusercontent.com/aida/ADBb0ujXwF6C1p4tSb8vEq_Vmwl_53J0InGaheovhXLH7KGxUAskWVzcmzRsAs4hNU6BDpnzzgqIddtDEE2uKDp7voQktbfUaXQqNCZbJy-zXfZepWAjM1L0U9AF10_W9r1H4ZajR8yZC60FtPSzwt4s6LU5DYKM4PuwSNmLqlHjnd1GpTrYwyE43IkdQkjzasfMPYu577RrcaQ7m44ZjDXHlFvqJh3bkIFwJbJEfn-rtsmpCtyZlecRtVcsOJwJGz1hb3L15Gl0yN9F_Q"
-                />
+                <Logo size="sm" className="w-full" />
             </div>
             <nav className="flex-1 flex flex-col px-3 mt-4 gap-1">
                 {navItems.map(({ icon, label, path, active }) => (
