@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
+import { apiService } from '../../services/apiService';
 import './KioskSessions.css';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -231,8 +232,39 @@ const slotIcon  = { morning: 'light_mode', afternoon: 'partly_cloudy_day', eveni
 const slotColor = { morning: 'text-orange-400', afternoon: 'text-blue-400', evening: 'text-indigo-400' };
 const slotLabel = { morning: 'Morning Slots', afternoon: 'Afternoon Slots', evening: 'Evening Slots' };
 
-const SessionPanel = ({ selectedDate, onDateSelect, selectedSlot, onSlotSelect }) => {
+const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlotSelect }) => {
     const navigate = useNavigate();
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleConfirm = async () => {
+        if (!selectedSlot || !doctor) return;
+        
+        setSubmitting(true);
+        try {
+            // Mocking patient name from UI state or localStorage
+            const patientName = "Anura Perera";
+            const phoneNumber = "0712345678";
+            
+            const response = await apiService.bookAppointment({
+                full_name: patientName,
+                phone_number: phoneNumber,
+                specialist_id: doctor.id,
+                symptom: "General consultation",
+                appointment_date: selectedDate
+            });
+            
+            if (response.data) {
+                // Store appointment details for the queue status page
+                localStorage.setItem('last_appointment', JSON.stringify(response.data));
+                navigate('/queue');
+            }
+        } catch (err) {
+            console.error('Failed to book appointment:', err);
+            alert('Failed to book appointment. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
     return (
         <div className="flex-1 bg-white flex flex-col overflow-hidden relative">
             <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-6">
@@ -349,15 +381,15 @@ const SessionPanel = ({ selectedDate, onDateSelect, selectedSlot, onSlotSelect }
                         ← Back to Search
                     </button>
                     <button
-                        onClick={() => navigate('/queue')}
-                        disabled={!selectedSlot}
+                        onClick={handleConfirm}
+                        disabled={!selectedSlot || submitting}
                         className={`flex-[2] py-3.5 px-6 rounded-full font-bold text-sm transition-all ${
-                            selectedSlot
+                            selectedSlot && !submitting
                                 ? 'bg-gradient-to-br from-primary to-primary-container text-white shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]'
                                 : 'bg-surface-container-highest text-outline cursor-not-allowed'
                         }`}
                     >
-                        Confirm Appointment
+                        {submitting ? 'Confirming...' : 'Confirm Appointment'}
                     </button>
                 </div>
             </div>
@@ -399,8 +431,25 @@ const AIFloatingBtn = () => {
  * Date strip scrolls horizontally; time slot section scrolls vertically.
  */
 const KioskSessions = () => {
+    const location = useLocation();
+    const doctor = location.state?.doctor;
     const [selectedDate, setSelectedDate] = useState(DATES[0].iso);
     const [selectedSlot, setSelectedSlot] = useState(null);
+
+    if (!doctor) {
+        // Fallback for demo if no doctor was passed
+        return (
+            <div className="w-screen h-screen flex flex-col items-center justify-center bg-surface">
+                <h2 className="text-2xl font-bold mb-4">Please select a doctor first</h2>
+                <button 
+                    onClick={() => window.history.back()}
+                    className="bg-primary text-white px-6 py-2 rounded-full font-bold"
+                >
+                    Go Back
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
@@ -423,6 +472,7 @@ const KioskSessions = () => {
 
                     {/* Right: Session selection */}
                     <SessionPanel
+                        doctor={doctor}
                         selectedDate={selectedDate}
                         onDateSelect={setSelectedDate}
                         selectedSlot={selectedSlot}

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
+import { apiService } from '../../services/apiService';
 import './KioskManualCheckIn.css';
 
 // ─── Shared Components (identical to KioskAIAssistant) ────────────────────────
@@ -157,15 +158,47 @@ const KioskManualCheckIn = () => {
     const navigate = useNavigate();
     const [form, setForm] = useState({ name: '', phone: '', nic: '' });
     const [submitted, setSubmitted] = useState(false);
+    const [bookingData, setBookingData] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (field) => (e) =>
         setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
     const isValid = form.name.trim() && (form.phone.trim() || form.nic.trim());
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isValid) setSubmitted(true);
+        if (!isValid) return;
+
+        setLoading(true);
+        try {
+            // For manual check-in, we'll assign them to General Practitioner (likely ID 1 or first available)
+            const specialistsResponse = await apiService.getSpecialists();
+            const gp = specialistsResponse.data?.find(s => s.department === 'General Medicine' || s.department === 'OPD') || specialistsResponse.data?.[0];
+            
+            if (!gp) {
+                alert('No specialists available for check-in.');
+                return;
+            }
+
+            const response = await apiService.bookAppointment({
+                full_name: form.name,
+                phone_number: form.phone || "N/A",
+                specialist_id: gp.id,
+                symptom: "Manual check-in",
+                appointment_date: new Date().toISOString().split('T')[0]
+            });
+
+            if (response.data) {
+                setBookingData(response.data);
+                setSubmitted(true);
+            }
+        } catch (err) {
+            console.error('Check-in error:', err);
+            alert('Check-in failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -215,7 +248,7 @@ const KioskManualCheckIn = () => {
                                 </p>
                                 <div className="flex items-center gap-3 bg-surface-container-low px-6 py-3 rounded-2xl mt-2">
                                     <span className="material-symbols-outlined text-primary">confirmation_number</span>
-                                    <span className="font-bold text-on-surface text-sm">Token #B-042 • Counter 3</span>
+                                    <span className="font-bold text-on-surface text-sm">Token #A-{bookingData?.queue_number?.toString().padStart(2, '0')} • Room 04</span>
                                 </div>
                                 <div className="flex gap-4 mt-4">
                                     <button
@@ -279,15 +312,15 @@ const KioskManualCheckIn = () => {
                                 {/* Submit */}
                                 <button
                                     type="submit"
-                                    disabled={!isValid}
+                                    disabled={!isValid || loading}
                                     className={`submit-btn w-full py-4 rounded-full text-xl font-bold flex items-center justify-center gap-3 shadow-xl shrink-0 ${
-                                        isValid
+                                        isValid && !loading
                                             ? 'bg-gradient-to-r from-primary to-primary-container text-white'
                                             : 'bg-surface-container-highest text-outline cursor-not-allowed'
                                     }`}
                                 >
-                                    <span>Continue to Verification</span>
-                                    <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+                                    <span>{loading ? 'Verifying...' : 'Continue to Verification'}</span>
+                                    {!loading && <span className="material-symbols-outlined text-2xl">arrow_forward</span>}
                                 </button>
                             </form>
                         )}

@@ -1,13 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiService } from '../../services/apiService';
 import './AdminAppointments.css';
 
 const AdminAppointments = () => {
-  const appointments = [
-    { id: '#APT-9821', patient: 'Kumara Sangakkara', dr: 'Dr. Aruni Perera', time: '09:30 AM', date: 'Today', status: 'Confirmed', type: 'Consultation' },
-    { id: '#APT-9822', patient: 'Mahela Jayawardene', dr: 'Dr. Silva', time: '10:15 AM', date: 'Today', status: 'Pending', type: 'Follow-up' },
-    { id: '#APT-9823', patient: 'Lasith Malinga', dr: 'Dr. Wickrama', time: '11:00 AM', date: 'Today', status: 'Confirmed', type: 'Orthopedics' },
-    { id: '#APT-9824', patient: 'Chamari Athapaththu', dr: 'Dr. Perera', time: '02:00 PM', date: 'Today', status: 'Checked-in', type: 'General' },
-  ];
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        const response = await apiService.getAllAppointments();
+        if (response.data) {
+          setAppointments(response.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch appointments:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAppointments();
+  }, []);
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -59,7 +72,11 @@ const AdminAppointments = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/10">
-            {appointments.map((apt, idx) => (
+            {loading ? (
+              <tr><td colSpan="6" className="text-center py-10">Loading appointments...</td></tr>
+            ) : appointments.length === 0 ? (
+              <tr><td colSpan="6" className="text-center py-10">No appointments found.</td></tr>
+            ) : appointments.map((apt, idx) => (
               <tr key={idx} className="group">
                 <td className="px-8 py-6">
                   <p className="font-bold text-on-surface text-sm">{apt.id}</p>
@@ -103,7 +120,7 @@ const AdminAppointments = () => {
         
         {/* Pagination/Summary */}
         <div className="p-8 border-t border-outline-variant/10 flex items-center justify-between">
-          <p className="text-sm text-on-surface-variant font-medium">Showing <span className="font-bold text-on-surface">1 - 4</span> of 64 appointments</p>
+          <p className="text-sm text-on-surface-variant font-medium">Showing <span className="font-bold text-on-surface">1 - {appointments.length}</span> of {appointments.length} appointments</p>
           <div className="flex gap-2">
             <button className="p-2 bg-surface-container rounded-lg text-outline cursor-not-allowed">
               <span className="material-symbols-rounded">chevron_left</span>

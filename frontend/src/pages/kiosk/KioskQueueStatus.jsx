@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
+import { apiService } from '../../services/apiService';
 import './KioskQueueStatus.css';
 
 // ─── Shared Sub-components (EXACT match to KioskAIAssistant) ─────────────────
@@ -164,7 +165,7 @@ const JourneyStep = ({ icon, label, status, isLast }) => {
 
 // ─── Primary Queue Card ───────────────────────────────────────────────────────
 
-const PrimaryQueueCard = () => (
+const PrimaryQueueCard = ({ stats }) => (
     <div className="col-span-8 glass-card rounded-[2rem] p-8 flex flex-col justify-between shadow-[0_12px_40px_rgba(0,71,141,0.06)] relative overflow-hidden border border-white/40">
         {/* Serving vs ticket row */}
         <div className="relative z-10">
@@ -174,7 +175,9 @@ const PrimaryQueueCard = () => (
                         Currently Serving
                     </span>
                     <div className="mt-3 flex items-baseline gap-4">
-                        <span className="font-headline text-7xl font-black text-primary leading-none">#142</span>
+                        <span className="font-headline text-7xl font-black text-primary leading-none">
+                            {stats.current_serving !== '---' ? stats.current_serving : '--'}
+                        </span>
                         <span className="text-on-surface-variant font-medium text-sm">Counter 04</span>
                     </div>
                 </div>
@@ -183,21 +186,21 @@ const PrimaryQueueCard = () => (
                     <span className="font-headline text-5xl font-bold text-on-surface">#148</span>
                 </div>
             </div>
-
+ 
             {/* Wait time row */}
             <div className="bg-surface-container-low/60 rounded-2xl p-5 flex items-center gap-6">
                 <div className="w-14 h-14 rounded-full border-4 border-primary/20 flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-3xl text-primary">schedule</span>
                 </div>
                 <div>
-                    <h3 className="text-2xl font-extrabold text-on-surface font-headline">~ 18 mins</h3>
+                    <h3 className="text-2xl font-extrabold text-on-surface font-headline">~ {stats.estimated_wait}</h3>
                     <p className="text-on-surface-variant text-sm">Estimated wait until your turn</p>
                 </div>
                 <div className="ml-auto bg-secondary-container text-on-secondary-container px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shrink-0">
                     <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
                         person_search
                     </span>
-                    6 people ahead
+                    {stats.total_waiting} people ahead
                 </div>
             </div>
         </div>
@@ -384,7 +387,35 @@ const AIFloatingTag = () => {
  *   • AI card replaced with horizontally-scrollable Upcoming Appointments card
  *   • Floating AI FAB pinned to bottom-right corner
  */
-const KioskQueueStatus = () => (
+const KioskQueueStatus = () => {
+    const [stats, setStats] = useState({
+        current_serving: '---',
+        total_waiting: 0,
+        estimated_wait: '0m'
+    });
+
+    const fetchQueue = async () => {
+        try {
+            const response = await apiService.getQueueStatus();
+            if (response.data) {
+                setStats({
+                    current_serving: response.data.current_serving ? `#${response.data.current_serving.toString().padStart(3, '0')}` : '---',
+                    total_waiting: response.data.total_waiting,
+                    estimated_wait: `${response.data.estimated_wait_time} mins`
+                });
+            }
+        } catch (err) {
+            console.error('Failed to fetch queue status:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchQueue();
+        const interval = setInterval(fetchQueue, 15000); // Kiosk refreshes faster
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
     <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
         {/* ── Left Sidebar (KioskAIAssistant style) ── */}
         <SideNav />
@@ -416,7 +447,7 @@ const KioskQueueStatus = () => (
                 {/* Bento grid */}
                 <div className="grid grid-cols-12 gap-5 flex-1 min-h-0">
                     {/* Primary Queue Card — 8 cols */}
-                    <PrimaryQueueCard />
+                    <PrimaryQueueCard stats={stats} />
 
                     {/* Right column — 4 cols, two stacked cards */}
                     <div className="col-span-4 flex flex-col gap-4 min-h-0 overflow-hidden">
@@ -430,7 +461,8 @@ const KioskQueueStatus = () => (
         {/* ── Floating AI Tag (bottom-right) ── */}
         <AIFloatingTag />
     </div>
-);
+    );
+};
 
 
 export default KioskQueueStatus;

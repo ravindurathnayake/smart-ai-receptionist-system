@@ -1,14 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiService } from '../../services/apiService';
 import './AdminQueue.css';
 
 const AdminQueue = () => {
-  const queueData = [
-    { token: 'A-24', patient: 'Kasun Perera', doctor: 'Dr. Silva', status: 'In Session', waitTime: '34m', room: '04' },
-    { token: 'A-25', patient: 'Dilini Jayasekara', doctor: 'Dr. Perera', status: 'Next', waitTime: '28m', room: '01' },
-    { token: 'B-09', patient: 'Sahan Mendis', doctor: 'Dr. Wickrama', status: 'Waiting', waitTime: '15m', room: '12' },
-    { token: 'A-26', patient: 'Mary de Silva', doctor: 'Dr. Perera', status: 'Waiting', waitTime: '12m', room: '01' },
-    { token: 'C-02', patient: 'Nuwan Perera', doctor: 'Physio Team', status: 'Waiting', waitTime: '5m', room: '15' },
-  ];
+  const [queueData, setQueueData] = useState([]);
+  const [stats, setStats] = useState({
+    current_serving: '0',
+    total_waiting: 0,
+    estimated_wait: '0m'
+  });
+
+  const fetchQueue = async () => {
+    try {
+      const data = await apiService.getQueueStatus();
+      if (data.data) {
+        setQueueData(data.data.queue);
+        setStats({
+          current_serving: data.data.current_serving ? `A-${data.data.current_serving.toString().padStart(2, '0')}` : '---',
+          total_waiting: data.data.total_waiting,
+          estimated_wait: `${data.data.estimated_wait_time}m`
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch queue:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueue();
+    const interval = setInterval(fetchQueue, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleAction = async (id, action) => {
+    try {
+      await apiService.updateQueueStatus(id, action);
+      fetchQueue();
+    } catch (err) {
+      console.error(`Failed to ${action} queue item:`, err);
+    }
+  };
 
   return (
     <div className="queue-wrapper admin-page-transition">
@@ -29,17 +60,17 @@ const AdminQueue = () => {
       <div className="queue-stats-grid">
         <div className="queue-stat-card">
            <p className="text-[10px] font-black text-outline uppercase mb-2 tracking-widest">Currently Serving</p>
-           <p className="text-4xl font-black text-primary font-display">A-24</p>
+           <p className="text-4xl font-black text-primary font-display">{stats.current_serving}</p>
            <p className="text-[10px] text-on-surface-variant mt-2 font-bold uppercase tracking-wider">Counter 01 • Room 04</p>
         </div>
         <div className="queue-stat-card">
            <p className="text-[10px] font-black text-outline uppercase mb-2 tracking-widest">Average Wait</p>
-           <p className="text-4xl font-black text-secondary font-display">18m</p>
+           <p className="text-4xl font-black text-secondary font-display">{stats.estimated_wait}</p>
            <p className="text-[10px] text-on-surface-variant mt-2 font-bold uppercase tracking-wider">Last hour: 22m</p>
         </div>
         <div className="queue-stat-card">
            <p className="text-[10px] font-black text-outline uppercase mb-2 tracking-widest">Critical Wait</p>
-           <p className="text-4xl font-black text-error font-display">02</p>
+           <p className="text-4xl font-black text-error font-display">{stats.total_waiting}</p>
            <p className="text-[10px] text-on-surface-variant mt-2 font-bold uppercase tracking-wider italic">Wait time &gt; 45m</p>
         </div>
         <div className="queue-stat-card">
@@ -98,12 +129,18 @@ const AdminQueue = () => {
                    <p className={`text-xl font-black font-display ${parseInt(item.waitTime) > 30 ? 'text-error animate-pulse' : 'text-on-surface'}`}>{item.waitTime}</p>
                 </div>
                 <div className="flex gap-2">
-                   <button className="w-12 h-12 bg-surface-container rounded-2xl flex items-center justify-center text-outline hover:bg-primary hover:text-white transition-all shadow-sm">
-                     <span className="material-symbols-rounded">call_forward</span>
-                   </button>
-                   <button className="w-12 h-12 bg-surface-container rounded-2xl flex items-center justify-center text-outline hover:bg-error hover:text-white transition-all shadow-sm">
-                     <span className="material-symbols-rounded">block</span>
-                   </button>
+                    <button 
+                      onClick={() => handleAction(item.id, 'complete')}
+                      className="w-12 h-12 bg-surface-container rounded-2xl flex items-center justify-center text-outline hover:bg-primary hover:text-white transition-all shadow-sm"
+                    >
+                      <span className="material-symbols-rounded">call_forward</span>
+                    </button>
+                    <button 
+                      onClick={() => handleAction(item.id, 'cancel')}
+                      className="w-12 h-12 bg-surface-container rounded-2xl flex items-center justify-center text-outline hover:bg-error hover:text-white transition-all shadow-sm"
+                    >
+                      <span className="material-symbols-rounded">block</span>
+                    </button>
                 </div>
               </div>
             ))}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
+import { apiService } from '../../services/apiService';
 import './KioskAIAssistant.css';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -109,7 +110,7 @@ const TopBar = () => {
 };
 
 /** AI response / chat bubble panel */
-const AIChatPanel = ({ inputValue, setInputValue }) => {
+const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping }) => {
     const suggestions = [
         '"Where is the Cardiology wing?"',
         '"Show my prescription history"',
@@ -142,34 +143,57 @@ const AIChatPanel = ({ inputValue, setInputValue }) => {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                         </span>
-                        <p className="text-green-600 text-xs font-bold tracking-wide uppercase">Listening…</p>
+                        <p className="text-green-600 text-xs font-bold tracking-wide uppercase">
+                            {isTyping ? 'Thinking…' : 'Listening…'}
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* AI message bubble */}
-            <div className="relative z-10 space-y-5">
-                <div className="bg-white/60 rounded-2xl px-7 py-5 text-lg leading-relaxed text-on-surface font-medium border border-slate-100/50">
-                    "I've recognized you, Anura. I've retrieved your profile. How can I help you today?"
-                </div>
+            <div className="relative z-10 space-y-5 max-h-[300px] overflow-y-auto no-scrollbar mb-4">
+                {chatHistory.map((chat, idx) => (
+                    <div 
+                        key={idx} 
+                        className={`rounded-2xl px-7 py-5 text-lg leading-relaxed font-medium border border-slate-100/50 ${
+                            chat.role === 'user' 
+                                ? 'bg-primary/5 ml-auto max-w-[80%] text-on-surface' 
+                                : 'bg-white/60 mr-auto max-w-[90%] text-on-surface'
+                        }`}
+                    >
+                        "{chat.text}"
+                    </div>
+                ))}
+                {isTyping && (
+                    <div className="bg-white/60 mr-auto max-w-[90%] rounded-2xl px-7 py-5 border border-slate-100/50">
+                        <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
+                            <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-100" />
+                            <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-200" />
+                        </div>
+                    </div>
+                )}
+            </div>
 
-                {/* Quick suggestion chips */}
-                <div className="flex flex-wrap gap-2.5">
-                    {suggestions.map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => setInputValue(s.replace(/"/g, ''))}
-                            className="suggestion-btn px-5 py-3 bg-white border border-slate-100 text-slate-600 font-semibold rounded-xl text-sm shadow-sm"
-                        >
-                            {s}
-                        </button>
-                    ))}
-                </div>
+            {/* Quick suggestion chips */}
+            <div className="flex flex-wrap gap-2.5 mb-7">
+                {suggestions.map((s) => (
+                    <button
+                        key={s}
+                        onClick={() => setInputValue(s.replace(/"/g, ''))}
+                        className="suggestion-btn px-5 py-3 bg-white border border-slate-100 text-slate-600 font-semibold rounded-xl text-sm shadow-sm"
+                    >
+                        {s}
+                    </button>
+                ))}
             </div>
 
             {/* Input area */}
-            <div className="mt-7 relative z-10">
-                <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+            <div className="relative z-10">
+                <form 
+                    onSubmit={(e) => { e.preventDefault(); onSend(); }}
+                    className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/10 transition-all"
+                >
                     <div className="w-11 h-11 flex items-center justify-center text-primary flex-shrink-0">
                         <span className="material-symbols-outlined text-3xl">mic</span>
                     </div>
@@ -180,10 +204,14 @@ const AIChatPanel = ({ inputValue, setInputValue }) => {
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                     />
-                    <button className="bg-primary text-white w-11 h-11 flex items-center justify-center rounded-xl shadow-md hover:opacity-90 transition-opacity flex-shrink-0">
+                    <button 
+                        type="submit"
+                        disabled={!inputValue.trim() || isTyping}
+                        className="bg-primary text-white w-11 h-11 flex items-center justify-center rounded-xl shadow-md hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-50"
+                    >
                         <span className="material-symbols-outlined">send</span>
                     </button>
-                </div>
+                </form>
             </div>
         </div>
     );
@@ -198,6 +226,29 @@ const AIChatPanel = ({ inputValue, setInputValue }) => {
  */
 const KioskAIAssistant = () => {
     const [inputValue, setInputValue] = useState('');
+    const [chatHistory, setChatHistory] = useState([
+        { role: 'bot', text: "I've recognized you, Anura. I've retrieved your profile. How can I help you today?" }
+    ]);
+    const [isTyping, setIsTyping] = useState(false);
+
+    const handleSend = async () => {
+        if (!inputValue.trim()) return;
+
+        const userMessage = inputValue.trim();
+        setChatHistory(prev => [...prev, { role: 'user', text: userMessage }]);
+        setInputValue('');
+        setIsTyping(true);
+
+        try {
+            const response = await apiService.chatAI(userMessage);
+            setChatHistory(prev => [...prev, { role: 'bot', text: response.reply || response.message || "I'm sorry, I couldn't process that." }]);
+        } catch (err) {
+            console.error('AI Chat Error:', err);
+            setChatHistory(prev => [...prev, { role: 'bot', text: "Error connecting to AI service. Please try again." }]);
+        } finally {
+            setIsTyping(false);
+        }
+    };
 
     return (
         <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
@@ -228,7 +279,13 @@ const KioskAIAssistant = () => {
 
                     {/* AI Chat Panel */}
                     <div className="w-full max-w-4xl">
-                        <AIChatPanel inputValue={inputValue} setInputValue={setInputValue} />
+                        <AIChatPanel 
+                            inputValue={inputValue} 
+                            setInputValue={setInputValue} 
+                            chatHistory={chatHistory}
+                            onSend={handleSend}
+                            isTyping={isTyping}
+                        />
                     </div>
 
                     {/* Footer note */}

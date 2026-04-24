@@ -6,7 +6,8 @@ from app.services import (
     get_queue_status,
     get_all_specialists,
     complete_queue,
-    cancel_appointment
+    cancel_appointment,
+    get_all_appointments
 )
 
 from app.utils.response import success_response, error_response
@@ -104,5 +105,14 @@ def cancel_appointment_route(appointment_id):
 
         return success_response("Appointment cancelled successfully", result)
 
+    except Exception as e:
+        return error_response(str(e), 500)
+
+# GET ALL APPOINTMENTS (Admin)
+@appointment_bp.route("/appointments", methods=["GET"])
+def get_all_appointments_route():
+    try:
+        appointments = get_all_appointments()
+        return success_response("Appointments retrieved successfully", appointments)
     except Exception as e:
         return error_response(str(e), 500)

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
+import { apiService } from '../../services/apiService';
 import './KioskSearchDoctors.css';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -244,7 +245,7 @@ const DoctorCard = ({ doctor }) => {
 
             {/* CTA button */}
             <button
-                onClick={() => navigate('/sessions')}
+                onClick={() => navigate('/sessions', { state: { doctor } })}
                 className={`w-full py-3 rounded-full font-bold text-sm tracking-wide transition-all hover:scale-[1.02] active:scale-95 ${featured
                     ? 'bg-gradient-to-r from-primary to-primary-container text-white shadow-lg shadow-primary/20'
                     : 'bg-surface-container-highest text-on-primary-fixed-variant hover:bg-primary-fixed'
@@ -285,13 +286,44 @@ const AIFloatingChip = () => {
  * Layout: [SideNav (KioskAIAssistant-style) | TopBar + search bar + specialty chips + 3-col doctor grid]
  */
 const KioskSearchDoctors = () => {
+    const [doctors, setDoctors] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeSpecialty, setSpecialty] = useState('All');
     const [dateFilter, setDateFilter] = useState('');
+    const [loading, setLoading] = useState(true);
 
-    const filtered = DOCTORS.filter((d) => {
+    useEffect(() => {
+        const fetchDoctors = async () => {
+            try {
+                const response = await apiService.getSpecialists();
+                if (response.data) {
+                    // Map backend data to frontend format
+                    const mapped = response.data.map(d => ({
+                        id: d.id,
+                        name: d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`,
+                        specialty: d.department,
+                        rating: 4.8, // Fallback
+                        reviews: 42,  // Fallback
+                        nextSlot: 'Tomorrow, 10:00 AM', // Fallback
+                        featured: false,
+                        photo: null // Fallback
+                    }));
+                    setDoctors(mapped);
+                }
+            } catch (err) {
+                console.error('Failed to fetch doctors:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDoctors();
+    }, []);
+
+    const filtered = doctors.filter((d) => {
         const matchName = d.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchSpec = activeSpecialty === 'All' || d.specialty === activeSpecialty;
+        const matchSpec = activeSpecialty === 'All' || 
+                         d.specialty.toLowerCase().includes(activeSpecialty.toLowerCase().replace('ist', '')) ||
+                         activeSpecialty.toLowerCase().includes(d.specialty.toLowerCase().replace('ology', ''));
         return matchName && matchSpec;
     });
 
@@ -431,7 +463,11 @@ const KioskSearchDoctors = () => {
 
                     {/* ── Doctor Cards Grid (vertically scrollable, hidden scrollbar) ── */}
                     <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
-                        {filtered.length === 0 ? (
+                        {loading ? (
+                            <div className="h-full flex items-center justify-center">
+                                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        ) : filtered.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-center">
                                 <span className="material-symbols-outlined text-5xl text-outline/40 mb-3">search_off</span>
                                 <p className="font-bold text-on-surface-variant">No doctors found matching your criteria.</p>

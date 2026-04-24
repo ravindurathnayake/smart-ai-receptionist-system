@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
+import { apiService } from '../../services/apiService';
 import './AdminLogin.css';
 
 const AdminLogin = () => {
@@ -9,15 +10,19 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     
-    // Mock Verification Logic
-    if (username.trim() && password.trim()) {
-      // For demonstration, any non-empty input is "verified"
-      navigate('/admin');
-    } else {
-      setError('Please enter valid credentials.');
+    try {
+      const response = await apiService.login(username, password);
+      if (response.user) {
+        // Store token in localStorage
+        localStorage.setItem('admin_token', response.user.token);
+        localStorage.setItem('admin_user', JSON.stringify(response.user));
+        navigate('/admin');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid credentials. Please try again.');
       setTimeout(() => setError(''), 3000);
     }
   };

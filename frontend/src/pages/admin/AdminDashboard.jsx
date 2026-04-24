@@ -1,26 +1,62 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiService } from '../../services/apiService';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
-  const stats = [
-    { label: 'Total Patients Today', value: '142', subValue: '+12% from yesterday', icon: 'person', color: 'primary' },
-    { label: 'Active Queue', value: '18', subValue: 'Avg wait: 12m', icon: 'queue', color: 'secondary' },
-    { label: 'Appointments Count', value: '64', subValue: '12 remaining', icon: 'calendar_today', color: 'tertiary' },
-    { label: 'Completed Visits', value: '88', subValue: 'Efficiency: 94%', icon: 'task_alt', color: 'success' },
-  ];
+  const [stats, setStats] = useState([
+    { label: 'Total Patients Today', value: '0', subValue: 'Refreshing...', icon: 'person', color: 'primary' },
+    { label: 'Active Queue', value: '0', subValue: 'Refreshing...', icon: 'queue', color: 'secondary' },
+    { label: 'Appointments Count', value: '0', subValue: 'Refreshing...', icon: 'calendar_today', color: 'tertiary' },
+    { label: 'Completed Visits', value: '0', subValue: 'Refreshing...', icon: 'task_alt', color: 'success' },
+  ]);
 
-  const queueItems = [
-    { token: 'A-24', patient: 'Kasun Perera', doctor: 'Dr. Silva (Cardiology)', type: 'General Checkup', wait: 'Called' },
-    { token: 'A-25', patient: 'Dilini Jayasekara', doctor: 'Dr. Perera (GP)', type: 'Persistent Fever', wait: '12m' },
-    { token: 'B-09', patient: 'Sahan Mendis', doctor: 'Dr. Wickrama (Orthopedics)', type: 'Fracture Follow-up', wait: '8m' },
-    { token: 'A-26', patient: 'Mary de Silva', doctor: 'Dr. Perera (GP)', type: 'Health Certificate', wait: 'In Parking' },
-  ];
+  const [queueItems, setQueueItems] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const doctors = [
-    { name: 'Dr. Kamal Perera', specialty: 'General Physician', status: 'In Session', room: 'Room 01' },
-    { name: 'Dr. Harshani Silva', specialty: 'Cardiologist', status: 'Available', room: 'Room 04' },
-    { name: 'Dr. Nimal Wickrama', specialty: 'Orthopedics', status: 'On Break', room: 'Room 12' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const queueResponse = await apiService.getQueueStatus();
+        const specialistsResponse = await apiService.getSpecialists();
+
+        if (queueResponse.data) {
+          const qData = queueResponse.data;
+          setStats([
+            { label: 'Total Patients Today', value: (qData.total_waiting + qData.current_serving).toString(), subValue: 'Real-time', icon: 'person', color: 'primary' },
+            { label: 'Active Queue', value: qData.total_waiting.toString(), subValue: `Next: #${qData.current_serving}`, icon: 'queue', color: 'secondary' },
+            { label: 'Appointments Count', value: qData.queue.length.toString(), subValue: 'Booked today', icon: 'calendar_today', color: 'tertiary' },
+            { label: 'Completed Visits', value: '0', subValue: 'N/A', icon: 'task_alt', color: 'success' },
+          ]);
+
+          setQueueItems(qData.queue.map(item => ({
+            token: item.token,
+            patient: item.patient,
+            doctor: `${item.doctor} (${item.room || 'Room 04'})`,
+            type: item.status,
+            wait: item.waitTime
+          })));
+        }
+
+        if (specialistsResponse.data) {
+          setDoctors(specialistsResponse.data.map(d => ({
+            name: d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`,
+            specialty: d.department,
+            status: 'Available', // Fallback
+            room: 'Room 04' // Fallback
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000); // 30s refresh
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="admin-dashboard-wrapper admin-page-transition">

@@ -14,7 +14,8 @@ class Appointment(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationship
+    # Relationships
+    specialist = db.relationship("Specialist", backref="appointments", lazy=True)
     queue = db.relationship("Queue", backref="appointment", uselist=False)
 
     def __repr__(self):
