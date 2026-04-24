@@ -29,7 +29,10 @@ def get_dashboard_stats():
                 ).scalar() or 0.0
             },
             "queue": {
-                "active": Queue.query.filter(Queue.status == "Active").count(),
+                "active": Queue.query.filter(
+                    Queue.status == "Active",
+                    db.func.date(Queue.created_at) == today
+                ).count(),
                 "completed_today": Queue.query.filter(
                     Queue.status == "Completed",
                     db.func.date(Queue.completed_at) == today

@@ -114,40 +114,52 @@ const TopBar = ({ step = 1, totalSteps = 4, title = "Basic Information" }) => {
 
 const KioskRegistrationStep1 = () => {
   const navigate = useNavigate();
-  const [gender, setGender] = useState('Male');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    dob: '',
+    gender: 'Male',
+    phone: '',
+    email: '',
+    nic: '',
+    bloodGroup: '',
+    address: ''
+  });
 
-  const handleOtpChange = (index, value) => {
-    if (value.length > 1) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Auto focus next
-    if (value !== '' && index < 3) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      if (nextInput) nextInput.focus();
+  React.useEffect(() => {
+    const saved = localStorage.getItem('registrationData');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setFormData(prev => ({ ...prev, ...parsed }));
+      } catch (e) {
+        console.error("Failed to parse registrationData", e);
+      }
     }
+  }, []);
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      localStorage.setItem('registrationData', JSON.stringify(newData));
+      return newData;
+    });
   };
+
+  const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
   return (
     <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
-      {/* Sidebar */}
       <SideNav activeStep={0} />
 
-      {/* Main Area */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <div className="ai-pulse-bg top-1/4 left-1/4"></div>
         <div className="ai-pulse-bg bottom-1/4 right-1/4"></div>
 
-        {/* TopBar */}
         <TopBar step={1} totalSteps={4} title="Basic Information" />
 
-        {/* Registration Content */}
         <div className="flex-1 flex flex-col items-center p-8 overflow-hidden">
           <div className="max-w-4xl w-full flex flex-col h-full z-10">
 
-            {/* Hero Section */}
             <div className="text-center mb-8 shrink-0">
               <h1 className="text-4xl font-extrabold text-on-surface tracking-tight mb-3">Welcome to Your Care Journey</h1>
               <p className="text-on-surface-variant text-base max-w-2xl mx-auto leading-relaxed">
@@ -155,11 +167,9 @@ const KioskRegistrationStep1 = () => {
               </p>
             </div>
 
-            {/* Form Bento Card */}
             <div className="glass-card flex-1 rounded-[2.5rem] p-10 border border-outline-variant/10 shadow-[0_12px_40px_rgba(0,71,141,0.06)] relative overflow-hidden flex flex-col justify-between min-h-0">
               <div className="grid grid-cols-2 gap-x-12 gap-y-8 overflow-y-auto pr-4 custom-scrollbar">
 
-                {/* Full Name */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
                     <span className="material-symbols-outlined text-base">badge</span>
@@ -169,19 +179,24 @@ const KioskRegistrationStep1 = () => {
                     className="form-input-kiosk"
                     placeholder="Enter your full legal name"
                     type="text"
+                    value={formData.fullName}
+                    onChange={(e) => handleInputChange('fullName', e.target.value)}
                   />
                 </div>
 
-                {/* Date of Birth */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
                     <span className="material-symbols-outlined text-base">calendar_today</span>
                     Date of Birth
                   </label>
-                  <input className="form-input-kiosk" type="date" />
+                  <input 
+                    className="form-input-kiosk" 
+                    type="date" 
+                    value={formData.dob}
+                    onChange={(e) => handleInputChange('dob', e.target.value)}
+                  />
                 </div>
 
-                {/* Gender */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
                     <span className="material-symbols-outlined text-base">diversity_3</span>
@@ -191,8 +206,8 @@ const KioskRegistrationStep1 = () => {
                     {['Male', 'Female', 'Other'].map((g) => (
                       <button
                         key={g}
-                        onClick={() => setGender(g)}
-                        className={`py-3 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${gender === g ? 'btn-toggle-active' : 'btn-toggle-inactive'
+                        onClick={() => handleInputChange('gender', g)}
+                        className={`py-3 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${formData.gender === g ? 'btn-toggle-active' : 'btn-toggle-inactive'
                           }`}
                       >
                         {g === 'Male' && <span className="material-symbols-outlined text-lg">male</span>}
@@ -203,7 +218,25 @@ const KioskRegistrationStep1 = () => {
                   </div>
                 </div>
 
-                {/* Phone Number */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base">bloodtype</span>
+                    Blood Group
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {bloodGroups.map((bg) => (
+                      <button
+                        key={bg}
+                        onClick={() => handleInputChange('bloodGroup', bg)}
+                        className={`py-2 rounded-xl text-xs font-black transition-all ${formData.bloodGroup === bg ? 'bg-primary text-white shadow-md' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                          }`}
+                      >
+                        {bg}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
                     <span className="material-symbols-outlined text-base">call</span>
@@ -215,39 +248,12 @@ const KioskRegistrationStep1 = () => {
                       className="form-input-kiosk pl-16 w-full"
                       placeholder="77 123 4567"
                       type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
                     />
                   </div>
                 </div>
 
-                {/* OTP Verification */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
-                    <span className="material-symbols-outlined text-base">verified_user</span>
-                    Enter 4-Digit OTP
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    <div className="grid grid-cols-4 gap-3">
-                      {otp.map((digit, i) => (
-                        <input
-                          key={i}
-                          id={`otp-${i}`}
-                          className="otp-input"
-                          maxLength="1"
-                          value={digit}
-                          placeholder="0"
-                          onChange={(e) => handleOtpChange(i, e.target.value)}
-                          type="text"
-                        />
-                      ))}
-                    </div>
-                    <div className="flex justify-between items-center px-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider italic">Code expires in 01:59</span>
-                      <button className="text-[10px] text-primary font-bold uppercase tracking-wider hover:underline">Resend Code</button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Email Address */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
                     <span className="material-symbols-outlined text-base">mail</span>
@@ -257,10 +263,11 @@ const KioskRegistrationStep1 = () => {
                     className="form-input-kiosk"
                     placeholder="example@domain.com"
                     type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
                   />
                 </div>
 
-                {/* NIC Number */}
                 <div className="flex flex-col col-span-2 gap-2">
                   <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
                     <span className="material-symbols-outlined text-base">fingerprint</span>
@@ -270,11 +277,25 @@ const KioskRegistrationStep1 = () => {
                     className="form-input-kiosk"
                     placeholder="Enter your NIC number"
                     type="text"
+                    value={formData.nic}
+                    onChange={(e) => handleInputChange('nic', e.target.value)}
+                  />
+                </div>
+
+                <div className="flex flex-col col-span-2 gap-2">
+                  <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base">home</span>
+                    Residential Address
+                  </label>
+                  <textarea
+                    className="form-input-kiosk min-h-[80px] resize-none"
+                    placeholder="Enter your current residential address"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
                   />
                 </div>
               </div>
 
-              {/* Lower Section */}
               <div className="mt-8 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4 bg-slate-50 px-5 py-3 rounded-2xl border border-outline-variant/10">
                   <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-white">
@@ -295,7 +316,6 @@ const KioskRegistrationStep1 = () => {
               </div>
             </div>
 
-            {/* Step Progress Footer */}
             <div className="mt-8 flex justify-center items-center gap-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">
               <span className="flex items-center gap-2 text-primary">
                 <span className="w-2 h-2 bg-primary rounded-full"></span>
@@ -311,7 +331,6 @@ const KioskRegistrationStep1 = () => {
           </div>
         </div>
 
-        {/* Decoration */}
         <div className="fixed bottom-0 right-0 p-8 opacity-5 pointer-events-none select-none z-0">
           <span className="material-symbols-outlined text-[200px]" style={{ fontVariationSettings: "'wght' 100" }}>health_and_safety</span>
         </div>

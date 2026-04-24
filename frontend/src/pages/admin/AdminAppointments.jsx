@@ -5,28 +5,57 @@ import './AdminAppointments.css';
 const AdminAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedApt, setSelectedApt] = useState(null);
+
+  const fetchAppointments = async () => {
+    try {
+      const data = await apiService.getAllAppointments();
+      if (data) {
+        setAppointments(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch appointments:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        const response = await apiService.getAllAppointments();
-        if (response.data) {
-          setAppointments(response.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch appointments:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAppointments();
   }, []);
+
+  const handleCancel = async (aptId) => {
+    if (window.confirm("Are you sure you want to cancel this appointment?")) {
+      try {
+        await apiService.cancelAppointment(aptId);
+        fetchAppointments();
+      } catch (err) {
+        console.error("Cancel failed:", err);
+        alert("Failed to cancel appointment.");
+      }
+    }
+  };
+
+  const handleRescheduleSubmit = async (newDate) => {
+    try {
+      await apiService.rescheduleAppointment(selectedApt.raw_id, newDate);
+      setShowRescheduleModal(false);
+      fetchAppointments();
+    } catch (err) {
+      console.error("Reschedule failed:", err);
+      alert("Failed to reschedule.");
+    }
+  };
 
   const getStatusStyle = (status) => {
     switch (status) {
       case 'Confirmed': return 'bg-primary/10 text-primary border-primary/20';
+      case 'Booked': return 'bg-blue-50 text-blue-600 border-blue-100';
       case 'Pending': return 'bg-tertiary/10 text-tertiary border-tertiary/20';
       case 'Checked-in': return 'bg-secondary/10 text-secondary border-secondary/20';
+      case 'Cancelled': return 'bg-red-50 text-red-500 border-red-100';
+      case 'Completed': return 'bg-green-50 text-green-600 border-green-100';
       default: return 'bg-surface-container text-outline';
     }
   };
@@ -36,7 +65,7 @@ const AdminAppointments = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Appointment Management</h2>
-          <p className="text-sm text-on-surface-variant mt-1 font-medium">Manage and monitor patient bookings for today.</p>
+          <p className="text-sm text-on-surface-variant mt-1 font-medium">Manage and monitor patient bookings.</p>
         </div>
         <button className="bg-primary text-white px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
           <span className="material-symbols-rounded">add</span>
@@ -105,12 +134,20 @@ const AdminAppointments = () => {
                 </td>
                 <td className="px-8 py-6 text-right">
                   <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all">
-                      <span className="material-symbols-rounded text-xl">edit</span>
-                    </button>
-                    <button className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all">
-                      <span className="material-symbols-rounded text-xl">delete</span>
-                    </button>
+                    {apt.status !== 'Cancelled' && apt.status !== 'Completed' && (
+                      <>
+                        <button 
+                          onClick={() => { setSelectedApt(apt); setShowRescheduleModal(true); }}
+                          className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all" title="Reschedule">
+                          <span className="material-symbols-rounded text-xl">calendar_clock</span>
+                        </button>
+                        <button 
+                          onClick={() => handleCancel(apt.raw_id)}
+                          className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all" title="Cancel">
+                          <span className="material-symbols-rounded text-xl">cancel</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -131,6 +168,38 @@ const AdminAppointments = () => {
           </div>
         </div>
       </div>
+
+      {/* Reschedule Modal */}
+      {showRescheduleModal && selectedApt && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="p-8 border-b border-slate-100 bg-primary/5">
+              <h3 className="text-2xl font-bold text-on-surface font-display">Reschedule Appointment</h3>
+              <p className="text-sm text-on-surface-variant font-medium">Select a new date for {selectedApt.patient}</p>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleRescheduleSubmit(e.target.new_date.value);
+            }} className="p-8 space-y-6">
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">New Appointment Date</label>
+                <input 
+                  name="new_date"
+                  type="date"
+                  required
+                  min={new Date().toISOString().split('T')[0]}
+                  defaultValue={selectedApt.date}
+                  className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-4 rounded-2xl outline-none transition-all font-bold text-lg"
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setShowRescheduleModal(false)} className="flex-1 py-4 rounded-2xl font-bold text-outline hover:bg-slate-100 transition-all">Cancel</button>
+                <button type="submit" className="flex-[2] py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Update Date</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

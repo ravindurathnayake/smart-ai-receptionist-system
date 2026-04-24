@@ -51,7 +51,7 @@ const SESSIONS = {
 const SideNav = () => {
     const navigate = useNavigate();
     const navItems = [
-        { icon: 'home',             label: 'Home',                 path: '/' },
+        { icon: 'account_circle',   label: 'Personal Dashboard',   path: '/patient-dashboard' },
         { icon: 'smart_toy',        label: 'AI Assistant',         path: '/assistant' },
         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors', active: true  },
@@ -109,6 +109,17 @@ const SideNav = () => {
 
 const TopBar = () => {
     const navigate = useNavigate();
+    const [patient, setPatient] = useState(null);
+
+    useEffect(() => {
+        const savedPatient = localStorage.getItem('activePatient');
+        if (savedPatient) {
+            setPatient(JSON.parse(savedPatient));
+        }
+    }, []);
+
+    const patientName = patient?.full_name || patient?.name || 'Patient';
+
     return (
         <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
             <div className="flex items-center gap-3">
@@ -137,14 +148,12 @@ const TopBar = () => {
                 {/* Patient pill — exact match to KioskAIAssistant */}
                 <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
                     <div className="text-right">
-                        <p className="text-sm font-bold text-on-surface leading-none">Anura Perera</p>
+                        <p className="text-sm font-bold text-on-surface leading-none">{patientName}</p>
                         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
                     </div>
-                    <img
-                        alt="User profile photo"
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow-sm"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBht8v8MUCoalsCJKH_f177xanYgg1TmGV36SAVTRwabFw5fo8NfAwbNNXkZ-Mmo7Jn6eHWvlFVmsd8T9-FsJNR6ziPDbMF6GPVO954kIMIxX4MYklrUV0IPpfcfs4EFmWtou_-wjzEwT7BKIGNz0at73I4ilP-6BSIJ1lV8aFAriHreEzO4O-O4sWp_bjI2KvTyGQIx0fVPu_20gnSTy0H98j7V4Dxz38Ksq6fZDZmc2oOxRB8RUKmpo-a9aE5T_kZwNLVn0gm7Eg"
-                    />
+                    <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">
+                        {patientName.charAt(0)}
+                    </div>
                 </div>
             </div>
         </header>
@@ -257,14 +266,21 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
     const handleConfirm = async () => {
         if (!selectedSlot || !doctor) return;
         
+        const savedPatient = localStorage.getItem('activePatient');
+        if (!savedPatient) {
+            alert('Please sign in first.');
+            navigate('/patient-login');
+            return;
+        }
+
+        const patient = JSON.parse(savedPatient);
+        
         setSubmitting(true);
         try {
-            const patientName = "Anura Perera";
-            const phoneNumber = "0712345678";
-            
             const response = await apiService.bookAppointment({
-                full_name: patientName,
-                phone_number: phoneNumber,
+                full_name: patient.full_name || patient.name,
+                phone_number: patient.phone_number,
+                patient_id: patient.id, // Add this line
                 specialist_id: doctor.id,
                 symptom: "General consultation",
                 appointment_date: selectedDate,
@@ -272,8 +288,14 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
             });
             
             if (response) {
-                localStorage.setItem('last_appointment', JSON.stringify(response));
-                navigate('/queue');
+                // Update local storage with any new session info if needed
+                const appointmentData = {
+                    ...response,
+                    appointment_date: selectedDate,
+                    session_id: selectedSlot?.id || selectedSlot?.start_time
+                };
+                localStorage.setItem('last_appointment', JSON.stringify(appointmentData));
+                navigate('/payment', { state: { appointment: appointmentData, doctor: doctor } });
             }
         } catch (err) {
             console.error('Failed to book appointment:', err);

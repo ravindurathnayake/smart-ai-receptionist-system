@@ -22,18 +22,19 @@ const AdminDashboard = () => {
         const statsResponse = await apiService.getAdminStats();
 
         if (statsResponse) {
+          const nextToken = queueResponse?.current_serving ? `#${queueResponse.current_serving.toString().padStart(2, '0')}` : '---';
           setStats([
             { label: 'Total Patients', value: statsResponse.patients.total.toString(), subValue: `+${statsResponse.patients.new_today} today`, icon: 'person', color: 'primary' },
-            { label: 'Active Queue', value: statsResponse.queue.active.toString(), subValue: `Next: #${queueResponse.current_serving || '---'}`, icon: 'queue', color: 'secondary' },
+            { label: 'Active Queue', value: statsResponse.queue.active.toString(), subValue: `Next: ${nextToken}`, icon: 'queue', color: 'secondary' },
             { label: 'Appointments', value: statsResponse.appointments.total.toString(), subValue: `${statsResponse.appointments.today} today`, icon: 'calendar_today', color: 'tertiary' },
             { label: 'Revenue Today', value: `Rs. ${statsResponse.revenue.today.toLocaleString()}`, subValue: 'Real-time', icon: 'payments', color: 'success' },
           ]);
         }
 
         if (queueResponse) {
-          const qData = queueResponse;
-          setQueueItems(qData.queue.map(item => ({
-            token: item.token,
+          setQueueItems(queueResponse.queue.map(item => ({
+            id: item.id,
+            token: item.token, // This is now formatted 'A-01' from backend
             patient: item.patient,
             doctor: `${item.doctor} (${item.room || 'Room 04'})`,
             type: item.status,

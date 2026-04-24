@@ -117,6 +117,31 @@ const KioskRegistrationStep2 = () => {
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [details, setDetails] = useState('');
 
+    React.useEffect(() => {
+        const saved = localStorage.getItem('registrationData');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.symptomCategory) setSelectedCategory(parsed.symptomCategory);
+                if (parsed.symptomDetails) setDetails(parsed.symptomDetails);
+            } catch (e) {
+                console.error("Failed to parse registrationData", e);
+            }
+        }
+    }, []);
+
+    const handleNext = () => {
+        const saved = localStorage.getItem('registrationData') || '{}';
+        const parsed = JSON.parse(saved);
+        const newData = { 
+            ...parsed, 
+            symptomCategory: selectedCategory, 
+            symptomDetails: details 
+        };
+        localStorage.setItem('registrationData', JSON.stringify(newData));
+        navigate('/register/step3');
+    };
+
     const categories = [
         { id: 'checkup', icon: 'stethoscope', title: 'General Checkup', desc: 'Routine physical or screening', color: 'bg-primary-fixed' },
         { id: 'consultation', icon: 'chat', title: 'Consultation', desc: 'Discussing health concerns', color: 'bg-primary-fixed' },
@@ -128,10 +153,8 @@ const KioskRegistrationStep2 = () => {
 
     return (
         <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
-            {/* Sidebar */}
             <SideNav activeStep={1} />
 
-            {/* Main Area */}
             <main className="flex-1 flex flex-col overflow-hidden relative">
                 <div className="ai-pulse-bg top-1/4 left-1/4"></div>
                 <div className="ai-pulse-bg bottom-1/4 right-1/4"></div>
@@ -140,13 +163,11 @@ const KioskRegistrationStep2 = () => {
 
                 <div className="flex-1 flex flex-col items-center p-10 overflow-hidden">
                     <div className="max-w-5xl w-full flex flex-col h-full z-10">
-                        {/* Header */}
                         <div className="mb-8 p-2">
                             <h2 className="text-4xl font-extrabold text-on-surface tracking-tight mb-2">How are you feeling?</h2>
                             <p className="text-lg text-on-surface-variant font-medium">Please select the category that best describes your visit today.</p>
                         </div>
 
-                        {/* Bento Grid */}
                         <div className="grid grid-cols-3 gap-6 mb-8 shrink-0">
                             {categories.map((cat) => (
                                 <button
@@ -168,7 +189,6 @@ const KioskRegistrationStep2 = () => {
                             ))}
                         </div>
 
-                        {/* Textarea Area */}
                         <div className="flex-1 flex flex-col gap-3 min-h-0 mb-8">
                             <label className="text-sm font-bold font-headline text-on-surface ml-2 uppercase tracking-widest">Additional details (Optional)</label>
                             <textarea
@@ -179,7 +199,6 @@ const KioskRegistrationStep2 = () => {
                             />
                         </div>
 
-                        {/* Footer Buttons */}
                         <div className="flex justify-between items-center bg-white/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/50 shadow-sm shrink-0">
                             <button
                                 onClick={() => navigate('/register/step1')}
@@ -190,13 +209,13 @@ const KioskRegistrationStep2 = () => {
                             </button>
                             <div className="flex gap-4">
                                 <button
-                                    onClick={() => navigate('/register/step3')}
+                                    onClick={() => handleNext()}
                                     className="font-bold text-slate-500 hover:text-primary px-6 py-4 transition-colors"
                                 >
                                     Skip for Now
                                 </button>
                                 <button
-                                    onClick={() => navigate('/register/step3')}
+                                    onClick={() => handleNext()}
                                     className="btn-kiosk-action flex items-center gap-2 bg-primary text-white rounded-full px-12 py-4 shadow-xl shadow-primary/20 font-bold text-lg hover:scale-105 active:scale-95 transition-all"
                                 >
                                     Next Step
@@ -207,7 +226,6 @@ const KioskRegistrationStep2 = () => {
                     </div>
                 </div>
 
-                {/* Decoration */}
                 <div className="fixed bottom-0 right-0 p-8 opacity-5 pointer-events-none select-none z-0">
                     <span className="material-symbols-outlined text-[150px]" style={{ fontVariationSettings: "'wght' 100" }}>clinical_notes</span>
                 </div>

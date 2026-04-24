@@ -7,10 +7,17 @@ from app.services import (
     get_all_specialists,
     complete_queue,
     cancel_appointment,
-    get_all_appointments
+    get_all_appointments,
+    check_in_patient,
+    check_out_patient,
+    get_patient_queue_info,
+    move_appointment
 )
 
 from app.utils.response import success_response, error_response
+from app.services.email_service import send_appointment_confirmation
+from app.models import Patient, Payment, Appointment, Specialist
+from app.extensions import db
 
 appointment_bp = Blueprint("appointment_bp", __name__)
 
@@ -30,6 +37,7 @@ def book_appointment_route():
         symptom = data.get("symptom")
         appointment_date_str = data.get("appointment_date")
         session_id = data.get("session_id")
+        patient_id = data.get("patient_id")
 
         # Basic validation
         if not all([full_name, specialist_id, symptom, appointment_date_str]):
@@ -46,7 +54,8 @@ def book_appointment_route():
             specialist_id=specialist_id,
             symptom=symptom,
             appointment_date=appointment_date,
-            session_id=session_id
+            session_id=session_id,
+            patient_id=patient_id
         )
 
         if isinstance(result, dict) and result.get("error"):
@@ -117,4 +126,117 @@ def get_all_appointments_route():
         appointments = get_all_appointments()
         return success_response("Appointments retrieved successfully", appointments)
     except Exception as e:
+        return error_response(str(e), 500)
+
+# CHECK-IN PATIENT
+@appointment_bp.route("/check-in/<int:patient_id>", methods=["POST"])
+def check_in_patient_route(patient_id):
+    try:
+        result = check_in_patient(patient_id)
+        if result.get("error"):
+            return error_response(result["error"], 400)
+        return success_response("Patient checked in successfully", result)
+    except Exception as e:
+        return error_response(str(e), 500)
+
+# CHECK-OUT PATIENT
+@appointment_bp.route("/check-out/<int:patient_id>", methods=["POST"])
+def check_out_patient_route(patient_id):
+    try:
+        result = check_out_patient(patient_id)
+        if result.get("error"):
+            return error_response(result["error"], 400)
+        return success_response("Patient checked out successfully", result)
+    except Exception as e:
+        return error_response(str(e), 500)
+
+# GET PATIENT QUEUE INFO
+@appointment_bp.route("/queue-status/patient/<int:patient_id>", methods=["GET"])
+def patient_queue_status_route(patient_id):
+    try:
+        result = get_patient_queue_info(patient_id)
+        if not result:
+            return success_response("No active queue found for this patient", None)
+        return success_response("Patient queue status retrieved successfully", result)
+    except Exception as e:
+        return error_response(str(e), 500)
+
+# MOVE/RESCHEDULE APPOINTMENT
+@appointment_bp.route("/move-appointment/<int:appointment_id>", methods=["POST"])
+def reschedule_appointment(appointment_id):
+    try:
+        data = request.get_json()
+        new_date_str = data.get("new_date")
+        new_session_id = data.get("session_id")
+        
+        if not new_date_str:
+            return error_response("New date is required", 400)
+            
+        new_date = datetime.fromisoformat(new_date_str)
+        appt = move_appointment(appointment_id, new_date, new_session_id)
+        return success_response("Appointment rescheduled successfully", {
+            "id": appt.id,
+            "new_date": appt.appointment_date.strftime("%Y-%m-%d")
+        })
+    except Exception as e:
+        return error_response(str(e), 500)
+
+# CONFIRM PAYMENT & SEND RECEIPT
+@appointment_bp.route("/confirm-payment", methods=["POST"])
+def confirm_payment_route():
+    try:
+        data = request.get_json()
+        appointment_id = data.get("appointment_id")
+        amount = data.get("amount")
+        payment_method = data.get("payment_method", "Card")
+        transaction_id = data.get("transaction_id")
+
+        if not appointment_id:
+            return error_response("Appointment ID is required", 400)
+
+        # 1. Create Payment Record
+        payment = Payment(
+            appointment_id=appointment_id,
+            amount=amount,
+            payment_method=payment_method,
+            status="Paid",
+            transaction_id=transaction_id
+        )
+        db.session.add(payment)
+        
+        # 2. Update Appointment Status to 'Scheduled' (if it was 'Pending')
+        appointment = Appointment.query.get(appointment_id)
+        if appointment:
+            appointment.status = "Scheduled"
+            
+        # 3. Send Email Confirmation (Optional - don't fail if email fails)
+        try:
+            patient = appointment.patient
+            specialist = appointment.specialist
+            
+            if patient and patient.email:
+                doctor_details = {
+                    "name": specialist.name if specialist.name.startswith("Dr.") else f"Dr. {specialist.name}",
+                    "specialty": specialist.specialization or specialist.department or "General",
+                    "consultation_fee": amount
+                }
+                appointment_details = {
+                    "appointment_date": appointment.appointment_date.strftime("%Y-%m-%d %H:%M") if appointment.appointment_date else "N/A",
+                    "session_id": appointment.session_id
+                }
+                
+                send_appointment_confirmation(
+                    patient_email=patient.email,
+                    patient_name=patient.full_name,
+                    appointment_details=appointment_details,
+                    doctor_details=doctor_details
+                )
+        except Exception as email_err:
+            print(f"Non-critical Error: Email confirmation failed: {str(email_err)}")
+
+        db.session.commit()
+        return success_response("Payment confirmed and receipt sent", {"payment_id": payment.id})
+
+    except Exception as e:
+        db.session.rollback()
         return error_response(str(e), 500)

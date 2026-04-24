@@ -1,13 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import './KioskHome.css';
 
 const KioskHome = () => {
   const navigate = useNavigate();
+  const [patient, setPatient] = useState(null);
+
+  useEffect(() => {
+    const savedPatient = localStorage.getItem('activePatient');
+    if (savedPatient) {
+      setPatient(JSON.parse(savedPatient));
+    }
+  }, []);
+
+  const patientName = patient ? (patient.full_name || patient.name || 'Patient') : null;
 
   return (
-    <div className="bg-background font-body text-on-surface h-full flex flex-col overflow-hidden w-screen h-screen">
+    <div className="bg-background font-body text-on-surface h-full flex flex-col overflow-hidden w-screen h-screen text-left">
       {/* Top Navigation Shell */}
       <header className="bg-transparent backdrop-blur-none w-full top-0 px-8 py-4 z-40 border-b border-outline-variant/10 shrink-0">
         <div className="flex justify-between items-center w-full max-w-[1920px] mx-auto">
@@ -25,12 +35,18 @@ const KioskHome = () => {
           </div>
           <div className="flex items-center gap-6">
             <div className="text-right">
-              <div className="font-headline font-bold text-lg leading-none">Ayubowan, Welcome</div>
+              <div className="font-headline font-bold text-lg leading-none">
+                {patientName ? `Ayubowan, ${patientName.split(' ')[0]}` : 'Ayubowan, Welcome'}
+              </div>
               <div className="text-sm text-on-surface-variant font-medium">Colombo Central General Hospital</div>
             </div>
-            <div className="bg-surface-container-highest p-3 rounded-xl cursor-pointer hover:bg-surface-container-high transition-colors" onClick={() => navigate('/queue')}>
-              <span className="material-symbols-outlined text-primary" data-icon="clinical_notes">clinical_notes</span>
-            </div>
+            {patient && (
+              <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
+                <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">
+                  {patientName.charAt(0)}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -69,7 +85,7 @@ const KioskHome = () => {
 
           <div className="space-y-3">
             <h2 className="font-headline text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight leading-tight">
-              How can I assist you today?
+              {patientName ? `How can I help you today, ${patientName.split(' ')[0]}?` : 'How can I assist you today?'}
             </h2>
             <p className="text-on-surface-variant text-lg max-w-2xl mx-auto font-medium">
               I can help you check-in, find a doctor, or register as a new patient. Just ask!
@@ -91,7 +107,7 @@ const KioskHome = () => {
                 onClick={() => navigate('/assistant')}
                 className="bg-primary text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all flex-shrink-0"
               >
-                <span className="material-symbols-outlined text-2xl" data-icon="mic" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
+                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
               </button>
               <button 
                 onClick={() => navigate('/assistant')}
@@ -107,8 +123,31 @@ const KioskHome = () => {
         </div>
 
         {/* Secondary Action Cards */}
-        <div className="w-full max-w-7xl mt-auto mb-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
+        <div className="w-full max-w-7xl mt-auto mb-4 px-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {/* Personal Dashboard */}
+            <button 
+              onClick={() => navigate(patient ? '/patient-dashboard' : '/patient-login')}
+              className={`group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden ${patient ? 'ring-2 ring-primary/20 bg-primary/5' : ''}`}
+            >
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                <span className="material-symbols-outlined text-8xl">account_circle</span>
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center text-primary shadow-inner">
+                <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold font-headline text-on-surface">
+                  {patient ? 'View Dashboard' : 'Personal Dashboard'}
+                </h3>
+                <p className="text-xs text-slate-500 font-body mt-1">Medical history & profile</p>
+              </div>
+              <div className="flex items-center text-primary font-semibold text-xs mt-auto">
+                <span>{patient ? 'View Profile' : 'Access Profile'}</span>
+                <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
+              </div>
+            </button>
+
             {/* Check-in */}
             <button 
               onClick={() => navigate('/checkin-out')}
@@ -121,12 +160,12 @@ const KioskHome = () => {
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               </div>
               <div>
-                <h3 className="text-xl font-bold font-headline text-on-surface">Quick Check-In</h3>
-                <p className="text-sm text-slate-500 font-body mt-1">Scan your appointment QR or NIC</p>
+                <h3 className="text-lg font-bold font-headline text-on-surface">Quick Check-In</h3>
+                <p className="text-xs text-slate-500 font-body mt-1">Scan appointment or NIC</p>
               </div>
-              <div className="flex items-center text-secondary font-semibold text-sm mt-2">
+              <div className="flex items-center text-secondary font-semibold text-xs mt-auto">
                 <span>Check-In Now</span>
-                <span className="material-symbols-outlined ml-2 text-lg">arrow_forward</span>
+                <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
             </button>
 
@@ -142,16 +181,16 @@ const KioskHome = () => {
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>person_add</span>
               </div>
               <div>
-                <h3 className="text-xl font-bold font-headline text-on-surface">New Patient</h3>
-                <p className="text-sm text-slate-500 font-body mt-1">Register for the first time</p>
+                <h3 className="text-lg font-bold font-headline text-on-surface">New Patient</h3>
+                <p className="text-xs text-slate-500 font-body mt-1">Register for first time</p>
               </div>
-              <div className="flex items-center text-primary font-semibold text-sm mt-2">
+              <div className="flex items-center text-primary font-semibold text-xs mt-auto">
                 <span>Get Started</span>
-                <span className="material-symbols-outlined ml-2 text-lg">arrow_forward</span>
+                <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
             </button>
 
-            {/* Information / Find Doctor */}
+            {/* Find Doctor */}
             <button 
               onClick={() => navigate('/doctors')}
               className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
@@ -163,12 +202,12 @@ const KioskHome = () => {
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>medical_information</span>
               </div>
               <div>
-                <h3 className="text-xl font-bold font-headline text-on-surface">Find Doctors</h3>
-                <p className="text-sm text-slate-500 font-body mt-1">Specialists and availability</p>
+                <h3 className="text-lg font-bold font-headline text-on-surface">Find Doctors</h3>
+                <p className="text-xs text-slate-500 font-body mt-1">Specialists availability</p>
               </div>
-              <div className="flex items-center text-tertiary font-semibold text-sm mt-2">
+              <div className="flex items-center text-tertiary font-semibold text-xs mt-auto">
                 <span>Search Directory</span>
-                <span className="material-symbols-outlined ml-2 text-lg">arrow_forward</span>
+                <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
             </button>
 
@@ -181,12 +220,12 @@ const KioskHome = () => {
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>map</span>
               </div>
               <div>
-                <h3 className="text-xl font-bold font-headline text-on-surface">Hospital Map</h3>
-                <p className="text-sm text-slate-500 font-body mt-1">Navigation and facilities</p>
+                <h3 className="text-lg font-bold font-headline text-on-surface">Hospital Map</h3>
+                <p className="text-xs text-slate-500 font-body mt-1">Facilities navigation</p>
               </div>
-              <div className="flex items-center text-on-surface-variant font-semibold text-sm mt-2">
+              <div className="flex items-center text-on-surface-variant font-semibold text-xs mt-auto">
                 <span>View Map</span>
-                <span className="material-symbols-outlined ml-2 text-lg">arrow_forward</span>
+                <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
             </button>
           </div>
@@ -242,6 +281,13 @@ const KioskHome = () => {
 
       {/* Side Navigation Accessibility Hub */}
       <aside className="fixed left-6 top-1/2 -translate-y-1/2 h-auto w-20 flex flex-col gap-6 py-8 z-50">
+        <button 
+          onClick={() => navigate(patient ? '/patient-dashboard' : '/patient-login')}
+          className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
+        >
+          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
+          <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{patient ? 'Profile' : 'Login'}</span>
+        </button>
         <button 
           onClick={() => navigate('/checkout')}
           className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"

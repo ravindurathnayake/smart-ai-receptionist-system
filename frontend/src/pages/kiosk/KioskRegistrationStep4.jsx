@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './KioskRegistrationStep4.css';
+import { apiService } from '../../services/apiService';
 
 // ─── Shared Components ──────────────────────────────────────────────────────
 
@@ -107,18 +108,72 @@ const TopBar = ({ step = 4, totalSteps = 4, title = "Final Confirmation" }) => {
     );
 };
 
-// ─── Main Component ─────────────────────────────────────────────────────────
-
 const KioskRegistrationStep4 = () => {
     const navigate = useNavigate();
+    const [regData, setRegData] = React.useState(null);
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    React.useEffect(() => {
+        const saved = localStorage.getItem('registrationData');
+        if (saved) {
+            try {
+                setRegData(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to parse registrationData", e);
+            }
+        }
+    }, []);
+
+    const handleConfirm = async () => {
+        if (!regData) return;
+        setIsSaving(true);
+        try {
+            // Calculate age from DOB
+            let age = null;
+            if (regData.dob) {
+                const birthDate = new Date(regData.dob);
+                const today = new Date();
+                age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+            }
+
+            // Map frontend data to backend model
+            const patientPayload = {
+                full_name: regData.fullName,
+                phone_number: regData.phone,
+                email: regData.email,
+                gender: regData.gender,
+                nic: regData.nic,
+                blood_type: regData.bloodGroup,
+                age: age,
+                dob: regData.dob, 
+                address: regData.address,
+                medical_history: regData.symptomDetails ? `Category: ${regData.symptomCategory}. Details: ${regData.symptomDetails}` : `Category: ${regData.symptomCategory}`,
+            };
+
+            await apiService.createPatient(patientPayload);
+            
+            localStorage.removeItem('registrationData');
+            alert("Registration Successful!");
+            navigate('/');
+        } catch (error) {
+            console.error("Registration error:", error);
+            alert(`Error: ${error.response?.data?.message || 'Failed to register. Please try again.'}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (!regData) return <div className="p-10 text-center font-bold text-primary">Loading registration details...</div>;
+
     return (
         <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
-            {/* Sidebar */}
             <SideNav activeStep={3} />
 
-            {/* Main Area */}
             <main className="flex-1 flex flex-col overflow-hidden relative">
-                {/* Background Ambient Decor */}
                 <div className="ai-pulse-bg -top-20 -right-20"></div>
 
                 <TopBar step={4} totalSteps={4} title="Final Confirmation" />
@@ -126,13 +181,11 @@ const KioskRegistrationStep4 = () => {
                 <div className="flex-1 flex flex-col items-center p-12 overflow-hidden">
                     <div className="max-w-4xl w-full flex flex-col h-full z-10">
 
-                        {/* Header Instruction */}
                         <div className="mb-10 shrink-0">
                             <h2 className="text-3xl font-extrabold text-on-surface tracking-tight leading-tight mb-2">Please verify your information</h2>
                             <p className="text-lg text-on-surface-variant font-medium">Review the details below before completing your registration.</p>
                         </div>
 
-                        {/* Bento Details Grid */}
                         <div className="grid grid-cols-12 gap-6 min-h-0 flex-1 overflow-y-auto pr-4 custom-scrollbar pb-10">
 
                             {/* Personal Details Card */}
@@ -154,19 +207,31 @@ const KioskRegistrationStep4 = () => {
                                 <div className="grid grid-cols-2 gap-y-10 gap-x-12">
                                     <div className="space-y-1.5">
                                         <p className="detail-label">Full Name</p>
-                                        <p className="detail-value">Aruni Perera</p>
+                                        <p className="detail-value">{regData.fullName || 'N/A'}</p>
                                     </div>
                                     <div className="space-y-1.5">
                                         <p className="detail-label">Date of Birth</p>
-                                        <p className="detail-value">May 14, 1982</p>
+                                        <p className="detail-value">{regData.dob || 'N/A'}</p>
                                     </div>
                                     <div className="space-y-1.5">
                                         <p className="detail-label">Gender</p>
-                                        <p className="detail-value">Female</p>
+                                        <p className="detail-value">{regData.gender || 'N/A'}</p>
                                     </div>
                                     <div className="space-y-1.5">
                                         <p className="detail-label">Phone Number</p>
-                                        <p className="detail-value">+94 77 123 4567</p>
+                                        <p className="detail-value">{regData.phone ? `+94 ${regData.phone}` : 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <p className="detail-label">NIC Number</p>
+                                        <p className="detail-value">{regData.nic || 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <p className="detail-label">Blood Group</p>
+                                        <p className="detail-value text-red-600 font-black">{regData.bloodGroup || 'N/A'}</p>
+                                    </div>
+                                    <div className="col-span-2 space-y-1.5">
+                                        <p className="detail-label">Address</p>
+                                        <p className="detail-value text-slate-700 leading-relaxed">{regData.address || 'N/A'}</p>
                                     </div>
                                 </div>
                             </div>
@@ -203,21 +268,13 @@ const KioskRegistrationStep4 = () => {
                                     </button>
                                 </div>
                                 <div className="flex flex-wrap gap-4">
-                                    <div className="symptom-tag px-6 py-3 rounded-full font-bold text-sm shadow-sm flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-lg">thermostat</span>
-                                        Persistent Fever
-                                    </div>
-                                    <div className="symptom-tag px-6 py-3 rounded-full font-bold text-sm shadow-sm flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-lg">pulmonology</span>
-                                        Dry Cough
-                                    </div>
-                                    <div className="symptom-tag px-6 py-3 rounded-full font-bold text-sm shadow-sm flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-lg">sentiment_very_dissatisfied</span>
-                                        Body Aches
+                                    <div className="symptom-tag px-6 py-3 rounded-full font-bold text-sm shadow-sm flex items-center gap-2 bg-white text-primary uppercase">
+                                        <span className="material-symbols-outlined text-lg">medical_information</span>
+                                        {regData.symptomCategory || 'General Visit'}
                                     </div>
                                 </div>
                                 <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm italic text-slate-600 leading-relaxed font-medium">
-                                    "Patient reports onset of high fever (39°C) since yesterday morning. Accompanied by severe fatigue and loss of appetite. No history of travel in the last 14 days."
+                                    "{regData.symptomDetails || 'No additional details provided.'}"
                                 </div>
                             </div>
                         </div>
@@ -236,14 +293,15 @@ const KioskRegistrationStep4 = () => {
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Final Check</p>
                                     <p className="text-sm font-bold text-on-surface-variant flex items-center gap-2 justify-end">
                                         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                        09:42 AM • Room 12 Ready
+                                        System Active • Secure Connection
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() => navigate('/')}
-                                    className="btn-final flex items-center gap-3 bg-gradient-to-r from-primary to-primary-container text-white rounded-full px-16 py-5 shadow-2xl shadow-primary/30 font-extrabold text-xl hover:scale-105 transition-all"
+                                    onClick={handleConfirm}
+                                    disabled={isSaving}
+                                    className={`btn-final flex items-center gap-3 bg-gradient-to-r from-primary to-primary-container text-white rounded-full px-16 py-5 shadow-2xl shadow-primary/30 font-extrabold text-xl hover:scale-105 transition-all ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
                                 >
-                                    Confirm & Register
+                                    {isSaving ? 'Processing...' : 'Confirm & Register'}
                                     <span className="material-symbols-outlined font-black">arrow_forward</span>
                                 </button>
                             </div>

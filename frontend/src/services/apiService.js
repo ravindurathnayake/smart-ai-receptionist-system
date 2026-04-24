@@ -62,14 +62,44 @@ export const apiService = {
         const response = await api.post('/book-appointment', data);
         return response.data.data;
     },
+    confirmPayment: async (data) => {
+        const response = await api.post('/confirm-payment', data);
+        return response.data;
+    },
     getAllAppointments: async () => {
         const response = await api.get('/appointments');
+        return response.data.data;
+    },
+
+    // Patients
+    getPatients: async () => {
+        const response = await api.get('/patients/');
+        return response.data.data;
+    },
+    createPatient: async (data) => {
+        const response = await api.post('/patients/', data);
+        return response.data.data;
+    },
+    updatePatient: async (id, data) => {
+        const response = await api.put(`/patients/${id}`, data);
+        return response.data.data;
+    },
+    getPatientHistory: async (id) => {
+        const response = await api.get(`/patients/${id}/history`);
+        return response.data.data;
+    },
+    deletePatient: async (id) => {
+        const response = await api.delete(`/patients/${id}`);
         return response.data.data;
     },
 
     // Queue
     getQueueStatus: async () => {
         const response = await api.get('/queue-status');
+        return response.data.data;
+    },
+    getPatientQueueStatus: async (patientId) => {
+        const response = await api.get(`/queue-status/patient/${patientId}`);
         return response.data.data;
     },
     updateQueueStatus: async (id, action) => {
@@ -88,6 +118,25 @@ export const apiService = {
     chatAI: async (message) => {
         const response = await api.post('/chat', { message });
         return response.data;
+    },
+    checkInPatient: async (patientId) => {
+        const response = await api.post(`/check-in/${patientId}`);
+        return response.data.data;
+    },
+    checkOutPatient: async (patientId) => {
+        const response = await api.post(`/check-out/${patientId}`);
+        return response.data.data;
+    },
+    cancelAppointment: async (appointmentId) => {
+        const response = await api.patch(`/cancel-appointment/${appointmentId}`);
+        return response.data.data;
+    },
+    rescheduleAppointment: async (appointmentId, newDate, sessionId = null) => {
+        const response = await api.post(`/move-appointment/${appointmentId}`, {
+            new_date: newDate,
+            session_id: sessionId
+        });
+        return response.data.data;
     }
 };
 

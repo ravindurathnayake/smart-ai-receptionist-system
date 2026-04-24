@@ -1,113 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
 import './KioskAIAssistant.css';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
-
-/** Left sidebar navigation panel */
-const SideNav = () => {
-    const navigate = useNavigate();
-    const navItems = [
-        { icon: 'home',             label: 'Home',                 path: '/' },
-        { icon: 'smart_toy',        label: 'AI Assistant',         path: '/assistant', active: true  },
-        { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
-        { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
-        { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
-        { icon: 'map',              label: 'Hospital Map',         path: '#' },
-    ];
-
-    return (
-        <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0">
-            {/* Logo */}
-            <div className="p-6 pb-4 cursor-pointer" onClick={() => navigate('/')}>
-                <Logo size="sm" className="w-full" />
-            </div>
-
-            {/* Nav links */}
-            <nav className="flex-1 flex flex-col px-3 mt-4 gap-1">
-                {navItems.map(({ icon, label, path, active }) => (
-                    <div
-                        key={label}
-                        onClick={() => path !== '#' && navigate(path)}
-                        className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm cursor-pointer ${
-                            active
-                                ? 'nav-item-active'
-                                : 'text-primary hover:bg-slate-50'
-                        }`}
-                    >
-                        <span
-                            className="material-symbols-outlined text-[22px]"
-                            style={active ? { fontVariationSettings: "'FILL' 1" } : {}}
-                        >
-                            {icon}
-                        </span>
-                        <span>{label}</span>
-                    </div>
-                ))}
-            </nav>
-
-            {/* Bottom panel */}
-            <div className="px-4 pb-5 mt-auto">
-                <div className="p-5 bg-slate-50 rounded-xl border border-dashed border-outline-variant/40 text-center mb-4">
-                    <span className="material-symbols-outlined text-primary text-2xl mb-2 block">support_agent</span>
-                    <p className="text-xs font-bold text-primary mb-3">Need Assistance?</p>
-                    <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity">
-                        Call for Help
-                    </button>
-                </div>
-                <button 
-                    onClick={() => navigate('/')}
-                    className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4"
-                >
-                    <span className="material-symbols-outlined">logout</span>
-                    <span className="font-bold text-sm">Sign Out</span>
-                </button>
-            </div>
-        </aside>
-    );
-};
-
-/** Top header bar inside the main canvas */
-const TopBar = () => {
-    const navigate = useNavigate();
-    return (
-        <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
-            <div className="flex items-center gap-3">
-                <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
-                    <span className="material-symbols-outlined text-slate-600">arrow_back</span>
-                </button>
-                <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">
-                    MediAssist AI
-                </h1>
-                <div className="h-4 w-px bg-outline-variant mx-1" />
-                <span className="text-slate-500 font-medium text-sm">AI Assistant</span>
-            </div>
-            <div className="flex items-center gap-6">
-                <div className="flex gap-3">
-                    <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">
-                        notifications
-                    </span>
-                    <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">
-                        help
-                    </span>
-                </div>
-                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
-                    <div className="text-right">
-                        <p className="text-sm font-bold text-on-surface leading-none">Anura Perera</p>
-                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
-                    </div>
-                    <img
-                        alt="User profile photo"
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white shadow-sm"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBht8v8MUCoalsCJKH_f177xanYgg1TmGV36SAVTRwabFw5fo8NfAwbNNXkZ-Mmo7Jn6eHWvlFVmsd8T9-FsJNR6ziPDbMF6GPVO954kIMIxX4MYklrUV0IPpfcfs4EFmWtou_-wjzEwT7BKIGNz0at73I4ilP-6BSIJ1lV8aFAriHreEzO4O-O4sWp_bjI2KvTyGQIx0fVPu_20gnSTy0H98j7V4Dxz38Ksq6fZDZmc2oOxRB8RUKmpo-a9aE5T_kZwNLVn0gm7Eg"
-                    />
-                </div>
-            </div>
-        </header>
-    );
-};
 
 /** AI response / chat bubble panel */
 const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping }) => {
@@ -219,17 +116,26 @@ const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping 
 
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
-/**
- * KioskAIAssistant
- * Full-screen kiosk page (1280×1024) — no scroll, no overflow.
- * Layout: [SideNav | (TopBar + AIChatPanel + footer hint)]
- */
 const KioskAIAssistant = () => {
+    const navigate = useNavigate();
     const [inputValue, setInputValue] = useState('');
-    const [chatHistory, setChatHistory] = useState([
-        { role: 'bot', text: "I've recognized you, Anura. I've retrieved your profile. How can I help you today?" }
-    ]);
+    const [patient, setPatient] = useState(null);
+    const [chatHistory, setChatHistory] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
+
+    useEffect(() => {
+        const savedPatient = localStorage.getItem('activePatient');
+        if (!savedPatient) {
+            navigate('/patient-login');
+            return;
+        }
+        const parsed = JSON.parse(savedPatient);
+        const patientName = parsed.full_name || parsed.name || 'Patient';
+        setPatient(parsed);
+        setChatHistory([
+            { role: 'bot', text: `I've recognized you, ${patientName.split(' ')[0]}. I've retrieved your medical profile. How can I assist you with your health today?` }
+        ]);
+    }, [navigate]);
 
     const handleSend = async () => {
         if (!inputValue.trim()) return;
@@ -250,34 +156,94 @@ const KioskAIAssistant = () => {
         }
     };
 
+    if (!patient) return null;
+
+    const patientName = patient.full_name || patient.name || 'Patient';
+
     return (
         <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
             {/* ── Left Sidebar ── */}
-            <SideNav />
+            <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0">
+                <div className="p-6 pb-4 cursor-pointer" onClick={() => navigate('/')}>
+                    <Logo size="sm" className="w-full" />
+                </div>
+                <nav className="flex-1 flex flex-col px-3 mt-4 gap-1">
+                    {[
+                        { icon: 'account_circle',   label: 'Personal Dashboard',   path: '/patient-dashboard' },
+                        { icon: 'smart_toy',        label: 'AI Assistant',         path: '/assistant', active: true  },
+                        { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
+                        { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
+                        { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
+                        { icon: 'map',              label: 'Hospital Map',         path: '#' },
+                    ].map(({ icon, label, path, active }) => (
+                        <div
+                            key={label}
+                            onClick={() => path !== '#' && navigate(path)}
+                            className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm cursor-pointer ${
+                                active ? 'nav-item-active' : 'text-primary hover:bg-slate-50'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-[22px]" style={active ? { fontVariationSettings: "'FILL' 1" } : {}}>{icon}</span>
+                            <span>{label}</span>
+                        </div>
+                    ))}
+                </nav>
+                <div className="px-4 pb-5 mt-auto">
+                    <div className="p-5 bg-slate-50 rounded-xl border border-dashed border-outline-variant/40 text-center mb-4">
+                        <span className="material-symbols-outlined text-primary text-2xl mb-2 block">support_agent</span>
+                        <p className="text-xs font-bold text-primary mb-3">Need Assistance?</p>
+                        <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity">Call for Help</button>
+                    </div>
+                    <button 
+                        onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }}
+                        className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4"
+                    >
+                        <span className="material-symbols-outlined">logout</span>
+                        <span className="font-bold text-sm">Sign Out</span>
+                    </button>
+                </div>
+            </aside>
 
             {/* ── Main Canvas ── */}
             <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
-                {/* Ambient blobs */}
                 <div className="ambient-blob-top" />
                 <div className="ambient-blob-bottom" />
 
                 {/* Top Bar */}
-                <TopBar />
+                <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
+                            <span className="material-symbols-outlined text-slate-600">arrow_back</span>
+                        </button>
+                        <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">MediAssist AI</h1>
+                        <div className="h-4 w-px bg-outline-variant mx-1" />
+                        <span className="text-slate-500 font-medium text-sm">AI Assistant</span>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <div className="flex gap-3">
+                            <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">notifications</span>
+                            <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">help</span>
+                        </div>
+                        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+                            <div className="text-right">
+                                <p className="text-sm font-bold text-on-surface leading-none">{patientName}</p>
+                                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
+                            </div>
+                            <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">
+                                {patientName.charAt(0)}
+                            </div>
+                        </div>
+                    </div>
+                </header>
 
-                {/* Scrollable interaction zone (hidden scrollbar) */}
                 <div className="flex-1 overflow-hidden flex flex-col items-center justify-center px-10 py-6 z-10 no-scrollbar relative">
-                    {/* Greeting */}
                     <div className="w-full max-w-4xl text-center space-y-2 mb-7">
                         <h2 className="text-[2.6rem] font-extrabold tracking-tight text-on-surface leading-tight font-headline">
-                            Welcome back,{' '}
-                            <span className="text-primary">Anura Perera</span>!
+                            Welcome back, <span className="text-primary">{patientName}</span>!
                         </h2>
-                        <p className="text-base text-slate-500 font-medium">
-                            We're glad to see you at The Ethereal Clinic today.
-                        </p>
+                        <p className="text-base text-slate-500 font-medium">We're glad to see you at Colombo General Medical Center today.</p>
                     </div>
 
-                    {/* AI Chat Panel */}
                     <div className="w-full max-w-4xl">
                         <AIChatPanel 
                             inputValue={inputValue} 
@@ -287,16 +253,11 @@ const KioskAIAssistant = () => {
                             isTyping={isTyping}
                         />
                     </div>
-
-                    {/* Footer note */}
-                    <p className="mt-5 text-slate-400 text-xs font-semibold tracking-wide text-center">
-                        Hospital Kiosk #42 • Colombo General Medical Center
-                    </p>
+                    <p className="mt-5 text-slate-400 text-xs font-semibold tracking-wide text-center">Hospital Kiosk #42 • Colombo General Medical Center</p>
                 </div>
             </main>
         </div>
     );
 };
-
 
 export default KioskAIAssistant;

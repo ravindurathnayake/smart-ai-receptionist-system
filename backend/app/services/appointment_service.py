@@ -3,23 +3,52 @@ from app.extensions import db
 from app.models import Patient, Appointment, Queue, Specialist
 
 
-def book_appointment(full_name, phone_number, specialist_id, symptom, appointment_date, session_id=None):
+def move_appointment(appointment_id, new_date, new_session_id=None):
+    appt = Appointment.query.get(appointment_id)
+    if not appt:
+        raise Exception("Appointment not found")
+    
+    if appt.status in ["Completed", "Cancelled"]:
+        raise Exception(f"Cannot reschedule a {appt.status} appointment")
+    
+    appt.appointment_date = new_date
+    if new_session_id:
+        appt.session_id = new_session_id
+    
+    db.session.commit()
+    return appt
+
+
+def book_appointment(full_name, phone_number, specialist_id, symptom, appointment_date, session_id=None, patient_id=None):
     """
     Handles full appointment booking logic:
-    - Creates patient
+    - Finds or creates patient
     - Creates appointment
     - Generates queue number
     - Calculates estimated wait time
     - Creates queue record
     """
 
-    # 1️⃣ Create Patient
-    patient = Patient(
-        full_name=full_name,
-        phone_number=phone_number
-    )
-    db.session.add(patient)
-    db.session.commit()
+    # 1️⃣ Find or Create Patient
+    patient = None
+    if patient_id:
+        patient = Patient.query.get(patient_id)
+    
+    if not patient and phone_number:
+        patient = Patient.query.filter_by(phone_number=phone_number).first()
+        
+    if not patient:
+        patient = Patient(
+            full_name=full_name,
+            phone_number=phone_number
+        )
+        db.session.add(patient)
+        db.session.commit()
+    else:
+        # Update name if it was missing or different (optional)
+        if full_name and not patient.full_name:
+            patient.full_name = full_name
+            db.session.commit()
 
     # Validate specialist exists
     specialist = Specialist.query.get(specialist_id)
@@ -70,23 +99,23 @@ def book_appointment(full_name, phone_number, specialist_id, symptom, appointmen
 
 def get_queue_status():
     """
-    Returns current queue status including the list of active entries
+    Returns overall queue status for today
     """
-    active_queues = Queue.query.filter_by(status="Active").order_by(Queue.queue_number.asc()).all()
-    
-    total_waiting = len(active_queues)
-    
-    # "Currently serving" is usually the one with the lowest queue number among Active ones, 
-    # but in some systems it might be a specific status. 
-    # For now, let's assume the first active queue item is the one being served 
-    # or the next one up.
-    
-    current_serving_number = active_queues[0].queue_number if active_queues else 0
-    estimated_wait_time = active_queues[0].estimated_wait_time if active_queues else 0
+    from datetime import date
+    today = date.today()
+
+    # Filter by entries created today
+    today_queue = Queue.query.filter(
+        db.func.date(Queue.created_at) == today,
+        Queue.status == "Active"
+    )
+
+    total_waiting = today_queue.count()
+    current_serving = today_queue.order_by(Queue.id.asc()).first()
 
     # Format the list for the frontend
     queue_list = []
-    for q in active_queues:
+    for q in today_queue.order_by(Queue.queue_number.asc()).all():
         appointment = q.appointment
         if not appointment:
             continue
@@ -105,11 +134,70 @@ def get_queue_status():
         })
 
     return {
-        "current_serving": current_serving_number,
+        "current_serving": current_serving.queue_number if current_serving else None,
         "total_waiting": total_waiting,
-        "estimated_wait_time": estimated_wait_time,
+        "estimated_wait_time": total_waiting * 5,
         "queue": queue_list
     }
+
+
+def get_patient_queue_info(patient_id):
+    """
+    Returns specific queue info for a patient if they have an active session,
+    otherwise returns their next upcoming appointment.
+    """
+    from datetime import date, datetime
+    today = date.today()
+
+    # 1. Try to find active queue entry for this patient today
+    queue_entry = Queue.query.join(Appointment).filter(
+        Appointment.patient_id == patient_id,
+        db.func.date(Appointment.appointment_date) == today,
+        Queue.status == "Active"
+    ).first()
+
+    if queue_entry:
+        # Calculate people ahead
+        people_ahead = Queue.query.filter(
+            Queue.id < queue_entry.id,
+            Queue.status == "Active"
+        ).count()
+        
+        return {
+            "token": f"A-{queue_entry.queue_number:02d}",
+            "people_ahead": people_ahead,
+            "estimated_wait": queue_entry.estimated_wait_time,
+            "doctor": queue_entry.appointment.specialist.name,
+            "department": queue_entry.appointment.specialist.department,
+            "room": queue_entry.appointment.session.room_number if queue_entry.appointment.session else "TBD",
+            "time": queue_entry.appointment.session.start_time.strftime("%I:%M %p") if queue_entry.appointment.session else "TBD",
+            "date": queue_entry.appointment.appointment_date.strftime("%Y-%m-%d"),
+            "status": "In Queue",
+            "appointment_id": queue_entry.appointment_id
+        }
+
+    # 2. If no active queue, find the next upcoming appointment
+    upcoming = Appointment.query.filter(
+        Appointment.patient_id == patient_id,
+        Appointment.appointment_date >= datetime.now(),
+        Appointment.status == "Booked"
+    ).order_by(Appointment.appointment_date.asc()).first()
+
+    if upcoming:
+        return {
+            "token": "Wait",
+            "people_ahead": "---",
+            "estimated_wait": "Check-in req.",
+            "doctor": upcoming.specialist.name,
+            "department": upcoming.specialist.department,
+            "room": upcoming.session.room_number if upcoming.session else "TBD",
+            "time": upcoming.session.start_time.strftime("%I:%M %p") if upcoming.session else "TBD",
+            "date": upcoming.appointment_date.strftime("%Y-%m-%d"),
+            "status": "Scheduled",
+            "appointment_id": upcoming.id
+        }
+
+    return None
 
 
 def get_all_specialists():
@@ -158,6 +246,7 @@ def get_all_appointments():
     for apt in appointments:
         result.append({
             "id": f"#APT-{apt.id:04d}",
+            "raw_id": apt.id,
             "patient": apt.patient.full_name if apt.patient else "Unknown",
             "dr": apt.specialist.name if apt.specialist and apt.specialist.name.startswith('Dr.') else f"Dr. {apt.specialist.name}" if apt.specialist else "Unknown",
             "time": apt.appointment_date.strftime("%I:%M %p"),
@@ -191,3 +280,63 @@ def cancel_appointment(appointment_id):
         "appointment_id": appointment.id,
         "appointment_status": appointment.status
     }
+
+def check_in_patient(patient_id):
+    """
+    Checks in a patient for their appointment today.
+    """
+    from datetime import date
+    today = date.today()
+    
+    appointment = Appointment.query.filter(
+        Appointment.patient_id == patient_id,
+        db.func.date(Appointment.appointment_date) == today,
+        Appointment.status == "Booked"
+    ).first()
+    
+    if not appointment:
+        return {"error": "No appointment found for today."}
+    
+    existing_queue = Queue.query.filter_by(appointment_id=appointment.id).first()
+    if existing_queue:
+        return {"error": "Already in queue."}
+    
+    last_q = Queue.query.order_by(Queue.queue_number.desc()).first()
+    next_num = (last_q.queue_number + 1) if last_q else 1
+    
+    qe = Queue(
+        appointment_id=appointment.id,
+        queue_number=next_num,
+        estimated_wait_time=next_num * 5
+    )
+    
+    appointment.status = "Checked-In"
+    db.session.add(qe)
+    db.session.commit()
+    
+    return {"success": True, "queue_number": next_num, "doctor": appointment.specialist.name if appointment.specialist else "N/A"}
+
+def check_out_patient(patient_id):
+    """
+    Marks the patient's active queue entry as completed.
+    """
+    from datetime import date
+    today = date.today()
+    
+    # Find active queue entry for this patient today
+    queue_entry = Queue.query.join(Appointment).filter(
+        Appointment.patient_id == patient_id,
+        db.func.date(Appointment.appointment_date) == today,
+        Queue.status == "Active"
+    ).first()
+    
+    if not queue_entry:
+        return {"error": "No active check-in found for this patient today."}
+    
+    queue_entry.status = "Completed"
+    queue_entry.completed_at = datetime.now(timezone.utc)
+    queue_entry.appointment.status = "Completed"
+    
+    db.session.commit()
+    
+    return {"success": True, "message": "Patient checked out successfully."}
