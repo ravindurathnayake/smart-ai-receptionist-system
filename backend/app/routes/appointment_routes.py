@@ -16,6 +16,7 @@ from app.services import (
 
 from app.utils.response import success_response, error_response
 from app.services.email_service import send_appointment_confirmation
+from app.services.whatsapp_service import send_whatsapp_notification
 from app.models import Patient, Payment, Appointment, Specialist
 from app.extensions import db
 
@@ -231,8 +232,18 @@ def confirm_payment_route():
                     appointment_details=appointment_details,
                     doctor_details=doctor_details
                 )
-        except Exception as email_err:
-            print(f"Non-critical Error: Email confirmation failed: {str(email_err)}")
+                
+            # 4. Send WhatsApp Notification
+            if patient and patient.phone_number:
+                send_whatsapp_notification(
+                    phone_number=patient.phone_number,
+                    patient_name=patient.full_name,
+                    doctor_name=doctor_details['name'],
+                    date=appointment_details['appointment_date'],
+                    session_id=appointment_details['session_id']
+                )
+        except Exception as notify_err:
+            print(f"Non-critical Error: Notification failed: {str(notify_err)}")
 
         db.session.commit()
         return success_response("Payment confirmed and receipt sent", {"payment_id": payment.id})

@@ -68,9 +68,22 @@ const KioskPayment = () => {
                         <span className="material-symbols-outlined text-5xl font-bold">check</span>
                     </div>
                     <h2 className="text-3xl font-black text-on-surface font-headline mb-4">Payment Successful!</h2>
+                    
+                    {/* Notification Status Badges */}
+                    <div className="flex justify-center gap-3 mb-6">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
+                            <span className="material-symbols-outlined text-green-600 text-sm">mail</span>
+                            <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Email Sent</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
+                            <span className="material-symbols-outlined text-green-600 text-sm">chat</span>
+                            <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">WhatsApp Sent</span>
+                        </div>
+                    </div>
+
                     <p className="text-slate-500 font-medium mb-10">
                         Your appointment with <span className="font-bold text-primary">{doctor?.name}</span> is confirmed. 
-                        Your receipt has been sent to your registered phone.
+                        Digital receipts have been sent to your registered contact details.
                     </p>
                     
                     <div className="bg-slate-50 rounded-3xl p-6 mb-10 text-left border border-slate-100">
