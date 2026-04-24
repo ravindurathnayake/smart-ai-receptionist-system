@@ -29,6 +29,7 @@ def book_appointment_route():
         specialist_id = data.get("specialist_id")
         symptom = data.get("symptom")
         appointment_date_str = data.get("appointment_date")
+        session_id = data.get("session_id")
 
         # Basic validation
         if not all([full_name, specialist_id, symptom, appointment_date_str]):
@@ -44,7 +45,8 @@ def book_appointment_route():
             phone_number=phone_number,
             specialist_id=specialist_id,
             symptom=symptom,
-            appointment_date=appointment_date
+            appointment_date=appointment_date,
+            session_id=session_id
         )
 
         if isinstance(result, dict) and result.get("error"):

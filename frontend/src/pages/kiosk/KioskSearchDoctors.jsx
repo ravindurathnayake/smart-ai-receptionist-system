@@ -234,12 +234,27 @@ const DoctorCard = ({ doctor }) => {
                 </div>
             </div>
 
-            {/* Next available slot */}
-            <div className="bg-surface-container-low rounded-xl p-3 space-y-1">
-                <p className="text-[10px] uppercase font-bold text-outline tracking-wider">Next Available</p>
-                <div className="flex items-center justify-between">
-                    <span className="text-on-surface font-semibold text-sm">{nextSlot}</span>
-                    <button className="text-primary text-xs font-bold hover:underline" onClick={() => navigate('/sessions')}>View Slots</button>
+            {/* Available Sessions Summary */}
+            <div className="bg-surface-container-low rounded-xl p-3 space-y-2">
+                <p className="text-[10px] uppercase font-bold text-outline tracking-wider flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">calendar_clock</span>
+                    Available Sessions
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                    {doctor.sessions && doctor.sessions.length > 0 ? (
+                        doctor.sessions.slice(0, 3).map((sess, idx) => (
+                            <div key={idx} className="bg-white/60 px-2 py-1 rounded-lg border border-slate-100 text-[10px] font-bold text-on-surface">
+                                {sess.day_of_week.slice(0,3)} • {sess.start_time}
+                            </div>
+                        ))
+                    ) : (
+                        <span className="text-[10px] font-bold text-outline italic px-1">No sessions listed</span>
+                    )}
+                    {doctor.sessions && doctor.sessions.length > 3 && (
+                        <div className="bg-primary/5 text-primary px-2 py-1 rounded-lg border border-primary/10 text-[10px] font-bold">
+                            +{doctor.sessions.length - 3} more
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -296,17 +311,21 @@ const KioskSearchDoctors = () => {
         const fetchDoctors = async () => {
             try {
                 const response = await apiService.getSpecialists();
-                if (response.data) {
+                if (response) {
                     // Map backend data to frontend format
-                    const mapped = response.data.map(d => ({
+                    const mapped = response.map(d => ({
                         id: d.id,
-                        name: d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`,
-                        specialty: d.department,
-                        rating: 4.8, // Fallback
-                        reviews: 42,  // Fallback
-                        nextSlot: 'Tomorrow, 10:00 AM', // Fallback
-                        featured: false,
-                        photo: null // Fallback
+                        name: d.title ? `${d.title} ${d.name}` : `Dr. ${d.name}`,
+                        specialty: d.specialization || d.department,
+                        rating: d.rating || 4.8,
+                        reviews: 42, 
+                        nextSlot: d.sessions && d.sessions.length > 0 ? `${d.sessions[0].day_of_week} ${d.sessions[0].start_time}` : 'Not Available',
+                        featured: d.rating >= 4.8,
+                        photo: d.profile_image || null,
+                        bio: d.bio,
+                        languages: d.languages,
+                        consultation_fee: d.consultation_fee,
+                        sessions: d.sessions
                     }));
                     setDoctors(mapped);
                 }

@@ -13,12 +13,12 @@ const AdminQueue = () => {
   const fetchQueue = async () => {
     try {
       const data = await apiService.getQueueStatus();
-      if (data.data) {
-        setQueueData(data.data.queue);
+      if (data) {
+        setQueueData(data.queue);
         setStats({
-          current_serving: data.data.current_serving ? `A-${data.data.current_serving.toString().padStart(2, '0')}` : '---',
-          total_waiting: data.data.total_waiting,
-          estimated_wait: `${data.data.estimated_wait_time}m`
+          current_serving: data.current_serving ? `A-${data.current_serving.toString().padStart(2, '0')}` : '---',
+          total_waiting: data.total_waiting,
+          estimated_wait: `${data.estimated_wait_time}m`
         });
       }
     } catch (err) {

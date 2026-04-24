@@ -152,19 +152,23 @@ const TopBar = () => {
 };
 
 // ─── Doctor Profile Panel (left column) ───────────────────────────────────────
-
-const DoctorProfile = () => (
+const DoctorProfile = ({ doctor }) => (
     <div className="w-72 shrink-0 bg-surface-container-low overflow-y-auto custom-scrollbar flex flex-col">
         <div className="p-6 flex flex-col gap-5 flex-1">
             {/* Photo with glow + availability badge */}
             <div className="relative group mb-8">
                 <div className="doctor-photo-glow" />
-                <img
-                    alt="Dr. Aruni Rajapaksa"
-                    className="relative w-full aspect-[4/5] object-cover rounded-3xl shadow-xl border border-white/50"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmvOtKm8ynio5IWqs-sHhBEnG5hv7d1clKeLtF72P27djFgkBPqymdJopwFpvmm-y0RbrXPb_aa2nFbinVBtawvG1-JF0QHRqne0JDbTlwmbf4H-5rJBkn6AWLjZBs96BV78dXhf8TSyH2A5eXwD52Vp6Iyas1w71MTt6sRfu5bQM-OMqoR72HiptwHrD4518OP1u_sQ4L9kJobYQGFLxqG22VDe8XEta_l6gXBHtVnESEiXW2XsIcja5zGCOEf8Y2Has-IupZMOc"
-                />
-                {/* Availability badge */}
+                {doctor.photo ? (
+                    <img
+                        alt={doctor.name}
+                        className="relative w-full aspect-[4/5] object-cover rounded-3xl shadow-xl border border-white/50"
+                        src={doctor.photo}
+                    />
+                ) : (
+                    <div className="relative w-full aspect-[4/5] bg-secondary-container rounded-3xl shadow-xl border border-white/50 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-6xl text-on-secondary-container">medical_information</span>
+                    </div>
+                )}
                 <div className="avail-badge">
                     <div className="bg-secondary-container p-1.5 rounded-lg">
                         <span className="material-symbols-outlined text-secondary text-[18px]"
@@ -173,51 +177,47 @@ const DoctorProfile = () => (
                         </span>
                     </div>
                     <div>
-                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight">Availability</p>
-                        <p className="text-xs font-bold text-secondary">Accepting Patients</p>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight">Status</p>
+                        <p className="text-xs font-bold text-secondary">Verified Specialist</p>
                     </div>
                 </div>
             </div>
 
-            {/* Name & specialty */}
-            <div className="mt-4">
+            <div>
                 <h2 className="text-2xl font-extrabold text-on-surface font-headline leading-tight">
-                    Dr. Aruni Rajapaksa
+                    {doctor.name}
                 </h2>
-                <p className="text-primary font-semibold text-sm mt-1">Senior Consultant Cardiologist</p>
+                <p className="text-primary font-semibold text-sm mt-1">{doctor.specialty}</p>
             </div>
 
-            {/* Stats row */}
             <div className="flex gap-3">
                 <div className="bg-white/80 p-3 rounded-2xl flex-1 border border-white shadow-sm text-center">
-                    <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">Experience</p>
-                    <p className="text-base font-bold text-on-surface">15+ Yrs</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">Fee</p>
+                    <p className="text-sm font-bold text-on-surface">Rs. {doctor.consultation_fee || 'N/A'}</p>
                 </div>
                 <div className="bg-white/80 p-3 rounded-2xl flex-1 border border-white shadow-sm text-center">
                     <p className="text-[9px] text-slate-400 font-bold uppercase mb-1">Rating</p>
                     <div className="flex items-center justify-center gap-1">
-                        <span className="text-base font-bold text-on-surface">4.9</span>
+                        <span className="text-sm font-bold text-on-surface">{doctor.rating || '4.8'}</span>
                         <span className="material-symbols-outlined text-yellow-500 text-sm"
                             style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                     </div>
                 </div>
             </div>
 
-            {/* About */}
             <div>
                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">About</h3>
-                <p className="text-on-surface-variant text-xs leading-relaxed">
-                    Dr. Rajapaksa is a world-renowned cardiologist specialising in non-invasive cardiac imaging and empathetic patient care, leading 2,000+ complex diagnostics at the Ethereal Clinic.
+                <p className="text-on-surface-variant text-xs leading-relaxed line-clamp-4">
+                    {doctor.bio || 'Expert specialist providing comprehensive medical care and diagnostics with a focus on patient well-being.'}
                 </p>
             </div>
 
-            {/* Languages */}
             <div>
                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Languages</h3>
                 <div className="flex gap-2 flex-wrap">
-                    {['Sinhala', 'English', 'Tamil'].map((lang) => (
-                        <span key={lang} className="px-3 py-1 bg-white rounded-full text-xs font-semibold shadow-sm border border-slate-100">
-                            {lang}
+                    {(doctor.languages ? doctor.languages.split(',') : ['English', 'Sinhala']).map((lang) => (
+                        <span key={lang} className="px-3 py-1 bg-white rounded-full text-[10px] font-semibold shadow-sm border border-slate-100 uppercase tracking-wider">
+                            {lang.trim()}
                         </span>
                     ))}
                 </div>
@@ -230,18 +230,35 @@ const DoctorProfile = () => (
 
 const slotIcon  = { morning: 'light_mode', afternoon: 'partly_cloudy_day', evening: 'dark_mode' };
 const slotColor = { morning: 'text-orange-400', afternoon: 'text-blue-400', evening: 'text-indigo-400' };
-const slotLabel = { morning: 'Morning Slots', afternoon: 'Afternoon Slots', evening: 'Evening Slots' };
+const slotLabel = { morning: 'Morning Sessions', afternoon: 'Afternoon Sessions', evening: 'Evening Sessions' };
 
 const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlotSelect }) => {
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
+
+    // Filter sessions by selected date's day of week
+    const selectedDayName = DATES.find(d => d.iso === selectedDate)?.dayNameFull; // Need to add dayNameFull to generateDates
+    
+    // Day name from date (e.g. "Monday")
+    const dateObj = new Date(selectedDate);
+    const dayOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(dateObj);
+
+    const availableSessions = (doctor.sessions || []).filter(s => s.day_of_week === dayOfWeek);
+
+    const groupedSessions = {
+        morning: availableSessions.filter(s => parseInt(s.start_time.split(':')[0]) < 12),
+        afternoon: availableSessions.filter(s => {
+            const h = parseInt(s.start_time.split(':')[0]);
+            return h >= 12 && h < 17;
+        }),
+        evening: availableSessions.filter(s => parseInt(s.start_time.split(':')[0]) >= 17)
+    };
 
     const handleConfirm = async () => {
         if (!selectedSlot || !doctor) return;
         
         setSubmitting(true);
         try {
-            // Mocking patient name from UI state or localStorage
             const patientName = "Anura Perera";
             const phoneNumber = "0712345678";
             
@@ -250,12 +267,12 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                 phone_number: phoneNumber,
                 specialist_id: doctor.id,
                 symptom: "General consultation",
-                appointment_date: selectedDate
+                appointment_date: selectedDate,
+                session_id: selectedSlot.id
             });
             
-            if (response.data) {
-                // Store appointment details for the queue status page
-                localStorage.setItem('last_appointment', JSON.stringify(response.data));
+            if (response) {
+                localStorage.setItem('last_appointment', JSON.stringify(response));
                 navigate('/queue');
             }
         } catch (err) {
@@ -265,42 +282,48 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
             setSubmitting(false);
         }
     };
+
     return (
         <div className="flex-1 bg-white flex flex-col overflow-hidden relative">
             <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-6">
-                {/* Heading */}
                 <div className="text-center mb-5">
-                    <h2 className="text-2xl font-bold font-headline text-on-surface">Select Your Session</h2>
-                    <p className="text-slate-500 text-sm mt-1">Choose a preferred date and time for your consultation</p>
+                    <h2 className="text-2xl font-bold font-headline text-on-surface">Choose Your Session</h2>
+                    <p className="text-slate-500 text-sm mt-1">Select an available time for {doctor.name}</p>
                 </div>
 
                 {/* ── Horizontal Date Scroll ── */}
-                <div className="mb-5">
-                    <p className="text-[10px] font-bold text-outline uppercase tracking-widest mb-2">Choose a Date</p>
-                    <div className="date-scroll-track">
+                <div className="mb-8">
+                    <p className="text-[10px] font-bold text-outline uppercase tracking-widest mb-2 px-1">Available Dates</p>
+                    <div className="date-scroll-track pb-2">
                         {DATES.map((d) => {
                             const isSelected = selectedDate === d.iso;
+                            const dObj = new Date(d.iso);
+                            const dNameFull = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(dObj);
+                            const hasSessions = (doctor.sessions || []).some(s => s.day_of_week === dNameFull);
+
                             return (
                                 <button
                                     key={d.iso}
-                                    onClick={() => !d.isWeekend && onDateSelect(d.iso)}
-                                    disabled={d.isWeekend}
-                                    className={`date-card flex flex-col items-center py-3 px-3 rounded-2xl border transition-all ${
-                                        d.isWeekend
-                                            ? 'opacity-35 cursor-not-allowed border-slate-100 bg-slate-50'
-                                            : isSelected
-                                            ? 'bg-primary text-white shadow-lg shadow-primary/25 border-transparent'
-                                            : 'border-slate-100 hover:bg-slate-50 cursor-pointer'
+                                    onClick={() => onDateSelect(d.iso)}
+                                    className={`date-card relative flex flex-col items-center py-4 px-5 rounded-2xl border transition-all min-w-[80px] ${
+                                        isSelected
+                                            ? 'bg-primary text-white shadow-xl shadow-primary/25 border-transparent scale-105 z-10'
+                                            : hasSessions
+                                            ? 'bg-primary/5 border-primary/20 hover:bg-primary/10 cursor-pointer'
+                                            : 'border-slate-100 hover:bg-slate-50 cursor-pointer opacity-60'
                                     }`}
                                 >
-                                    <span className={`text-[10px] font-bold uppercase mb-1 ${isSelected ? 'opacity-75' : 'text-slate-400'}`}>
+                                    {hasSessions && !isSelected && (
+                                        <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full" />
+                                    )}
+                                    <span className={`text-[10px] font-bold uppercase mb-1.5 tracking-wider ${isSelected ? 'opacity-80' : 'text-slate-400'}`}>
                                         {d.dayName}
                                     </span>
-                                    <span className="text-lg font-bold leading-none">{d.date}</span>
+                                    <span className="text-xl font-black leading-none">{d.date}</span>
                                     {d.isToday && (
-                                        <span className={`text-[9px] font-bold mt-1 ${isSelected ? 'opacity-80' : 'text-primary'}`}>
+                                        <div className={`mt-2 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter ${isSelected ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
                                             Today
-                                        </span>
+                                        </div>
                                     )}
                                 </button>
                             );
@@ -309,44 +332,66 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                 </div>
 
                 {/* ── Time Slot Categories ── */}
-                <div className="space-y-5">
-                    {(['morning', 'afternoon', 'evening']).map((period) => (
-                        <div key={period}>
-                            <div className="flex items-center gap-2 mb-3">
-                                <span className={`material-symbols-outlined ${slotColor[period]}`}>
-                                    {slotIcon[period]}
-                                </span>
-                                <h3 className="font-bold text-slate-700 text-sm">{slotLabel[period]}</h3>
-                            </div>
-                            <div className="grid grid-cols-4 gap-3">
-                                {SESSIONS[period].map((slot) => {
-                                    const isSelected = selectedSlot?.id === slot.id;
-                                    const isBooked   = slot.status === 'booked';
-                                    return (
-                                        <button
-                                            key={slot.id}
-                                            disabled={isBooked}
-                                            onClick={() => !isBooked && onSlotSelect(slot)}
-                                            className={`time-slot glass-panel p-3 rounded-2xl border text-sm text-center font-semibold ${
-                                                isBooked
-                                                    ? 'booked'
-                                                    : isSelected
-                                                    ? 'selected border-primary'
-                                                    : 'border-slate-100'
-                                            }`}
-                                        >
-                                            {slot.time}
-                                            {isBooked && (
-                                                <span className="block text-[9px] font-bold text-slate-300 mt-0.5">
-                                                    Booked
-                                                </span>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                <div className="space-y-8">
+                    {availableSessions.length === 0 ? (
+                        <div className="text-center py-10 bg-slate-50 rounded-[2rem] border border-dashed border-outline-variant/30">
+                            <span className="material-symbols-outlined text-4xl text-outline/30 mb-2">event_busy</span>
+                            <p className="text-sm font-bold text-on-surface-variant uppercase tracking-widest">No sessions available on this day</p>
+                            <p className="text-xs text-slate-400 mt-1">Please try another date from the calendar above.</p>
                         </div>
-                    ))}
+                    ) : (
+                        (['morning', 'afternoon', 'evening']).map((period) => (
+                            groupedSessions[period].length > 0 && (
+                                <div key={period}>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className={`material-symbols-outlined ${slotColor[period]}`}>
+                                            {slotIcon[period]}
+                                        </span>
+                                        <h3 className="font-bold text-slate-700 text-sm tracking-tight">{slotLabel[period]}</h3>
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-4">
+                                        {groupedSessions[period].map((sess, idx) => {
+                                            const slotId = `${sess.day_of_week}-${sess.start_time}`;
+                                            const isSelected = selectedSlot && `${selectedSlot.day_of_week}-${selectedSlot.start_time}` === slotId;
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => onSlotSelect(sess)}
+                                                    className={`time-slot group glass-panel p-4 rounded-[1.5rem] border text-left transition-all ${
+                                                        isSelected
+                                                            ? 'selected border-primary bg-primary/5 shadow-lg shadow-primary/5'
+                                                            : 'border-slate-100 hover:border-primary/30 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <span className={`text-base font-black ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                                                            {sess.start_time}
+                                                        </span>
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isSelected ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'}`}>
+                                                            {sess.room_number}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight text-slate-400">
+                                                            <span>Patients</span>
+                                                            <span className={isSelected ? 'text-primary' : ''}>0/{sess.max_patients}</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className={`h-full transition-all duration-1000 ${isSelected ? 'bg-primary' : 'bg-slate-300'}`} 
+                                                                style={{ width: '0%' }} 
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )
+                        ))
+                    )}
                 </div>
             </div>
 
@@ -358,27 +403,26 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                             <span className="material-symbols-outlined text-primary text-[20px]">event_available</span>
                         </div>
                         <div>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Appointment Summary</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Selected Session</p>
                             <p className="text-sm font-bold text-on-surface">
                                 {selectedSlot
-                                    ? `${DATES.find(d => d.iso === selectedDate)?.dayName}, ${
-                                        DATES.find(d => d.iso === selectedDate)?.date
-                                      } ${DATES.find(d => d.iso === selectedDate)?.month} • ${selectedSlot.time}`
-                                    : 'Select a date & time slot'}
+                                    ? `${dayOfWeek}, ${new Date(selectedDate).getDate()} ${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(new Date(selectedDate))} • ${selectedSlot.start_time}`
+                                    : 'Please choose a session'}
                             </p>
                         </div>
                     </div>
                     <div className="text-right">
                         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Consultation Fee</p>
-                        <p className="text-xl font-bold text-primary">Rs. 4,500</p>
+                        <p className="text-xl font-bold text-primary">Rs. {doctor.consultation_fee || '4,500'}</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <button 
-                        onClick={() => navigate('/search-doctors')}
-                        className="flex-1 py-3.5 px-6 bg-surface-container-highest text-on-surface-variant rounded-full font-bold text-sm hover:bg-slate-200 transition-all">
-                        ← Back to Search
+                        onClick={() => navigate('/doctors')}
+                        className="flex-1 py-3.5 px-6 bg-surface-container-highest text-on-surface-variant rounded-full font-bold text-sm hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-sm">arrow_back</span>
+                        Back
                     </button>
                     <button
                         onClick={handleConfirm}
@@ -389,7 +433,7 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                                 : 'bg-surface-container-highest text-outline cursor-not-allowed'
                         }`}
                     >
-                        {submitting ? 'Confirming...' : 'Confirm Appointment'}
+                        {submitting ? 'Processing...' : 'Confirm Appointment'}
                     </button>
                 </div>
             </div>
@@ -399,14 +443,14 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
 
 // ─── Floating AI Button ───────────────────────────────────────────────────────
 
-const AIFloatingBtn = () => {
+const AIFloatingBtn = ({ doctor }) => {
     const navigate = useNavigate();
     return (
         <div className="ai-fab-wrapper" style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 60 }}>
-            <div className="ai-tooltip">
-                <p className="text-xs font-bold text-primary mb-1">MediAssist AI</p>
+            <div className="ai-tooltip w-64">
+                <p className="text-xs font-bold text-primary mb-1">MediAssist AI Insights</p>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                    "Dr. Rajapaksa is highly rated for patient empathy. This slot is usually quiet — perfect for a detailed discussion."
+                    "{doctor.name} is highly recommended for {doctor.specialty.toLowerCase()}. The morning slots usually have shorter wait times."
                 </p>
             </div>
             <button className="ai-fab-sq ai-pulse" aria-label="Open AI Assistant" onClick={() => navigate('/assistant')}>
@@ -424,28 +468,30 @@ const AIFloatingBtn = () => {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-/**
- * KioskSessions
- * Full-screen kiosk page (1280×1024) — no scroll, no overflow on outer shell.
- * Layout: [SideNav | TopBar + (DoctorProfile | SessionPanel)]
- * Date strip scrolls horizontally; time slot section scrolls vertically.
- */
 const KioskSessions = () => {
     const location = useLocation();
     const doctor = location.state?.doctor;
     const [selectedDate, setSelectedDate] = useState(DATES[0].iso);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
+    // Reset selected slot when date changes
+    useEffect(() => {
+        setSelectedSlot(null);
+    }, [selectedDate]);
+
     if (!doctor) {
-        // Fallback for demo if no doctor was passed
         return (
-            <div className="w-screen h-screen flex flex-col items-center justify-center bg-surface">
-                <h2 className="text-2xl font-bold mb-4">Please select a doctor first</h2>
+            <div className="w-screen h-screen flex flex-col items-center justify-center bg-surface p-10 text-center">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                    <span className="material-symbols-outlined text-4xl text-primary">person_search</span>
+                </div>
+                <h2 className="text-3xl font-extrabold mb-2 font-headline">Doctor not selected</h2>
+                <p className="text-slate-500 mb-8 max-w-md">Please go back to the specialist directory and select a doctor to view their available sessions.</p>
                 <button 
                     onClick={() => window.history.back()}
-                    className="bg-primary text-white px-6 py-2 rounded-full font-bold"
+                    className="bg-primary text-white px-10 py-4 rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                 >
-                    Go Back
+                    Return to Directory
                 </button>
             </div>
         );
@@ -453,24 +499,17 @@ const KioskSessions = () => {
 
     return (
         <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
-            {/* Left Sidebar — KioskAIAssistant style */}
             <SideNav />
 
-            {/* Main Canvas */}
             <main className="flex-1 flex flex-col relative overflow-hidden">
-                {/* Ambient blobs */}
                 <div className="ambient-blob-top" />
                 <div className="ambient-blob-bottom" />
 
-                {/* Top Bar */}
                 <TopBar />
 
-                {/* Content area: two-column split */}
                 <div className="flex-1 flex overflow-hidden min-h-0 z-10">
-                    {/* Left: Doctor profile */}
-                    <DoctorProfile />
+                    <DoctorProfile doctor={doctor} />
 
-                    {/* Right: Session selection */}
                     <SessionPanel
                         doctor={doctor}
                         selectedDate={selectedDate}
@@ -481,8 +520,7 @@ const KioskSessions = () => {
                 </div>
             </main>
 
-            {/* Floating AI Button */}
-            <AIFloatingBtn />
+            <AIFloatingBtn doctor={doctor} />
         </div>
     );
 };

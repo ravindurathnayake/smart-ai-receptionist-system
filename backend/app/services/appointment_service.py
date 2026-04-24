@@ -3,7 +3,7 @@ from app.extensions import db
 from app.models import Patient, Appointment, Queue, Specialist
 
 
-def book_appointment(full_name, phone_number, specialist_id, symptom, appointment_date):
+def book_appointment(full_name, phone_number, specialist_id, symptom, appointment_date, session_id=None):
     """
     Handles full appointment booking logic:
     - Creates patient
@@ -34,6 +34,7 @@ def book_appointment(full_name, phone_number, specialist_id, symptom, appointmen
         specialist_id=specialist_id,
         symptom=symptom,
         appointment_date=appointment_date,
+        session_id=session_id,
         status="Booked"
     )
     db.session.add(appointment)

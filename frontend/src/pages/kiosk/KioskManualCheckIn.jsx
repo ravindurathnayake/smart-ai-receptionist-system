@@ -174,7 +174,7 @@ const KioskManualCheckIn = () => {
         try {
             // For manual check-in, we'll assign them to General Practitioner (likely ID 1 or first available)
             const specialistsResponse = await apiService.getSpecialists();
-            const gp = specialistsResponse.data?.find(s => s.department === 'General Medicine' || s.department === 'OPD') || specialistsResponse.data?.[0];
+            const gp = specialistsResponse?.find(s => s.department === 'General Medicine' || s.department === 'OPD') || specialistsResponse?.[0];
             
             if (!gp) {
                 alert('No specialists available for check-in.');

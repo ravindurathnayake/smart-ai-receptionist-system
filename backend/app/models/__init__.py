@@ -1,4 +1,8 @@
-from .specialist import Specialist #This ensures Flask-Migrate detects it.
+from .specialist import Specialist
 from .patient import Patient
 from .appointment import Appointment
 from .queue import Queue
+from .department import Department
+from .doctor_session import DoctorSession
+from .payment import Payment
+from .user import User

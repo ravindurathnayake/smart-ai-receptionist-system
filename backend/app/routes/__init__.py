@@ -3,3 +3,6 @@ from .recommendation_routes import recommendation_bp
 from .chatbot_routes import chatbot_bp
 from .health_routes import health_bp
 from .auth_routes import auth_bp
+from .specialist_routes import specialist_bp
+from .department_routes import department_bp
+from .admin_routes import admin_bp

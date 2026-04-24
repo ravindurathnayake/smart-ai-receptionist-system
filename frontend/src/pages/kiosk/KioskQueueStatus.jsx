@@ -397,11 +397,11 @@ const KioskQueueStatus = () => {
     const fetchQueue = async () => {
         try {
             const response = await apiService.getQueueStatus();
-            if (response.data) {
+            if (response) {
                 setStats({
-                    current_serving: response.data.current_serving ? `#${response.data.current_serving.toString().padStart(3, '0')}` : '---',
-                    total_waiting: response.data.total_waiting,
-                    estimated_wait: `${response.data.estimated_wait_time} mins`
+                    current_serving: response.current_serving ? `#${response.current_serving.toString().padStart(3, '0')}` : '---',
+                    total_waiting: response.total_waiting,
+                    estimated_wait: `${response.estimated_wait_time} mins`
                 });
             }
         } catch (err) {

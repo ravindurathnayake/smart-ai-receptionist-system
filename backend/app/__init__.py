@@ -14,9 +14,13 @@ def create_app():
     cors.init_app(app)
 
     # IMPORTANT: Import models so Flask-Migrate can detect them
-    from app.models import Specialist, Patient, Appointment, Queue
-    from app.routes import appointment_bp
+    from app.models import Specialist, Patient, Appointment, Queue, Department, DoctorSession, Payment, User
+    
+    from app.routes import appointment_bp, specialist_bp, department_bp, admin_bp
     app.register_blueprint(appointment_bp, url_prefix="/api")
+    app.register_blueprint(specialist_bp, url_prefix="/api/specialists")
+    app.register_blueprint(department_bp, url_prefix="/api/departments")
+    app.register_blueprint(admin_bp, url_prefix="/api/admin")
 
     from app.routes import recommendation_bp
     app.register_blueprint(recommendation_bp, url_prefix="/api")

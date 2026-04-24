@@ -19,16 +19,19 @@ const AdminDashboard = () => {
       try {
         const queueResponse = await apiService.getQueueStatus();
         const specialistsResponse = await apiService.getSpecialists();
+        const statsResponse = await apiService.getAdminStats();
 
-        if (queueResponse.data) {
-          const qData = queueResponse.data;
+        if (statsResponse) {
           setStats([
-            { label: 'Total Patients Today', value: (qData.total_waiting + qData.current_serving).toString(), subValue: 'Real-time', icon: 'person', color: 'primary' },
-            { label: 'Active Queue', value: qData.total_waiting.toString(), subValue: `Next: #${qData.current_serving}`, icon: 'queue', color: 'secondary' },
-            { label: 'Appointments Count', value: qData.queue.length.toString(), subValue: 'Booked today', icon: 'calendar_today', color: 'tertiary' },
-            { label: 'Completed Visits', value: '0', subValue: 'N/A', icon: 'task_alt', color: 'success' },
+            { label: 'Total Patients', value: statsResponse.patients.total.toString(), subValue: `+${statsResponse.patients.new_today} today`, icon: 'person', color: 'primary' },
+            { label: 'Active Queue', value: statsResponse.queue.active.toString(), subValue: `Next: #${queueResponse.current_serving || '---'}`, icon: 'queue', color: 'secondary' },
+            { label: 'Appointments', value: statsResponse.appointments.total.toString(), subValue: `${statsResponse.appointments.today} today`, icon: 'calendar_today', color: 'tertiary' },
+            { label: 'Revenue Today', value: `Rs. ${statsResponse.revenue.today.toLocaleString()}`, subValue: 'Real-time', icon: 'payments', color: 'success' },
           ]);
+        }
 
+        if (queueResponse) {
+          const qData = queueResponse;
           setQueueItems(qData.queue.map(item => ({
             token: item.token,
             patient: item.patient,
@@ -38,12 +41,13 @@ const AdminDashboard = () => {
           })));
         }
 
-        if (specialistsResponse.data) {
-          setDoctors(specialistsResponse.data.map(d => ({
+        if (specialistsResponse) {
+          setDoctors(specialistsResponse.map(d => ({
             name: d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`,
-            specialty: d.department,
-            status: 'Available', // Fallback
-            room: 'Room 04' // Fallback
+            specialty: d.specialization || d.department,
+            status: d.availability_status || 'Available',
+            room: 'Room 04', // Fallback until session management is fully implemented in UI
+            fee: d.consultation_fee
           })));
         }
       } catch (err) {
@@ -160,7 +164,7 @@ const AdminDashboard = () => {
                     <p className={`text-[10px] font-black uppercase tracking-widest ${
                       doc.status === 'Available' ? 'text-secondary' : 'text-outline'
                     }`}>{doc.status}</p>
-                    <p className="text-[10px] text-outline-variant font-bold mt-1">{doc.room}</p>
+                    <p className="text-[10px] text-outline-variant font-bold mt-1">Rs. {doc.fee || '0'}</p>
                   </div>
                 </div>
               ))}
