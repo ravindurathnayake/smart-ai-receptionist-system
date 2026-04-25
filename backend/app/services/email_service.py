@@ -120,3 +120,129 @@ def send_appointment_confirmation(patient_email, patient_name, appointment_detai
     except Exception as e:
         print(f"Error sending email: {str(e)}")
         return False
+
+def send_checkin_notification(patient_email, patient_name, queue_number, estimated_wait_time, doctor_name):
+    """
+    Sends an email when a patient checks in.
+    """
+    subject = f"Check-In Successful - Token #{queue_number}"
+    
+    template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            .container { font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc; }
+            .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+            .header { color: #00478D; font-size: 24px; font-weight: 800; margin-bottom: 20px; text-align: center; }
+            .token-box { background: #e3f2fd; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
+            .token-label { font-size: 14px; color: #64748b; font-weight: 600; text-transform: uppercase; }
+            .token-value { font-size: 48px; color: #00478D; font-weight: 900; }
+            .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+            .label { color: #64748b; font-weight: 600; }
+            .value { color: #1e293b; font-weight: 700; }
+            .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #94a3b8; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="card">
+                <div class="header">MediAssist AI Check-In</div>
+                <p>Hello <strong>{{ name }}</strong>, your check-in was successful. Please proceed to the waiting area.</p>
+                
+                <div class="token-box">
+                    <div class="token-label">Your Queue Number</div>
+                    <div class="token-value">#{{ token }}</div>
+                </div>
+
+                <div class="info-row">
+                    <span class="label">Consulting Doctor</span>
+                    <span class="value">{{ doctor }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Est. Wait Time</span>
+                    <span class="value">{{ wait_time }} mins</span>
+                </div>
+
+                <p style="margin-top: 20px; font-size: 14px; color: #475569;">
+                    We will notify you when the doctor is ready to see you.
+                </p>
+            </div>
+            <div class="footer">
+                &copy; 2026 MediAssist AI Hospital System
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    html_content = render_template_string(
+        template,
+        name=patient_name,
+        token=f"{queue_number:02d}",
+        doctor=doctor_name,
+        wait_time=estimated_wait_time
+    )
+    
+    msg = Message(subject, recipients=[patient_email])
+    msg.html = html_content
+    
+    try:
+        print(f"DEBUG: Attempting to send check-in email to {patient_email}")
+        mail.send(msg)
+        print(f"DEBUG: Check-in email sent successfully to {patient_email}")
+        return True
+    except Exception as e:
+        print(f"ERROR: Failed to send check-in email to {patient_email}: {str(e)}")
+        return False
+
+def send_checkout_notification(patient_email, patient_name):
+    """
+    Sends an email when a patient checks out.
+    """
+    subject = "Visit Completed - MediAssist AI"
+    
+    template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            .container { font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
+            .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+            .icon { font-size: 48px; margin-bottom: 20px; }
+            .header { color: #2e7d32; font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+            .footer { margin-top: 30px; font-size: 12px; color: #94a3b8; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="card">
+                <div class="icon">✅</div>
+                <div class="header">Visit Completed</div>
+                <p>Hello <strong>{{ name }}</strong>, your visit at MediAssist AI is now complete.</p>
+                <p>We hope you had a pleasant experience. Your digital receipt and medical records are available in your dashboard.</p>
+                <p style="margin-top: 20px; font-weight: 600; color: #00478D;">Take care and stay healthy!</p>
+            </div>
+            <div class="footer">
+                &copy; 2026 MediAssist AI Hospital System
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    html_content = render_template_string(template, name=patient_name)
+    
+    msg = Message(subject, recipients=[patient_email])
+    msg.html = html_content
+    
+    try:
+        print(f"DEBUG: Attempting to send check-out email to {patient_email}")
+        mail.send(msg)
+        print(f"DEBUG: Check-out email sent successfully to {patient_email}")
+        return True
+    except Exception as e:
+        print(f"ERROR: Failed to send check-out email to {patient_email}: {str(e)}")
+        return False

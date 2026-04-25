@@ -17,7 +17,9 @@ class Queue(db.Model):
     estimated_wait_time = db.Column(db.Integer, nullable=False)
 
     # NEW FIELDS
-    status = db.Column(db.String(20), default="Active")  # Active, Completed, Cancelled
+    status = db.Column(db.String(20), default="WAITING")  # WAITING, COMPLETED, CANCELLED
+    check_in_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    check_out_time = db.Column(db.DateTime, nullable=True)
     completed_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
+import queueService from '../../services/queueService';
 import './KioskCheckOut.css';
 
 // ─── Visit Summary card (left 8 cols) ────────────────────────────────────────
@@ -131,12 +132,23 @@ const KioskCheckOut = () => {
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
         if (savedPatient) {
-            setPatient(JSON.parse(savedPatient));
+            const parsed = JSON.parse(savedPatient);
+            setPatient(parsed);
+            handleCheckOut(parsed.id);
         } else {
             // Visitors shouldn't really be at checkout, but we'll handle it
             navigate('/');
         }
     }, [navigate]);
+
+    const handleCheckOut = async (patientId) => {
+        try {
+            await queueService.checkOut(patientId);
+            console.log('Check-Out Successful');
+        } catch (err) {
+            console.error('Check-Out Failed:', err);
+        }
+    };
 
     useEffect(() => {
         if (finished) {

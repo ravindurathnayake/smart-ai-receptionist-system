@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
+import queueService from '../../services/queueService';
 import './KioskManualCheckIn.css';
 
 // ─── Form field component ─────────────────────────────────────────────────────
@@ -71,29 +72,16 @@ const KioskManualCheckIn = () => {
 
         setLoading(true);
         try {
-            const specialistsResponse = await apiService.getSpecialists();
-            const gp = specialistsResponse?.find(s => s.department === 'General Medicine' || s.department === 'OPD') || specialistsResponse?.[0];
-            
-            if (!gp) {
-                alert('No specialists available for check-in.');
-                return;
-            }
+            const identifier = form.nic || form.phone;
+            const response = await queueService.manualCheckIn(identifier);
 
-            const response = await apiService.bookAppointment({
-                full_name: form.name,
-                phone_number: form.phone || "N/A",
-                specialist_id: gp.id,
-                symptom: "Manual check-in",
-                appointment_date: new Date().toISOString().split('T')[0]
-            });
-
-            if (response.data) {
-                setBookingData(response.data);
+            if (response.success) {
+                setBookingData(response);
                 setSubmitted(true);
             }
         } catch (err) {
             console.error('Check-in error:', err);
-            alert('Check-in failed. Please try again.');
+            alert(err.error || 'Check-in failed. Please try again.');
         } finally {
             setLoading(false);
         }

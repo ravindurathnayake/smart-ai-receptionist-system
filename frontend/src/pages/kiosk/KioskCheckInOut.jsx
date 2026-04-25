@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
+import queueService from '../../services/queueService';
 import './KioskCheckInOut.css';
 
 // ─── Biometric Scanner ────────────────────────────────────────────────────────
@@ -68,10 +69,44 @@ const KioskCheckInOut = () => {
 
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
+        let currentPatientId = null;
+
         if (savedPatient) {
-            setPatient(JSON.parse(savedPatient));
+            const parsed = JSON.parse(savedPatient);
+            setPatient(parsed);
+            currentPatientId = parsed.id;
+        } else {
+            // Mock patient for demo if none logged in (using ID 23 which exists in DB)
+            currentPatientId = 23; 
         }
-    }, []);
+
+        // Simulate express check-in if scanning is active
+        if (scanning && currentPatientId) {
+            const timer = setTimeout(() => {
+                handleExpressCheckIn(currentPatientId);
+            }, 5000); // 5 seconds scan simulation for better UX
+            return () => clearTimeout(timer);
+        }
+    }, [scanning]);
+
+    const handleExpressCheckIn = async (patientId) => {
+        try {
+            const result = await queueService.checkIn(patientId);
+            if (result.success) {
+                // Success message or notification could be added here
+                console.log('Express Check-In Successful:', result);
+                // Optionally navigate to queue or show persistent success state
+                // For now, we keep it simple as per instructions (don't change UI)
+                if (result.message !== "Already checked in.") {
+                    alert(`Check-In Successful!\nQueue Number: A-${result.queue_number.toString().padStart(2, '0')}\nEst. Wait: ${result.estimated_wait_time} mins`);
+                }
+                setScanning(false);
+            }
+        } catch (err) {
+            console.error('Express Check-In Failed:', err);
+            // alert(err.error || 'Express check-in failed.');
+        }
+    };
 
     const langs = [
         { code: 'si', label: 'සිංහල' },
