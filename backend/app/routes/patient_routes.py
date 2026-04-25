@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from ..models import Patient
 from ..extensions import db
 from ..utils.response import success_response, error_response
+from ..services import get_face_embedding
 
 patient_bp = Blueprint("patient_bp", __name__)
 
@@ -46,6 +47,15 @@ def create_patient():
             blood_type=data.get("blood_type"),
             medical_history=data.get("medical_history")
         )
+        
+        # Handle face capture
+        face_image = data.get("face_image") # Base64 image
+        if face_image:
+            embedding = get_face_embedding(face_image)
+            if embedding:
+                new_patient.face_embedding = embedding
+            else:
+                return error_response("No face detected in the image. Please try again.", 400)
         
         db.session.add(new_patient)
         db.session.commit()
@@ -130,3 +140,29 @@ def delete_patient(patient_id):
     except Exception as e:
         db.session.rollback()
         return error_response(f"Delete failed: {str(e)}", 500)
+
+@patient_bp.route("/login-face", methods=["POST"])
+def login_face():
+    try:
+        from ..services.face_service import find_patient_by_face
+        data = request.get_json()
+        face_image = data.get("face_image")
+        
+        if not face_image:
+            return error_response("No face image provided", 400)
+            
+        patient = find_patient_by_face(face_image)
+        
+        if not patient:
+            return error_response("Face not recognized. Please use NIC login or register.", 404)
+            
+        return success_response("Login successful", {
+            "id": patient.id,
+            "formatted_id": f"PAT-{patient.id:04d}",
+            "name": patient.full_name,
+            "email": patient.email,
+            "nic": patient.nic,
+            "phone": patient.phone_number
+        })
+    except Exception as e:
+        return error_response(str(e), 500)

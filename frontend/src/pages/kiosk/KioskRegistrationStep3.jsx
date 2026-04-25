@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Webcam from 'react-webcam';
 import './KioskRegistrationStep3.css';
 
 // ─── Shared Components ──────────────────────────────────────────────────────
@@ -116,13 +117,28 @@ const KioskRegistrationStep3 = () => {
     const navigate = useNavigate();
     const [isCaptured, setIsCaptured] = useState(false);
     const [scanStatus, setScanStatus] = useState('Ready');
+    const [capturedImage, setCapturedImage] = useState(null);
+    const webcamRef = React.useRef(null);
 
     const handleCapture = () => {
-        setScanStatus('Analyzing...');
-        setTimeout(() => {
-            setIsCaptured(true);
-            setScanStatus('Face Verified');
-        }, 1500);
+        if (webcamRef.current) {
+            const imageSrc = webcamRef.current.getScreenshot();
+            setCapturedImage(imageSrc);
+            setScanStatus('Analyzing...');
+            
+            setTimeout(() => {
+                setIsCaptured(true);
+                setScanStatus('Face Captured');
+                
+                // Save to localStorage
+                const saved = localStorage.getItem('registrationData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    data.faceImage = imageSrc;
+                    localStorage.setItem('registrationData', JSON.stringify(data));
+                }
+            }, 1000);
+        }
     };
 
     return (
@@ -153,12 +169,26 @@ const KioskRegistrationStep3 = () => {
                         <div className="flex-1 flex gap-12 items-center min-h-0">
 
                             {/* Left: Camera Preview */}
-                            <div className="flex-1 aspect-[4/3] rounded-[2.5rem] camera-container relative overflow-hidden border-4 border-white shadow-2xl">
-                                {/* Simulated Camera View */}
-                                <div
-                                    className="absolute inset-0 bg-cover bg-center opacity-80"
-                                    style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDDHRMzG0F7RNU0XF-BBqMnCXmXz_Qa463K7q_ZUjlTlvec5A3_yo-GBkXu52ZW7QYIuHyFltArz6A8o8QAbz_jFMDV1PBm-nAe7GsT8Lu22zdSgrFozNhjfhTBxaZOfX3HuB1J2kPDoMMBt36Gzy9QRGWfNmtNfPd6Muaoa2uCFwMMU42cAhH7etNDwmEJHXxbnfwlixnDL8RxM4-WshpWVBPc2Xgcg_Iyf3eM7s_4GbsFtce_5YrEtTIUdltqByd83dRcWp1qSQQ')" }}
-                                ></div>
+                            <div className="flex-1 aspect-[4/3] rounded-[2.5rem] camera-container relative overflow-hidden border-4 border-white shadow-2xl bg-black">
+                                {isCaptured ? (
+                                    <img 
+                                        src={capturedImage} 
+                                        alt="Captured" 
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <Webcam
+                                        audio={false}
+                                        ref={webcamRef}
+                                        screenshotFormat="image/jpeg"
+                                        videoConstraints={{
+                                            width: 1280,
+                                            height: 720,
+                                            facingMode: "user"
+                                        }}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                    />
+                                )}
 
                                 {/* Biometric Scanning Overlay */}
                                 <div className="absolute inset-0 flex items-center justify-center">

@@ -137,6 +137,14 @@ export const apiService = {
             session_id: sessionId
         });
         return response.data.data;
+    },
+    faceCheckIn: async (faceImage) => {
+        const response = await api.post('/queue/face-check-in', { face_image: faceImage });
+        return response.data;
+    },
+    loginPatientWithFace: async (faceImage) => {
+        const response = await api.post('/patients/login-face', { face_image: faceImage });
+        return response.data;
     }
 };
 

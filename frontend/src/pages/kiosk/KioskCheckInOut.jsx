@@ -3,21 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
 import queueService from '../../services/queueService';
+import Webcam from 'react-webcam';
 import './KioskCheckInOut.css';
 
 // ─── Biometric Scanner ────────────────────────────────────────────────────────
 
-const BiometricScanner = ({ scanning }) => (
+const BiometricScanner = ({ scanning, webcamRef }) => (
     <div className="relative flex items-center justify-center">
         <div className={`scanner-ring-ping ${scanning ? '' : 'opacity-0'}`} />
         <div className="relative w-72 h-72 rounded-full p-3 glass-panel border border-white/40 scanner-glow flex items-center justify-center">
             {scanning && <div className="scanner-spin-border" />}
-            <div className="w-full h-full rounded-full overflow-hidden relative border-4 border-white shadow-inner">
-                <img
-                    alt="Biometric scanner HUD"
-                    className="w-full h-full object-cover opacity-80"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWpttEUDapyh0DaaioJHUNfxNr78vLYfMve1R2IejjvC38ZjnGVxHJg1zx3-4I6FjLhW3huRHMEpswg54fxmXUsFl_1bMuZRdsESJ0P8g2fPMt0Cn6MlkNV6D5ypk7mMlfVxi4qAHEF-uB97O1VjDoj6L3nF-PSDKAvAY42MgCRHmFo0aaTXWkEvUqsW2jgiA30FplTNJbWDHavpRRS4sz8E7rMVSImUEJEfYM3mvfSMjtfG3IOekZ80DBrwLaX7mHrb3sFeqdZ5A"
-                />
+            <div className="w-full h-full rounded-full overflow-hidden relative border-4 border-white shadow-inner bg-black">
+                {scanning ? (
+                    <Webcam
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        className="w-full h-full object-cover opacity-80"
+                        videoConstraints={{ width: 480, height: 480, facingMode: "user" }}
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-900">
+                        <span className="material-symbols-outlined text-slate-700 text-6xl">face</span>
+                    </div>
+                )}
                 {scanning && <div className="scan-line" />}
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent flex items-end justify-center pb-5">
                     <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
@@ -26,7 +35,7 @@ const BiometricScanner = ({ scanning }) => (
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary" />
                         </span>
                         <span className="text-xs font-bold text-primary">
-                            {scanning ? 'System: Scanning…' : 'Ready'}
+                            {scanning ? 'System: Scanning…' : 'Paused'}
                         </span>
                     </div>
                 </div>
@@ -66,45 +75,45 @@ const KioskCheckInOut = () => {
     const [patient, setPatient] = useState(null);
     const [scanning, setScanning]   = useState(true);
     const [language, setLanguage]   = useState('en');
+    const [isProcessing, setIsProcessing] = useState(false);
+    const webcamRef = React.useRef(null);
 
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
-        let currentPatientId = null;
-
         if (savedPatient) {
-            const parsed = JSON.parse(savedPatient);
-            setPatient(parsed);
-            currentPatientId = parsed.id;
-        } else {
-            // Mock patient for demo if none logged in (using ID 23 which exists in DB)
-            currentPatientId = 23; 
+            setPatient(JSON.parse(savedPatient));
         }
+    }, []);
 
-        // Simulate express check-in if scanning is active
-        if (scanning && currentPatientId) {
-            const timer = setTimeout(() => {
-                handleExpressCheckIn(currentPatientId);
-            }, 5000); // 5 seconds scan simulation for better UX
-            return () => clearTimeout(timer);
+    useEffect(() => {
+        let interval = null;
+        if (scanning && !isProcessing) {
+            interval = setInterval(() => {
+                captureAndRecognize();
+            }, 3000); // Try every 3 seconds
         }
-    }, [scanning]);
+        return () => clearInterval(interval);
+    }, [scanning, isProcessing]);
 
-    const handleExpressCheckIn = async (patientId) => {
+    const captureAndRecognize = async () => {
+        if (!webcamRef.current || isProcessing) return;
+
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (!imageSrc) return;
+
+        setIsProcessing(true);
         try {
-            const result = await queueService.checkIn(patientId);
-            if (result.success) {
-                // Success message or notification could be added here
-                console.log('Express Check-In Successful:', result);
-                // Optionally navigate to queue or show persistent success state
-                // For now, we keep it simple as per instructions (don't change UI)
-                if (result.message !== "Already checked in.") {
-                    alert(`Check-In Successful!\nQueue Number: A-${result.queue_number.toString().padStart(2, '0')}\nEst. Wait: ${result.estimated_wait_time} mins`);
-                }
+            console.log('Attempting face recognition...');
+            const response = await apiService.faceCheckIn(imageSrc);
+            
+            if (response.success) {
                 setScanning(false);
+                alert(`Welcome back, ${response.patient_name}!\n\nCheck-In Successful.\nQueue Number: A-${response.queue_number.toString().padStart(2, '0')}\nEst. Wait: ${response.estimated_wait_time} mins`);
             }
         } catch (err) {
-            console.error('Express Check-In Failed:', err);
-            // alert(err.error || 'Express check-in failed.');
+            console.log('Face not recognized yet...');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -197,7 +206,7 @@ const KioskCheckInOut = () => {
                         <p className="text-on-surface-variant text-base font-light max-w-lg mx-auto">Stand within the highlighted zone for biometric authentication. Our AI will recognise you instantly.</p>
                     </div>
 
-                    <BiometricScanner scanning={scanning} />
+                    <BiometricScanner scanning={scanning} webcamRef={webcamRef} />
 
                     <button onClick={() => setScanning((s) => !s)} className="text-xs text-outline hover:text-primary transition-colors font-semibold tracking-wide">
                         {scanning ? '⏸ Pause scan preview' : '▶ Resume scan preview'}

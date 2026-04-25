@@ -8,10 +8,9 @@ const KioskHome = () => {
   const [patient, setPatient] = useState(null);
 
   useEffect(() => {
-    const savedPatient = localStorage.getItem('activePatient');
-    if (savedPatient) {
-      setPatient(JSON.parse(savedPatient));
-    }
+    // For security, log out the patient whenever they return to the main kiosk home screen
+    localStorage.removeItem('activePatient');
+    setPatient(null);
   }, []);
 
   const patientName = patient ? (patient.full_name || patient.name || 'Patient') : null;

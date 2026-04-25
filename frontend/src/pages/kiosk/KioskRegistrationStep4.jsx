@@ -152,6 +152,7 @@ const KioskRegistrationStep4 = () => {
                 dob: regData.dob, 
                 address: regData.address,
                 medical_history: regData.symptomDetails ? `Category: ${regData.symptomCategory}. Details: ${regData.symptomDetails}` : `Category: ${regData.symptomCategory}`,
+                face_image: regData.faceImage
             };
 
             await apiService.createPatient(patientPayload);
@@ -242,7 +243,7 @@ const KioskRegistrationStep4 = () => {
                                     <img
                                         alt="Patient biometric photo"
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgoYCMeblfAUwvzraPb-OOYfAShsJV1O7I8kZTyY4weH-0Gco9y9UsIa6SEt08n4AmAqkhiCyL8wWA3UqcjVGHhYGe2-nC8T7HwOu9JqlyexuxVyfPgb_8egLbgjKPvG7YYpF9SCxX5uYfpHcN1LWQysFPcv45vlM36ADl__2o4Bimy3YyFAJyufIdWIu7SxRjksRx9BZZPX9FKcTYNQmSPTSwsyRX4Fg1iD8QGzrrP-swpSGZXYVrpa0bBXH-_thzwLEqsAGOQs0"
+                                        src={regData.faceImage || "https://lh3.googleusercontent.com/aida-public/AB6AXuCgoYCMeblfAUwvzraPb-OOYfAShsJV1O7I8kZTyY4weH-0Gco9y9UsIa6SEt08n4AmAqkhiCyL8wWA3UqcjVGHhYGe2-nC8T7HwOu9JqlyexuxVyfPgb_8egLbgjKPvG7YYpF9SCxX5uYfpHcN1LWQysFPcv45vlM36ADl__2o4Bimy3YyFAJyufIdWIu7SxRjksRx9BZZPX9FKcTYNQmSPTSwsyRX4Fg1iD8QGzrrP-swpSGZXYVrpa0bBXH-_thzwLEqsAGOQs0"}
                                     />
                                     <div className="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors"></div>
                                     <div className="absolute bottom-4 left-4 right-4 glass-card px-4 py-2.5 rounded-xl flex items-center justify-between border border-white/40">

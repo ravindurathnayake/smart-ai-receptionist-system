@@ -16,6 +16,7 @@ class Patient(db.Model):
     blood_type = db.Column(db.String(5), nullable=True)
     medical_history = db.Column(db.Text, nullable=True)
     profile_image = db.Column(db.String(255), nullable=True)
+    face_embedding = db.Column(db.JSON, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationship

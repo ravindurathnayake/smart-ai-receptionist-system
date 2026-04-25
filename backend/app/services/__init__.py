@@ -13,5 +13,6 @@ from .queue_service import (
     manual_check_in,
     check_out_patient
 )
+from .face_service import get_face_embedding, find_patient_by_face
 from .recommendation_service import recommend_specialist
 from .chatbot_service import process_message
