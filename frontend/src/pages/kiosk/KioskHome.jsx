@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import './KioskHome.css';
+import { apiService } from '../../services/apiService';
 
 const KioskHome = () => {
   const navigate = useNavigate();
@@ -12,6 +13,47 @@ const KioskHome = () => {
     localStorage.removeItem('activePatient');
     setPatient(null);
   }, []);
+
+  // --- CHAT LOGIC ---
+  const [inputValue, setInputValue] = useState('');
+  const [chatHistory, setChatHistory] = useState([
+    { role: 'bot', text: 'Ayubowan! I am your MediAssist AI. How can I help you today?' }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const scrollRef = React.useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [chatHistory, isTyping]);
+
+  const handleSend = async (messageOverride = null) => {
+    const text = messageOverride || inputValue;
+    if (!text.trim()) return;
+
+    const newChat = [...chatHistory, { role: 'user', text }];
+    setChatHistory(newChat);
+    setInputValue('');
+    setIsTyping(true);
+    setShowChat(true);
+
+    try {
+        const response = await apiService.chatAI(text, null); // Anonymous visitor
+        
+        setChatHistory(prev => [...prev, { 
+            role: 'bot', 
+            text: response.reply,
+            actions: response.actions || []
+        }]);
+    } catch (error) {
+        console.error("Chat error:", error);
+        setChatHistory(prev => [...prev, { role: 'bot', text: "I'm having trouble connecting to my brain right now. Please try again later." }]);
+    } finally {
+        setIsTyping(false);
+    }
+  };
 
   const patientName = patient ? (patient.full_name || patient.name || 'Patient') : null;
 
@@ -67,9 +109,9 @@ const KioskHome = () => {
         </div>
 
         {/* Central AI Chatbot Section */}
-        <div className="w-full max-w-4xl flex flex-col items-center text-center gap-6 relative z-10 mt-auto">
+        <div className={`w-full max-w-4xl flex flex-col items-center text-center gap-6 relative z-10 transition-all duration-500 ${showChat ? 'mt-4' : 'mt-auto'}`}>
           {/* Friendly AI Bot Avatar */}
-          <div className="relative group cursor-pointer" onClick={() => navigate('/assistant')}>
+          <div className="relative group cursor-pointer" onClick={() => setShowChat(!showChat)}>
             <div className="absolute -inset-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700"></div>
             <div className="floating-bot relative">
               <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-white p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] glow-effect flex items-center justify-center">
@@ -93,13 +135,64 @@ const KioskHome = () => {
 
           {/* Chat Input Area */}
           <div className="w-full max-w-2xl space-y-3">
+            {showChat && (
+              <div className="glass-panel w-full p-6 mb-4 rounded-[2rem] border border-white/50 text-left bg-white/40 backdrop-blur-xl shadow-2xl">
+                <div 
+                  ref={scrollRef}
+                  className="max-h-[300px] overflow-y-auto no-scrollbar space-y-4 mb-4 scroll-smooth"
+                >
+                  {chatHistory.map((chat, idx) => (
+                    <div key={idx} className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] p-4 rounded-2xl ${
+                        chat.role === 'user' 
+                          ? 'bg-primary text-white rounded-tr-none' 
+                          : 'bg-white/80 text-on-surface rounded-tl-none shadow-sm'
+                      }`}>
+                        <p className="text-sm font-medium leading-relaxed">{chat.text}</p>
+                        {chat.actions && chat.actions.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {chat.actions.map((action, aidx) => (
+                              <button
+                                key={aidx}
+                                onClick={() => {
+                                  if (action.type === 'navigate') navigate(action.payload);
+                                  else handleSend(action.payload);
+                                }}
+                                className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-colors border border-primary/20"
+                              >
+                                {action.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {isTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-white/80 p-4 rounded-2xl rounded-tl-none shadow-sm flex gap-1">
+                        <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></div>
+                        <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                        <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end">
+                   <button onClick={() => {setShowChat(false); setChatHistory([{ role: 'bot', text: 'Ayubowan! I am your MediAssist AI. How can I help you today?' }])}} className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest hover:text-primary transition-colors">Clear Conversation</button>
+                </div>
+              </div>
+            )}
+
             <div className="glass-panel p-2 rounded-[2.5rem] shadow-2xl border border-white/50 flex items-center gap-2">
               <div className="flex-grow relative">
                 <input 
                   className="w-full bg-transparent border-none focus:outline-none text-xl py-4 px-8 font-medium placeholder:text-on-surface-variant/40" 
                   placeholder="Type your message..." 
                   type="text" 
-                  onKeyPress={(e) => e.key === 'Enter' && navigate('/assistant')}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                 />
               </div>
               <button 
@@ -109,7 +202,7 @@ const KioskHome = () => {
                 <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
               </button>
               <button 
-                onClick={() => navigate('/assistant')}
+                onClick={() => handleSend()}
                 className="bg-primary text-white px-8 py-3 md:py-4 rounded-full font-bold text-lg shadow-xl hover:bg-primary-container transition-all active:scale-95 flex-shrink-0 mr-1"
               >
                 Send

@@ -9,14 +9,16 @@ def chat():
     try:
         data = request.get_json()
         message = data.get("message")
+        patient_id = data.get("patient_id")
 
         if not message:
             return jsonify({"error": "Message is required"}), 400
 
-        reply = process_message(message)
+        reply_data = process_message(message, patient_id)
 
         return jsonify({
-            "reply": reply
+            "reply": reply_data.get("reply"),
+            "actions": reply_data.get("actions", [])
         }), 200
 
     except Exception as e:

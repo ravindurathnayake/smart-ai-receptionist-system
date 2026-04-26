@@ -134,3 +134,31 @@ def check_out_patient(patient_id):
         "message": "Visit Completed",
         "notifications": notifications
     }
+
+def get_patient_queue_status(patient_id):
+    """
+    Retrieves the active queue position and department for a patient.
+    """
+    today = date.today()
+    queue_entry = Queue.query.join(Appointment).filter(
+        Appointment.patient_id == patient_id,
+        db.func.date(Appointment.appointment_date) == today,
+        Queue.status == "WAITING"
+    ).first()
+    
+    if not queue_entry:
+        return None
+        
+    # Count people ahead
+    people_ahead = Queue.query.filter(
+        Queue.status == "WAITING",
+        Queue.queue_number < queue_entry.queue_number,
+        db.func.date(Queue.created_at) == today
+    ).count()
+    
+    return {
+        "token": f"TKN-{queue_entry.queue_number:03d}",
+        "department": queue_entry.appointment.specialist.department if queue_entry.appointment.specialist else "General",
+        "people_ahead": people_ahead,
+        "estimated_wait": people_ahead * 5
+    }

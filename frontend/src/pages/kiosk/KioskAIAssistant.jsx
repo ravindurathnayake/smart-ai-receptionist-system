@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
@@ -7,7 +7,7 @@ import './KioskAIAssistant.css';
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 /** AI response / chat bubble panel */
-const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping }) => {
+const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping, scrollRef }) => {
     const suggestions = [
         '"Where is the Cardiology wing?"',
         '"Show my prescription history"',
@@ -48,7 +48,10 @@ const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping 
             </div>
 
             {/* AI message bubble */}
-            <div className="relative z-10 space-y-5 max-h-[300px] overflow-y-auto no-scrollbar mb-4">
+            <div 
+                ref={scrollRef}
+                className="relative z-10 space-y-5 max-h-[300px] overflow-y-auto no-scrollbar mb-4 scroll-smooth"
+            >
                 {chatHistory.map((chat, idx) => (
                     <div 
                         key={idx} 
@@ -58,7 +61,22 @@ const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping 
                                 : 'bg-white/60 mr-auto max-w-[90%] text-on-surface'
                         }`}
                     >
-                        "{chat.text}"
+                        <div className="flex flex-col gap-3">
+                            <div>"{chat.text}"</div>
+                            {chat.actions && chat.actions.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                    {chat.actions.map((btn, bIdx) => (
+                                        <button
+                                            key={bIdx}
+                                            onClick={() => btn.handler()}
+                                            className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-sm hover:opacity-90 transition-opacity"
+                                        >
+                                            {btn.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 ))}
                 {isTyping && (
@@ -122,6 +140,14 @@ const KioskAIAssistant = () => {
     const [patient, setPatient] = useState(null);
     const [chatHistory, setChatHistory] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
+    const scrollRef = useRef(null);
+
+    // Auto-scroll to bottom whenever chatHistory or isTyping changes
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [chatHistory, isTyping]);
 
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
@@ -132,10 +158,25 @@ const KioskAIAssistant = () => {
         const parsed = JSON.parse(savedPatient);
         const patientName = parsed.full_name || parsed.name || 'Patient';
         setPatient(parsed);
-        setChatHistory([
-            { role: 'bot', text: `I've recognized you, ${patientName.split(' ')[0]}. I've retrieved your medical profile. How can I assist you with your health today?` }
-        ]);
+
+        // Load chat history from localStorage
+        const historyKey = `chatHistory_${parsed.id}`;
+        const savedHistory = localStorage.getItem(historyKey);
+        if (savedHistory) {
+            setChatHistory(JSON.parse(savedHistory));
+        } else {
+            setChatHistory([
+                { role: 'bot', text: `I've recognized you, ${patientName.split(' ')[0]}. I've retrieved your medical profile. How can I assist you with your health today?` }
+            ]);
+        }
     }, [navigate]);
+
+    // Save chat history to localStorage whenever it changes
+    useEffect(() => {
+        if (patient?.id && chatHistory.length > 0) {
+            localStorage.setItem(`chatHistory_${patient.id}`, JSON.stringify(chatHistory));
+        }
+    }, [chatHistory, patient]);
 
     const handleSend = async () => {
         if (!inputValue.trim()) return;
@@ -146,8 +187,30 @@ const KioskAIAssistant = () => {
         setIsTyping(true);
 
         try {
-            const response = await apiService.chatAI(userMessage);
-            setChatHistory(prev => [...prev, { role: 'bot', text: response.reply || response.message || "I'm sorry, I couldn't process that." }]);
+            const response = await apiService.chatAI(userMessage, patient?.id);
+            
+            const botMessage = { 
+                role: 'bot', 
+                text: response.reply || response.message || "I'm sorry, I couldn't process that.",
+                actions: []
+            };
+
+            // Convert response actions to frontend handlers
+            if (response.actions) {
+                botMessage.actions = response.actions.map(action => ({
+                    label: action.label,
+                    handler: () => {
+                        if (action.type === 'navigate') {
+                            navigate(action.payload);
+                        } else if (action.type === 'message') {
+                            setInputValue(action.payload);
+                            // We don't auto-send to allow user to see what's being sent
+                        }
+                    }
+                }));
+            }
+
+            setChatHistory(prev => [...prev, botMessage]);
         } catch (err) {
             console.error('AI Chat Error:', err);
             setChatHistory(prev => [...prev, { role: 'bot', text: "Error connecting to AI service. Please try again." }]);
@@ -195,7 +258,13 @@ const KioskAIAssistant = () => {
                         <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity">Call for Help</button>
                     </div>
                     <button 
-                        onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }}
+                        onClick={() => { 
+                            if (patient?.id) {
+                                localStorage.removeItem(`chatHistory_${patient.id}`);
+                            }
+                            localStorage.removeItem('activePatient'); 
+                            navigate('/'); 
+                        }}
                         className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4"
                     >
                         <span className="material-symbols-outlined">logout</span>
@@ -251,6 +320,7 @@ const KioskAIAssistant = () => {
                             chatHistory={chatHistory}
                             onSend={handleSend}
                             isTyping={isTyping}
+                            scrollRef={scrollRef}
                         />
                     </div>
                     <p className="mt-5 text-slate-400 text-xs font-semibold tracking-wide text-center">Hospital Kiosk #42 • Colombo General Medical Center</p>
