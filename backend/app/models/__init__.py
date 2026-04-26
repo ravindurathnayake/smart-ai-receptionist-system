@@ -6,3 +6,4 @@ from .department import Department
 from .doctor_session import DoctorSession
 from .payment import Payment
 from .user import User
+from .notification import Notification

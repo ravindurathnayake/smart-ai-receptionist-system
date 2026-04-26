@@ -145,6 +145,20 @@ export const apiService = {
     loginPatientWithFace: async (faceImage) => {
         const response = await api.post('/patients/login-face', { face_image: faceImage });
         return response.data;
+    },
+
+    // Notifications & Alerts
+    createNotification: async (data) => {
+        const response = await api.post('/notifications/', data);
+        return response.data.data;
+    },
+    getNotifications: async () => {
+        const response = await api.get('/notifications/');
+        return response.data.data;
+    },
+    markNotificationAsRead: async (id) => {
+        const response = await api.patch(`/notifications/${id}/read`);
+        return response.data.data;
     }
 };
 

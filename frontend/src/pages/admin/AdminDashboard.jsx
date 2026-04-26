@@ -12,6 +12,7 @@ const AdminDashboard = () => {
 
   const [queueItems, setQueueItems] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,6 +52,11 @@ const AdminDashboard = () => {
             fee: d.consultation_fee
           })));
         }
+
+        const notificationsResponse = await apiService.getNotifications();
+        if (notificationsResponse) {
+          setNotifications(notificationsResponse);
+        }
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
       } finally {
@@ -63,6 +69,15 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleMarkRead = async (id) => {
+    try {
+      await apiService.markNotificationAsRead(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
   return (
     <div className="admin-dashboard-wrapper admin-page-transition">
       {/* Page Title */}
@@ -70,6 +85,48 @@ const AdminDashboard = () => {
         <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Hospital Overview</h2>
         <p className="text-sm text-on-surface-variant mt-1 font-medium">Real-time status of MediAssist AI Facility.</p>
       </div>
+
+      {/* Emergency Alerts Section */}
+      {notifications.filter(n => n.status === 'Unread').length > 0 && (
+        <div className="mt-8 animate-in slide-in-from-top duration-500">
+          <div className="bg-error/5 border-2 border-error/20 rounded-[2.5rem] p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-rounded text-error animate-pulse text-3xl">report</span>
+                <h3 className="text-2xl font-bold font-display text-error">Active Emergency Alerts</h3>
+              </div>
+              <span className="bg-error text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest animate-bounce shadow-lg shadow-error/20">Immediate Action Required</span>
+            </div>
+            <div className="space-y-4">
+              {notifications.filter(n => n.status === 'Unread').map((n, idx) => (
+                <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border-l-8 border-error flex items-center justify-between group hover:shadow-md transition-all">
+                  <div className="flex items-center gap-6">
+                    <div className="w-14 h-14 rounded-2xl bg-error/10 flex items-center justify-center text-error shadow-inner">
+                      <span className="material-symbols-rounded text-3xl">{n.type === 'Emergency' ? 'emergency' : 'person_alert'}</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-bold text-on-surface text-xl">{n.message}</h4>
+                        <span className="text-[10px] font-black text-error bg-error/5 px-2.5 py-1 rounded border border-error/10 uppercase tracking-widest">{n.kiosk_id}</span>
+                      </div>
+                      <p className="text-sm text-on-surface-variant font-semibold mt-1 flex items-center gap-2">
+                        <span className="material-symbols-rounded text-sm">schedule</span>
+                        Received at {new Date(n.created_at).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleMarkRead(n.id)}
+                    className="px-8 py-3 bg-error text-white rounded-xl font-bold text-xs hover:bg-error/90 transition-all opacity-0 group-hover:opacity-100 shadow-lg active:scale-95"
+                  >
+                    Resolve Alert
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="stats-grid">

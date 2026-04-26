@@ -38,4 +38,7 @@ def create_app():
     from app.routes import auth_bp
     app.register_blueprint(auth_bp, url_prefix="/api")
 
+    from app.routes.notification_routes import notification_bp
+    app.register_blueprint(notification_bp, url_prefix="/api/notifications")
+
     return app

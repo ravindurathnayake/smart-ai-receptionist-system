@@ -6,8 +6,9 @@ app = create_app()
 if __name__ == "__main__":
     with app.app_context():
         try:
+            db.create_all()
             db.engine.connect()
-            print("Database connected successfully!")
+            print("Database connected and tables verified!")
         except Exception as e:
             print("Database connection failed:", e)
     app.run()

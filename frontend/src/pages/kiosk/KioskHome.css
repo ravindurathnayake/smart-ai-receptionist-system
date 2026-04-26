@@ -47,8 +47,37 @@
 }
 
 .scrolling-ticker {
-    width: 100%;
     mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* Emergency animations */
+@keyframes emergencyPulse {
+    0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.4); }
+    70% { box-shadow: 0 0 0 20px rgba(211, 47, 47, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+}
+
+.emergency-active {
+    animation: emergencyPulse 2s infinite;
+    border: 2px solid #d32f2f !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInFromTop {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+.animate-in.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.animate-in.slide-in-from-top {
+    animation: slideInFromTop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Hide scrollbars but keep functionality */
