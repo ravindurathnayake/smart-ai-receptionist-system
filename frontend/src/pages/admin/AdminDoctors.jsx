@@ -29,16 +29,25 @@ const AdminDoctors = () => {
       const adminStats = await apiService.getAdminStats();
       
       if (specs) {
-        setDoctors(specs.map(s => ({
-          id: s.id,
-          name: s.title ? `${s.title} ${s.name}` : `Dr. ${s.name}`,
-          specialty: s.specialization || s.department,
-          shift: s.sessions && s.sessions.length > 0 ? `${s.sessions[0].day_of_week} ${s.sessions[0].start_time}` : 'Not Set',
-          status: s.availability_status || 'Available',
-          room: s.sessions && s.sessions.length > 0 ? s.sessions[0].room_number : 'N/A',
-          patients: 0,
-          raw: s
-        })));
+        setDoctors(specs.map(s => {
+          let shiftText = 'Not Set';
+          if (s.sessions && s.sessions.length > 0) {
+            const firstSess = s.sessions[0];
+            const dateStr = firstSess.session_date || firstSess.day_of_week || 'N/A';
+            shiftText = `${dateStr} @ ${firstSess.start_time}`;
+          }
+          
+          return {
+            id: s.id,
+            name: s.title ? `${s.title} ${s.name}` : `Dr. ${s.name}`,
+            specialty: s.specialization || s.department,
+            shift: shiftText,
+            status: s.availability_status || 'Available',
+            room: s.sessions && s.sessions.length > 0 ? s.sessions[0].room_number : 'N/A',
+            patients: 0,
+            raw: s
+          };
+        }));
         setStats({
           onDuty: specs.length,
           activeConsultations: adminStats?.queue?.active || 0
@@ -96,9 +105,17 @@ const AdminDoctors = () => {
   };
 
   const addSessionRow = () => {
+    const today = new Date().toISOString().split('T')[0];
     setFormData({
       ...formData,
-      sessions: [...formData.sessions, { day_of_week: 'Monday', start_time: '09:00', end_time: '13:00', room_number: 'Room 01', max_patients: 20 }]
+      sessions: [...formData.sessions, { 
+        session_date: today, 
+        day_of_week: '', 
+        start_time: '09:00', 
+        end_time: '13:00', 
+        room_number: 'Room 01', 
+        max_patients: 20 
+      }]
     });
   };
 
@@ -416,73 +433,102 @@ const AdminDoctors = () => {
                     </button>
                   </div>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {formData.sessions.length === 0 ? (
-                      <div className="p-10 border-2 border-dashed border-outline-variant/20 rounded-[2rem] text-center">
-                        <span className="material-symbols-rounded text-3xl text-outline/30 mb-2 block">event_busy</span>
-                        <p className="text-xs font-bold text-outline uppercase tracking-widest">No active sessions defined</p>
+                      <div className="p-12 border-2 border-dashed border-outline-variant/20 rounded-[2.5rem] text-center bg-surface-container-lowest/50">
+                        <div className="w-16 h-16 bg-surface-container rounded-3xl flex items-center justify-center mx-auto mb-4 text-outline/30">
+                          <span className="material-symbols-rounded text-4xl">calendar_add_on</span>
+                        </div>
+                        <p className="text-sm font-bold text-outline uppercase tracking-widest">No active sessions defined</p>
+                        <p className="text-xs text-on-surface-variant mt-1">Add a new shift to start scheduling consultations.</p>
                       </div>
-                    ) : formData.sessions.map((session, idx) => (
-                      <div key={idx} className="p-4 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl grid grid-cols-12 gap-4 items-end animate-in slide-in-from-right-4 duration-300">
-                        <div className="col-span-2 space-y-1">
-                          <label className="text-[9px] font-black text-outline uppercase px-1">Day</label>
-                          <select 
-                            className="w-full p-2 bg-surface-container-low rounded-lg text-xs font-bold outline-none border-none"
-                            value={session.day_of_week}
-                            onChange={(e) => handleSessionChange(idx, 'day_of_week', e.target.value)}
-                          >
-                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                              <option key={day} value={day}>{day}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-span-2 space-y-1">
-                          <label className="text-[9px] font-black text-outline uppercase px-1">Start Time</label>
-                          <input 
-                            type="time"
-                            className="w-full p-2 bg-surface-container-low rounded-lg text-xs font-bold outline-none border-none"
-                            value={session.start_time}
-                            onChange={(e) => handleSessionChange(idx, 'start_time', e.target.value)}
-                          />
-                        </div>
-                        <div className="col-span-2 space-y-1">
-                          <label className="text-[9px] font-black text-outline uppercase px-1">End Time</label>
-                          <input 
-                            type="time"
-                            className="w-full p-2 bg-surface-container-low rounded-lg text-xs font-bold outline-none border-none"
-                            value={session.end_time}
-                            onChange={(e) => handleSessionChange(idx, 'end_time', e.target.value)}
-                          />
-                        </div>
-                        <div className="col-span-2 space-y-1">
-                          <label className="text-[9px] font-black text-outline uppercase px-1">Room/Location</label>
-                          <input 
-                            className="w-full p-2 bg-surface-container-low rounded-lg text-xs font-bold outline-none border-none"
-                            value={session.room_number}
-                            onChange={(e) => handleSessionChange(idx, 'room_number', e.target.value)}
-                            placeholder="Room 04"
-                          />
-                        </div>
-                        <div className="col-span-2 space-y-1">
-                          <label className="text-[9px] font-black text-outline uppercase px-1">Capacity</label>
-                          <input 
-                            type="number"
-                            className="w-full p-2 bg-surface-container-low rounded-lg text-xs font-bold outline-none border-none"
-                            value={session.max_patients}
-                            onChange={(e) => handleSessionChange(idx, 'max_patients', e.target.value)}
-                          />
-                        </div>
-                        <div className="col-span-2 flex justify-end">
-                          <button 
-                            type="button"
-                            onClick={() => removeSessionRow(idx)}
-                            className="w-10 h-10 flex items-center justify-center text-error hover:bg-error/10 rounded-xl transition-all"
-                          >
-                            <span className="material-symbols-rounded">delete_sweep</span>
-                          </button>
-                        </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4">
+                        {formData.sessions.map((session, idx) => (
+                          <div key={idx} className="p-6 bg-white border border-outline-variant/10 rounded-[1.75rem] shadow-sm hover:shadow-md hover:border-primary/20 transition-all group animate-in slide-in-from-bottom-2 duration-300">
+                            <div className="grid grid-cols-12 gap-6 items-center">
+                              {/* Date Selection */}
+                              <div className="col-span-3 space-y-2">
+                                <div className="flex items-center gap-2 px-1">
+                                  <span className="material-symbols-rounded text-sm text-primary">calendar_month</span>
+                                  <label className="text-[10px] font-black text-outline uppercase tracking-widest">Session Date</label>
+                                </div>
+                                <input 
+                                  type="date"
+                                  required
+                                  className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
+                                  value={session.session_date || ''}
+                                  onChange={(e) => handleSessionChange(idx, 'session_date', e.target.value)}
+                                />
+                              </div>
+
+                              {/* Time Range */}
+                              <div className="col-span-4 space-y-2">
+                                <div className="flex items-center gap-2 px-1">
+                                  <span className="material-symbols-rounded text-sm text-primary">schedule</span>
+                                  <label className="text-[10px] font-black text-outline uppercase tracking-widest">Time Window</label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <input 
+                                    type="time"
+                                    className="flex-1 px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
+                                    value={session.start_time}
+                                    onChange={(e) => handleSessionChange(idx, 'start_time', e.target.value)}
+                                  />
+                                  <span className="text-outline text-xs font-black">TO</span>
+                                  <input 
+                                    type="time"
+                                    className="flex-1 px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
+                                    value={session.end_time}
+                                    onChange={(e) => handleSessionChange(idx, 'end_time', e.target.value)}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Room & Capacity */}
+                              <div className="col-span-4 grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 px-1">
+                                    <span className="material-symbols-rounded text-sm text-primary">meeting_room</span>
+                                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">Room</label>
+                                  </div>
+                                  <input 
+                                    className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
+                                    value={session.room_number}
+                                    onChange={(e) => handleSessionChange(idx, 'room_number', e.target.value)}
+                                    placeholder="e.g. Room 04"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 px-1">
+                                    <span className="material-symbols-rounded text-sm text-primary">groups</span>
+                                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">Limit</label>
+                                  </div>
+                                  <input 
+                                    type="number"
+                                    className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
+                                    value={session.max_patients}
+                                    onChange={(e) => handleSessionChange(idx, 'max_patients', e.target.value)}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="col-span-1 flex justify-end">
+                                <button 
+                                  type="button"
+                                  onClick={() => removeSessionRow(idx)}
+                                  className="w-12 h-12 flex items-center justify-center text-outline-variant hover:text-error hover:bg-error/10 rounded-2xl transition-all"
+                                  title="Remove Shift"
+                                >
+                                  <span className="material-symbols-rounded text-xl">delete_outline</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>

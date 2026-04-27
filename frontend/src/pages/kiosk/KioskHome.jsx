@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import './KioskHome.css';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 
 const translations = {
   en: {
@@ -199,7 +200,34 @@ const KioskHome = () => {
   const [helpTab, setHelpTab] = useState('guide');
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
   const [emergencyNotification, setEmergencyNotification] = useState(null);
+  const [queueStatus, setQueueStatus] = useState([]);
   const scrollRef = React.useRef(null);
+
+  useEffect(() => {
+    const fetchQueue = async () => {
+        try {
+            const data = await apiService.getAllQueuesStatus();
+            if (Array.isArray(data)) {
+                setQueueStatus(data);
+            }
+        } catch (error) {
+            console.error("Error fetching queue status:", error);
+        }
+    };
+
+    fetchQueue();
+
+    // CONNECT SOCKET FOR REAL-TIME UPDATES
+    socketService.connect();
+    socketService.on('queue_updated', () => {
+        console.log('Kiosk: Queue updated via Socket');
+        fetchQueue();
+    });
+
+    return () => {
+        socketService.off('queue_updated');
+    };
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -619,35 +647,30 @@ const KioskHome = () => {
         </div>
         <div className="flex-grow scrolling-ticker h-full flex items-center relative overflow-hidden">
           <div className="ticker-content flex items-center gap-12 px-12 animate-scroll">
-            <div className="flex items-center gap-4 w-max">
-              <span className="text-on-surface-variant font-medium">OPD Room 12:</span>
-              <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-lg font-bold">NEXT: PAT-0482</span>
-            </div>
-            <div className="w-1.5 h-1.5 bg-outline-variant/30 rounded-full flex-shrink-0"></div>
-
-            <div className="flex items-center gap-4 w-max">
-              <span className="text-on-surface-variant font-medium">Radiology:</span>
-              <span className="bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-lg font-bold">NEXT: PAT-1109</span>
-            </div>
-            <div className="w-1.5 h-1.5 bg-outline-variant/30 rounded-full flex-shrink-0"></div>
-
-            <div className="flex items-center gap-4 w-max">
-              <span className="text-on-surface-variant font-medium">Cardiology:</span>
-              <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-lg font-bold">NEXT: PAT-0994</span>
-            </div>
-            <div className="w-1.5 h-1.5 bg-outline-variant/30 rounded-full flex-shrink-0"></div>
-
-            <div className="flex items-center gap-4 w-max">
-              <span className="text-on-surface-variant font-medium">Pharmacy:</span>
-              <span className="bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-lg font-bold">NOW SERVING: PAT-0420</span>
-            </div>
-
-            {/* Duplicate for infinite scroll */}
-            <div className="w-1.5 h-1.5 bg-outline-variant/30 rounded-full flex-shrink-0"></div>
-            <div className="flex items-center gap-4 w-max">
-              <span className="text-on-surface-variant font-medium">OPD Room 12:</span>
-              <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-lg font-bold">NEXT: PAT-0482</span>
-            </div>
+            {queueStatus.length > 0 ? (
+                // Duplicate for infinite scroll effect
+                [...queueStatus, ...queueStatus].map((item, idx) => (
+                    <React.Fragment key={idx}>
+                        <div className="flex items-center gap-4 w-max">
+                            <span className="text-on-surface-variant font-medium">
+                                {item.department} {item.room !== 'TBA' ? `(${item.room})` : ''}:
+                            </span>
+                            <span className={`px-3 py-1 rounded-lg font-bold ${
+                                item.status === 'NOW SERVING' 
+                                ? 'bg-primary-fixed text-on-primary-fixed' 
+                                : 'bg-secondary-container text-on-secondary-container'
+                            }`}>
+                                {item.status}: {item.next_patient}
+                            </span>
+                        </div>
+                        <div className="w-1.5 h-1.5 bg-outline-variant/30 rounded-full flex-shrink-0"></div>
+                    </React.Fragment>
+                ))
+            ) : (
+                <div className="flex items-center gap-4 w-max text-on-surface-variant/40 font-bold italic uppercase tracking-widest text-xs">
+                   No active queues at the moment • Updates automatically
+                </div>
+            )}
           </div>
         </div>
 

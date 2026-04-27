@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 import './PatientDashboard.css';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -148,6 +149,14 @@ const PatientDashboard = () => {
             }
         };
         fetchData();
+
+        // REAL-TIME UPDATES
+        socketService.connect();
+        socketService.on('queue_updated', fetchData);
+
+        return () => {
+            socketService.off('queue_updated', fetchData);
+        };
     }, [navigate]);
 
     const calculateAge = (dobString) => {

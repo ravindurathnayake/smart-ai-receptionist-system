@@ -1,5 +1,15 @@
 from flask import Blueprint, request, jsonify
-from app.services.queue_service import check_in_patient, manual_check_in, check_out_patient
+from app.services.queue_service import (
+    check_in_patient, 
+    manual_check_in, 
+    check_out_patient, 
+    get_all_queues_status,
+    call_next_patient,
+    toggle_session_pause,
+    end_session,
+    skip_patient,
+    get_all_sessions_queues
+)
 from app.services import find_patient_by_face
 
 queue_bp = Blueprint('queue', __name__, url_prefix='/api/queue')
@@ -45,6 +55,36 @@ def check_out():
     if "error" in result:
         return jsonify(result), 400
         
+    return jsonify(result), 200
+
+@queue_bp.route('/status', methods=['GET'])
+def get_all_queues():
+    result = get_all_queues_status()
+    return jsonify(result), 200
+
+@queue_bp.route('/sessions-queues', methods=['GET'])
+def get_sessions_queues():
+    result = get_all_sessions_queues()
+    return jsonify(result), 200
+
+@queue_bp.route('/call-next/<int:session_id>', methods=['POST'])
+def call_next(session_id):
+    result = call_next_patient(session_id)
+    return jsonify(result), 200
+
+@queue_bp.route('/toggle-pause/<int:session_id>', methods=['POST'])
+def toggle_pause(session_id):
+    result = toggle_session_pause(session_id)
+    return jsonify(result), 200
+
+@queue_bp.route('/end-session/<int:session_id>', methods=['POST'])
+def end_session_route(session_id):
+    result = end_session(session_id)
+    return jsonify(result), 200
+
+@queue_bp.route('/skip/<int:queue_id>', methods=['POST'])
+def skip(queue_id):
+    result = skip_patient(queue_id)
     return jsonify(result), 200
 
 @queue_bp.route('/face-check-in', methods=['POST'])

@@ -1,94 +1,81 @@
+/* AdminQueue.css */
+
 .queue-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-.queue-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 1.5rem;
-}
-
-@media (min-width: 1024px) {
-    .queue-stats-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-}
-
-.queue-stat-card {
-    background: #ffffff;
-    padding: 1.5rem;
-    border-radius: 1.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
-}
-
-.main-queue-container {
-    background: #ffffff;
-    border-radius: 2.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
-    overflow: hidden;
-    min-height: 500px;
-}
-
-.queue-tabs {
-    display: flex;
-    gap: 2rem;
     padding: 2rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    max-width: 1600px;
+    margin: 0 auto;
+    background-color: #f8f9fa;
+    min-height: calc(100vh - 80px);
 }
 
-.queue-tab-btn {
-    font-size: 18px;
-    font-weight: 700;
-    padding-bottom: 0.25rem;
-    transition: all 0.3s ease;
-}
-
-.queue-tab-btn.active {
-    color: #00478d;
-    border-bottom: 2px solid #00478d;
-}
-
-.queue-tab-btn.inactive {
-    color: #727783;
-}
-
-.queue-tab-btn.inactive:hover {
-    color: #00478d;
-}
-
-.queue-control-item {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 1.5rem;
-    border-radius: 2rem;
-    background: rgba(248, 249, 250, 0.3);
-    border: 1px solid rgba(0, 0, 0, 0.03);
+.session-card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.queue-control-item:hover {
-    background: #ffffff;
-    border-color: rgba(0, 71, 141, 0.1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+.session-card:hover {
+    transform: translateX(4px);
 }
 
-.token-circle {
-    width: 80px;
-    height: 80px;
-    background: rgba(0, 71, 141, 0.05);
-    border-radius: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(0, 71, 141, 0.1);
-    flex-shrink: 0;
+.session-card.active {
+    box-shadow: 0 10px 25px -5px rgba(0, 94, 184, 0.1), 0 8px 10px -6px rgba(0, 94, 184, 0.1);
+}
+
+.font-display {
+    font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+.queue-stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* Custom scrollbar for waiting list */
+.no-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.no-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+
+.no-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-pulse-soft {
+    animation: pulse-soft 2s infinite;
+}
+
+/* Smooth transitions for list items */
+.queue-control-item {
+    transition: all 0.2s ease;
+}
+
+/* Emergency Priority Colors */
+.bg-error { background-color: #ba1a1a; }
+.text-error { color: #ba1a1a; }
+.bg-success { background-color: #006e1c; }
+.text-success { color: #006e1c; }
+.bg-warning-container { background-color: #ffe08d; }
+.text-on-warning-container { color: #241a00; }
+
+.token-hero-badge {
+    background: linear-gradient(135deg, #005eb8 0%, #003a70 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-weight: 900;
 }

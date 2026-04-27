@@ -7,7 +7,8 @@ class DoctorSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     specialist_id = db.Column(db.Integer, db.ForeignKey("specialists.id"), nullable=False)
     
-    day_of_week = db.Column(db.String(20), nullable=False) # Monday, Tuesday, etc.
+    day_of_week = db.Column(db.String(20), nullable=True) # Monday, Tuesday, etc. (for recurring)
+    session_date = db.Column(db.Date, nullable=True) # Specific date (for one-off)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     max_patients = db.Column(db.Integer, default=20)

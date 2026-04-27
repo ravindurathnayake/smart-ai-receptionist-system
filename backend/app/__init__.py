@@ -12,8 +12,9 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     cors.init_app(app)
-    from .extensions import mail
+    from .extensions import mail, socketio
     mail.init_app(app)
+    socketio.init_app(app)
 
     # IMPORTANT: Import models so Flask-Migrate can detect them
     from app.models import Specialist, Patient, Appointment, Queue, Department, DoctorSession, Payment, User

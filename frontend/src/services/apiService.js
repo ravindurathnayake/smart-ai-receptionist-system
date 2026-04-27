@@ -154,6 +154,30 @@ export const apiService = {
         const response = await api.post('/patients/login-face', { face_image: faceImage });
         return response.data;
     },
+    getAllQueuesStatus: async () => {
+        const response = await api.get('/queue/status');
+        return response.data;
+    },
+    getSessionsQueues: async () => {
+        const response = await api.get('/queue/sessions-queues');
+        return response.data;
+    },
+    callNextPatient: async (sessionId) => {
+        const response = await api.post(`/queue/call-next/${sessionId}`);
+        return response.data;
+    },
+    toggleSessionPause: async (sessionId) => {
+        const response = await api.post(`/queue/toggle-pause/${sessionId}`);
+        return response.data;
+    },
+    endSession: async (sessionId) => {
+        const response = await api.post(`/queue/end-session/${sessionId}`);
+        return response.data;
+    },
+    skipPatient: async (queueId) => {
+        const response = await api.post(`/queue/skip/${queueId}`);
+        return response.data;
+    },
 
     // Notifications & Alerts
     createNotification: async (data) => {

@@ -1,150 +1,314 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
+import { voiceService } from '../../services/voiceService';
 import './AdminQueue.css';
 
 const AdminQueue = () => {
-  const [queueData, setQueueData] = useState([]);
-  const [stats, setStats] = useState({
-    current_serving: '0',
-    total_waiting: 0,
-    estimated_wait: '0m'
-  });
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(voiceService.isVoiceEnabled);
+  const [voiceLang, setVoiceLang] = useState(voiceService.language);
 
-  const fetchQueue = async () => {
+  const fetchQueueData = useCallback(async () => {
     try {
-      const data = await apiService.getQueueStatus();
-      if (data) {
-        setQueueData(data.queue);
-        setStats({
-          current_serving: data.current_serving ? `A-${data.current_serving.toString().padStart(2, '0')}` : '---',
-          total_waiting: data.total_waiting,
-          estimated_wait: `${data.estimated_wait_time}m`
-        });
+      const data = await apiService.getSessionsQueues();
+      if (Array.isArray(data)) {
+        setSessions(data);
+        if (!activeSessionId && data.length > 0) {
+           setActiveSessionId(data[0].session_id);
+        }
       }
+      setLoading(false);
     } catch (err) {
-      console.error('Failed to fetch queue:', err);
+      console.error('Failed to fetch sessions queue:', err);
+      setError('Could not load queue data.');
+      setLoading(false);
     }
-  };
+  }, [activeSessionId]);
 
   useEffect(() => {
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 30000); // Refresh every 30s
-    return () => clearInterval(interval);
-  }, []);
+    fetchQueueData();
 
-  const handleAction = async (id, action) => {
+    // CONNECT SOCKET
+    socketService.connect();
+    
+    // LISTEN FOR UPDATES
+    socketService.on('queue_updated', (data) => {
+      console.log('Real-time Queue Update:', data);
+      fetchQueueData();
+      
+      // AUTO-ANNOUNCE IF CALL_NEXT
+      if (data.type === 'call_next' && data.token && data.room) {
+         voiceService.announcePatient(data.token, data.room);
+      }
+    });
+
+    socketService.on('session_status_changed', () => {
+      fetchQueueData();
+    });
+
+    return () => {
+      socketService.off('queue_updated');
+      socketService.off('session_status_changed');
+    };
+  }, [fetchQueueData]);
+
+  const handleCallNext = async (sessionId) => {
     try {
-      await apiService.updateQueueStatus(id, action);
-      fetchQueue();
+      await apiService.callNextPatient(sessionId);
+      fetchQueueData();
     } catch (err) {
-      console.error(`Failed to ${action} queue item:`, err);
+      alert("Error calling next patient");
     }
   };
+
+  const handleTogglePause = async (sessionId) => {
+    try {
+      await apiService.toggleSessionPause(sessionId);
+      fetchQueueData();
+    } catch (err) {
+      alert("Error toggling pause");
+    }
+  };
+
+  const handleEndSession = async (sessionId) => {
+    if (window.confirm("Are you sure you want to end this session? All remaining waiting patients will be cancelled.")) {
+      try {
+        await apiService.endSession(sessionId);
+        fetchQueueData();
+      } catch (err) {
+        alert("Error ending session");
+      }
+    }
+  };
+
+  const handleSkipPatient = async (queueId) => {
+    try {
+      await apiService.skipPatient(queueId);
+      fetchQueueData();
+    } catch (err) {
+      alert("Error skipping patient");
+    }
+  };
+
+  if (loading) return <div className="p-10 text-center">Loading Queue Control Center...</div>;
+  if (error) return <div className="p-10 text-center text-error">{error}</div>;
+
+  const activeSession = sessions.find(s => s.session_id === activeSessionId) || sessions[0];
 
   return (
     <div className="queue-wrapper admin-page-transition">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Queue Control Center</h2>
-          <p className="text-sm text-on-surface-variant mt-1 font-medium">Real-time monitoring and active token management.</p>
+          <p className="text-sm text-on-surface-variant mt-1 font-medium">Real-time management of active doctor sessions and patient flow.</p>
         </div>
         <div className="flex gap-4">
-          <button className="bg-white border border-outline-variant/30 text-on-surface px-6 py-3 rounded-2xl font-bold hover:bg-surface-container transition-all shadow-sm">Pause Queue</button>
-          <button className="bg-primary text-white px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
-            <span className="material-symbols-rounded">campaign</span>
-            Announce Next
-          </button>
+           <div className="bg-surface-container px-4 py-2 rounded-xl flex items-center gap-2 border border-outline-variant/10">
+             <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+             <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Live Sync Active</span>
+           </div>
+           
+           <button 
+             onClick={() => {
+               const newState = !isVoiceEnabled;
+               setIsVoiceEnabled(newState);
+               voiceService.setVoiceEnabled(newState);
+             }}
+             className={`px-4 py-2 rounded-xl flex items-center gap-2 border transition-all ${
+               isVoiceEnabled 
+               ? 'bg-secondary/10 border-secondary/20 text-secondary' 
+               : 'bg-surface-container border-outline-variant/10 text-on-surface-variant opacity-60'
+             }`}
+           >
+             <span className="material-symbols-rounded text-lg">
+               {isVoiceEnabled ? 'volume_up' : 'volume_off'}
+             </span>
+             <span className="text-xs font-bold uppercase tracking-wider">
+               Voice: {isVoiceEnabled ? 'ON' : 'OFF'}
+             </span>
+           </button>
+
+           <button 
+             onClick={() => {
+               const newLang = voiceLang === 'en-US' ? 'si-LK' : 'en-US';
+               setVoiceLang(newLang);
+               voiceService.setLanguage(newLang);
+             }}
+             className="px-4 py-2 rounded-xl flex items-center gap-2 border border-outline-variant/10 bg-surface-container text-on-surface-variant hover:bg-primary/5 hover:text-primary transition-all"
+           >
+             <span className="material-symbols-rounded text-lg">language</span>
+             <span className="text-xs font-bold uppercase tracking-wider">
+               {voiceLang === 'en-US' ? 'EN' : 'SI'}
+             </span>
+           </button>
         </div>
       </div>
 
-      <div className="queue-stats-grid">
-        <div className="queue-stat-card">
-           <p className="text-[10px] font-black text-outline uppercase mb-2 tracking-widest">Currently Serving</p>
-           <p className="text-4xl font-black text-primary font-display">{stats.current_serving}</p>
-           <p className="text-[10px] text-on-surface-variant mt-2 font-bold uppercase tracking-wider">Counter 01 • Room 04</p>
-        </div>
-        <div className="queue-stat-card">
-           <p className="text-[10px] font-black text-outline uppercase mb-2 tracking-widest">Average Wait</p>
-           <p className="text-4xl font-black text-secondary font-display">{stats.estimated_wait}</p>
-           <p className="text-[10px] text-on-surface-variant mt-2 font-bold uppercase tracking-wider">Last hour: 22m</p>
-        </div>
-        <div className="queue-stat-card">
-           <p className="text-[10px] font-black text-outline uppercase mb-2 tracking-widest">Critical Wait</p>
-           <p className="text-4xl font-black text-error font-display">{stats.total_waiting}</p>
-           <p className="text-[10px] text-on-surface-variant mt-2 font-bold uppercase tracking-wider italic">Wait time &gt; 45m</p>
-        </div>
-        <div className="queue-stat-card">
-           <p className="text-[10px] font-black text-outline uppercase mb-2 tracking-widest">Throughput</p>
-           <p className="text-4xl font-black text-tertiary font-display">92%</p>
-           <p className="text-[10px] text-on-surface-variant mt-2 font-bold uppercase tracking-wider font-bold">12 patients / hour</p>
-        </div>
-      </div>
-
-      <div className="main-queue-container shadow-sm">
-        <div className="queue-tabs">
-          <button className="queue-tab-btn active">Main Queue</button>
-          <button className="queue-tab-btn inactive">Emergency</button>
-          <button className="queue-tab-btn inactive">Laboratory</button>
-          <div className="ml-auto flex gap-3">
-             <button className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-all">
-               <span className="material-symbols-rounded">filter_list</span>
-             </button>
-             <button className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-all">
-               <span className="material-symbols-rounded">refresh</span>
-             </button>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="space-y-3">
-            {queueData.map((item, idx) => (
-              <div key={idx} className="queue-control-item group">
-                <div className="token-circle group-hover:scale-105 transition-transform">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Token</span>
-                  <span className="text-2xl font-black text-primary leading-none">{item.token}</span>
-                </div>
-                <div className="flex-1">
-                   <div className="flex items-center gap-3">
-                     <h4 className="font-bold text-on-surface text-xl">{item.patient}</h4>
-                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        item.status === 'In Session' ? 'bg-secondary text-white shadow-lg shadow-secondary/20' : 
-                        item.status === 'Next' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-surface-container text-outline border border-outline-variant/30'
-                     }`}>
-                       {item.status}
-                     </span>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Sidebar: Sessions List */}
+        <div className="lg:col-span-4 space-y-4">
+           <h3 className="text-xs font-black text-outline uppercase tracking-widest mb-4">Active Sessions</h3>
+           <div className="space-y-3">
+             {sessions.map((session) => (
+               <div 
+                 key={session.session_id} 
+                 onClick={() => setActiveSessionId(session.session_id)}
+                 className={`session-card p-4 rounded-2xl cursor-pointer transition-all border-2 ${
+                    activeSessionId === session.session_id 
+                    ? 'bg-primary/5 border-primary shadow-md' 
+                    : 'bg-white border-transparent hover:border-outline-variant/30 grayscale-[0.5] opacity-80'
+                 }`}
+               >
+                 <div className="flex justify-between items-start mb-2">
+                   <div>
+                     <p className="text-xs font-bold text-primary uppercase tracking-tighter">{session.department}</p>
+                     <h4 className="font-bold text-on-surface">{session.doctor}</h4>
                    </div>
-                   <div className="flex items-center gap-4 mt-2">
-                      <div className="flex items-center gap-1.5 text-on-surface-variant text-sm">
-                        <span className="material-symbols-rounded text-[18px]">medical_services</span>
-                        <span className="font-bold">{item.doctor}</span>
+                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                      session.status === 'Active' ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
+                   }`}>
+                     {session.status}
+                   </span>
+                 </div>
+                 <div className="flex items-center justify-between mt-4">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-rounded text-sm text-on-surface-variant">groups</span>
+                      <span className="text-xs font-bold text-on-surface-variant">{session.waiting_count} Waiting</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-rounded text-sm text-on-surface-variant">meeting_room</span>
+                      <span className="text-xs font-bold text-on-surface-variant">{session.room}</span>
+                    </div>
+                 </div>
+               </div>
+             ))}
+           </div>
+        </div>
+
+        {/* Right Content: Active Session Controls */}
+        <div className="lg:col-span-8">
+           {activeSession ? (
+             <div className="space-y-6">
+                {/* Active Patient Hero */}
+                <div className="bg-white rounded-3xl p-8 border border-outline-variant/10 shadow-sm relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-8 -mt-8"></div>
+                   
+                   <div className="flex items-center justify-between relative z-10">
+                      <div>
+                        <p className="text-xs font-black text-primary uppercase tracking-widest mb-2">Currently Serving</p>
+                        {activeSession.current_patient ? (
+                          <>
+                            <h3 className="text-4xl font-black text-on-surface font-display mb-1">{activeSession.current_patient.name}</h3>
+                            <div className="flex items-center gap-3">
+                              <span className="bg-primary text-white px-3 py-1 rounded-lg font-black text-lg">{activeSession.current_patient.token}</span>
+                              <span className="text-on-surface-variant font-medium">In consultation with {activeSession.doctor}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <h3 className="text-4xl font-black text-on-surface-variant/30 font-display">No Active Patient</h3>
+                            <p className="text-on-surface-variant font-medium">Call the next patient from the list below.</p>
+                          </>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-on-surface-variant text-sm">
-                        <span className="material-symbols-rounded text-[18px]">meeting_room</span>
-                        <span className="font-bold">Room {item.room}</span>
+                      
+                      <div className="flex flex-col gap-3">
+                        <button 
+                          onClick={() => handleCallNext(activeSession.session_id)}
+                          disabled={activeSession.waiting_count === 0 && activeSession.current_patient}
+                          className="bg-primary text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                        >
+                          <span className="material-symbols-rounded">campaign</span>
+                          Call Next Patient
+                        </button>
+                        <div className="flex gap-2">
+                           <button 
+                            onClick={() => handleTogglePause(activeSession.session_id)}
+                            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
+                               activeSession.status === 'Paused' 
+                               ? 'bg-success/5 border-success text-success' 
+                               : 'bg-white border-outline-variant/30 text-on-surface hover:bg-surface-container'
+                            }`}
+                           >
+                             {activeSession.status === 'Paused' ? 'Resume Queue' : 'Pause Queue'}
+                           </button>
+                           <button 
+                             onClick={() => handleEndSession(activeSession.session_id)}
+                             className="flex-1 bg-white border-2 border-outline-variant/30 text-error py-3 rounded-xl font-bold hover:bg-error/5 transition-all"
+                           >
+                             End Session
+                           </button>
+                        </div>
                       </div>
                    </div>
                 </div>
-                <div className="text-right px-8 border-r border-outline-variant/10 mr-4">
-                   <p className="text-[10px] font-black text-outline uppercase tracking-widest mb-1">Total Wait</p>
-                   <p className={`text-xl font-black font-display ${parseInt(item.waitTime) > 30 ? 'text-error animate-pulse' : 'text-on-surface'}`}>{item.waitTime}</p>
+
+                {/* Waiting List */}
+                <div className="bg-white rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden">
+                   <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between bg-surface-container/30">
+                      <h4 className="font-bold text-on-surface">Waiting List ({activeSession.waiting_count})</h4>
+                      <div className="flex gap-2">
+                         <span className="px-2 py-1 bg-primary/10 text-primary text-[10px] font-black rounded uppercase">FIFO Order</span>
+                      </div>
+                   </div>
+                   
+                   <div className="p-4 max-h-[500px] overflow-y-auto no-scrollbar">
+                      {activeSession.waiting_list.length > 0 ? (
+                        <div className="space-y-2">
+                           {activeSession.waiting_list.map((item) => (
+                             <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-transparent hover:border-outline-variant/30 hover:bg-surface-container/20 transition-all group">
+                                <div className="w-12 h-12 bg-surface-container rounded-xl flex items-center justify-center font-black text-primary text-xs">
+                                   {item.token.split('-')[1]}
+                                </div>
+                                <div className="flex-1">
+                                   <div className="flex items-center gap-2">
+                                      <h5 className="font-bold text-on-surface">{item.patient}</h5>
+                                      {item.priority !== 'Normal' && (
+                                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
+                                          item.priority === 'Emergency' ? 'bg-error text-white' : 'bg-warning-container text-on-warning-container'
+                                        }`}>
+                                          {item.priority}
+                                        </span>
+                                      )}
+                                   </div>
+                                   <p className="text-[10px] text-on-surface-variant font-medium">Wait Time: {item.waitTime} • ID: PAT-{item.patient_id.toString().padStart(4, '0')}</p>
+                                </div>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <button 
+                                     onClick={() => handleSkipPatient(item.id)}
+                                     title="Mark as Missed"
+                                     className="p-2 rounded-lg bg-surface-container text-on-surface-variant hover:bg-error hover:text-white transition-all"
+                                   >
+                                      <span className="material-symbols-rounded text-sm">person_remove</span>
+                                   </button>
+                                   <button 
+                                     title="Transfer Patient"
+                                     className="p-2 rounded-lg bg-surface-container text-on-surface-variant hover:bg-primary hover:text-white transition-all"
+                                   >
+                                      <span className="material-symbols-rounded text-sm">move_up</span>
+                                   </button>
+                                </div>
+                             </div>
+                           ))}
+                        </div>
+                      ) : (
+                        <div className="py-20 text-center">
+                           <span className="material-symbols-rounded text-4xl text-on-surface-variant/20 mb-2">task_alt</span>
+                           <p className="text-on-surface-variant font-medium">All patients served for this session.</p>
+                        </div>
+                      )}
+                   </div>
                 </div>
-                <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleAction(item.id, 'complete')}
-                      className="w-12 h-12 bg-surface-container rounded-2xl flex items-center justify-center text-outline hover:bg-primary hover:text-white transition-all shadow-sm"
-                    >
-                      <span className="material-symbols-rounded">call_forward</span>
-                    </button>
-                    <button 
-                      onClick={() => handleAction(item.id, 'cancel')}
-                      className="w-12 h-12 bg-surface-container rounded-2xl flex items-center justify-center text-outline hover:bg-error hover:text-white transition-all shadow-sm"
-                    >
-                      <span className="material-symbols-rounded">block</span>
-                    </button>
-                </div>
-              </div>
-            ))}
-          </div>
+             </div>
+           ) : (
+             <div className="h-full flex items-center justify-center bg-white rounded-3xl border border-dashed border-outline-variant/30">
+                <p className="text-on-surface-variant font-medium">Select a session from the sidebar to manage.</p>
+             </div>
+           )}
         </div>
       </div>
     </div>

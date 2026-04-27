@@ -31,6 +31,7 @@ def get_specialists():
             "sessions": [{
                 "id": sess.id,
                 "day_of_week": sess.day_of_week,
+                "session_date": sess.session_date.strftime("%Y-%m-%d") if sess.session_date else None,
                 "start_time": sess.start_time.strftime("%H:%M"),
                 "end_time": sess.end_time.strftime("%H:%M"),
                 "max_patients": sess.max_patients,
@@ -59,6 +60,7 @@ def get_specialist(specialist_id):
             "sessions": [{
                 "id": sess.id,
                 "day_of_week": sess.day_of_week,
+                "session_date": sess.session_date.strftime("%Y-%m-%d") if sess.session_date else None,
                 "start_time": sess.start_time.strftime("%H:%M"),
                 "end_time": sess.end_time.strftime("%H:%M"),
                 "max_patients": sess.max_patients,
@@ -98,9 +100,18 @@ def add_specialist():
         for sess in sessions_data:
             start_t = datetime.strptime(sess.get("start_time"), "%H:%M").time()
             end_t = datetime.strptime(sess.get("end_time"), "%H:%M").time()
+            s_date = None
+            d_of_w = sess.get("day_of_week")
+            
+            if sess.get("session_date"):
+                s_date = datetime.strptime(sess.get("session_date"), "%Y-%m-%d").date()
+                # Automatically set day_of_week from date for compatibility
+                d_of_w = s_date.strftime("%A")
+                
             new_sess = DoctorSession(
                 specialist_id=new_s.id,
-                day_of_week=sess.get("day_of_week"),
+                day_of_week=d_of_w,
+                session_date=s_date,
                 start_time=start_t,
                 end_time=end_t,
                 max_patients=sess.get("max_patients", 20),
@@ -137,6 +148,16 @@ def update_specialist(specialist_id):
         
         # Handle sessions update (simplified: replace all for now if provided)
         if "sessions" in data:
+            from ..models.appointment import Appointment
+            
+            # Get old sessions
+            old_sessions = DoctorSession.query.filter_by(specialist_id=s.id).all()
+            old_session_ids = [sess.id for sess in old_sessions]
+            
+            # Set session_id to NULL in linked appointments to avoid FK constraint error
+            if old_session_ids:
+                Appointment.query.filter(Appointment.session_id.in_(old_session_ids)).update({Appointment.session_id: None}, synchronize_session=False)
+            
             # Delete old sessions
             DoctorSession.query.filter_by(specialist_id=s.id).delete()
             
@@ -144,9 +165,18 @@ def update_specialist(specialist_id):
             for sess in sessions_data:
                 start_t = datetime.strptime(sess.get("start_time"), "%H:%M").time()
                 end_t = datetime.strptime(sess.get("end_time"), "%H:%M").time()
+                s_date = None
+                d_of_w = sess.get("day_of_week")
+                
+                if sess.get("session_date"):
+                    s_date = datetime.strptime(sess.get("session_date"), "%Y-%m-%d").date()
+                    # Automatically set day_of_week from date for compatibility
+                    d_of_w = s_date.strftime("%A")
+
                 new_sess = DoctorSession(
                     specialist_id=s.id,
-                    day_of_week=sess.get("day_of_week"),
+                    day_of_week=d_of_w,
+                    session_date=s_date,
                     start_time=start_t,
                     end_time=end_t,
                     max_patients=sess.get("max_patients", 20),
@@ -157,6 +187,8 @@ def update_specialist(specialist_id):
         db.session.commit()
         return success_response("Specialist updated successfully")
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         db.session.rollback()
         return error_response(str(e), 500)
 

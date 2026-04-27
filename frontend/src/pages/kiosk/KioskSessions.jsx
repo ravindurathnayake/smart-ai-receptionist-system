@@ -252,7 +252,12 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
     const dateObj = new Date(selectedDate);
     const dayOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(dateObj);
 
-    const availableSessions = (doctor.sessions || []).filter(s => s.day_of_week === dayOfWeek);
+    const availableSessions = (doctor.sessions || []).filter(s => {
+        if (s.session_date) {
+            return s.session_date === selectedDate;
+        }
+        return s.day_of_week === dayOfWeek;
+    });
 
     const groupedSessions = {
         morning: availableSessions.filter(s => parseInt(s.start_time.split(':')[0]) < 12),
@@ -321,7 +326,12 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                             const isSelected = selectedDate === d.iso;
                             const dObj = new Date(d.iso);
                             const dNameFull = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(dObj);
-                            const hasSessions = (doctor.sessions || []).some(s => s.day_of_week === dNameFull);
+                            const hasSessions = (doctor.sessions || []).some(s => {
+                                if (s.session_date) {
+                                    return s.session_date === d.iso;
+                                }
+                                return s.day_of_week === dNameFull;
+                            });
 
                             return (
                                 <button
