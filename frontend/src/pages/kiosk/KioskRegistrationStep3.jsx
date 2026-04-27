@@ -267,6 +267,24 @@ const KioskRegistrationStep3 = () => {
                                         Continue
                                         <span className="material-symbols-outlined font-bold">arrow_forward</span>
                                     </button>
+
+                                    {!isCaptured && (
+                                        <button
+                                            onClick={() => {
+                                                const saved = localStorage.getItem('registrationData');
+                                                if (saved) {
+                                                    const data = JSON.parse(saved);
+                                                    data.faceImage = null;
+                                                    localStorage.setItem('registrationData', JSON.stringify(data));
+                                                }
+                                                navigate('/register/step4');
+                                            }}
+                                            className="w-full py-4 text-slate-500 font-bold hover:text-primary transition-colors flex items-center justify-center gap-2 text-sm"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">no_photography</span>
+                                            Skip for Now (I don't prefer face capture)
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

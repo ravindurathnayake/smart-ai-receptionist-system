@@ -148,6 +148,20 @@ const PatientDashboard = () => {
         fetchData();
     }, [navigate]);
 
+    const calculateAge = (dobString) => {
+        if (!dobString) return 0;
+        const today = new Date();
+        const birthDate = new Date(dobString);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
+    const isMinor = patient ? calculateAge(patient.dob || patient.date_of_birth) < 18 : false;
+
     if (!patient) return null;
 
     return (
@@ -198,13 +212,36 @@ const PatientDashboard = () => {
                                                 <p className="text-lg font-black text-on-surface">{patient.gender}</p>
                                             </div>
                                             <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</p>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                                                    <p className="text-lg font-black text-green-600">Active</p>
-                                                </div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NIC / ID</p>
+                                                <p className="text-lg font-black text-on-surface">{patient.nic || `PAT-${patient.id.toString().padStart(4, '0')}`}</p>
                                             </div>
                                         </div>
+
+                                        {isMinor && (
+                                            <div className="mt-8 p-6 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-center gap-8 animate-in fade-in slide-in-from-top-2 duration-500">
+                                                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm border border-primary/10">
+                                                    <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>family_restroom</span>
+                                                </div>
+                                                <div className="grid grid-cols-3 flex-1 gap-6">
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Guardian</p>
+                                                        <p className="text-sm font-bold text-on-surface">{patient.guardian_name || 'N/A'}</p>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Relationship</p>
+                                                        <p className="text-sm font-bold text-primary">{patient.guardian_relationship || 'Guardian'}</p>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Emergency Contact</p>
+                                                        <p className="text-sm font-bold text-on-surface">{patient.guardian_phone || 'N/A'}</p>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Guardian Email</p>
+                                                        <p className="text-sm font-bold text-on-surface lowercase">{patient.guardian_email || 'N/A'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

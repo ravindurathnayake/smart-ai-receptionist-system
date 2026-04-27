@@ -122,8 +122,17 @@ const KioskRegistrationStep1 = () => {
     email: '',
     nic: '',
     bloodGroup: '',
-    address: ''
+    address: '',
+    // Guardian details for minors
+    guardianName: '',
+    guardianNic: '',
+    guardianPhone: '',
+    guardianEmail: '',
+    relationship: '',
+    guardianId: null
   });
+
+  const [isSearching, setIsSearching] = useState(false);
 
   React.useEffect(() => {
     const saved = localStorage.getItem('registrationData');
@@ -138,14 +147,59 @@ const KioskRegistrationStep1 = () => {
   }, []);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => {
-      const newData = { ...prev, [field]: value };
-      localStorage.setItem('registrationData', JSON.stringify(newData));
-      return newData;
-    });
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    
+    // Auto-lookup for guardian NIC
+    if (field === 'guardianNic' && value.length >= 10) {
+      debounceSearchGuardian(value);
+    }
+  };
+
+  // Use a ref to store the timeout ID for debouncing
+  const searchTimeoutRef = React.useRef(null);
+
+  const debounceSearchGuardian = (nic) => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await apiService.findPatientByNic(nic);
+        if (response.success && response.data) {
+          setFormData(prev => ({
+            ...prev,
+            guardianName: response.data.name,
+            guardianPhone: response.data.phone,
+            guardianEmail: response.data.email || '',
+            guardianId: response.data.id
+          }));
+        } else {
+          setFormData(prev => ({ ...prev, guardianId: null }));
+        }
+      } catch (err) {
+        setFormData(prev => ({ ...prev, guardianId: null }));
+      } finally {
+        setIsSearching(false);
+      }
+    }, 800); // 800ms debounce
   };
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+  const relationships = ['Father', 'Mother', 'Guardian'];
+
+  const calculateAge = (dobString) => {
+    if (!dobString) return 0;
+    const today = new Date();
+    const birthDate = new Date(dobString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const age = calculateAge(formData.dob);
+  const isMinor = age > 0 && age < 18;
 
   return (
     <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface">
@@ -189,9 +243,9 @@ const KioskRegistrationStep1 = () => {
                     <span className="material-symbols-outlined text-base">calendar_today</span>
                     Date of Birth
                   </label>
-                  <input 
-                    className="form-input-kiosk" 
-                    type="date" 
+                  <input
+                    className="form-input-kiosk"
+                    type="date"
                     value={formData.dob}
                     onChange={(e) => handleInputChange('dob', e.target.value)}
                   />
@@ -237,50 +291,152 @@ const KioskRegistrationStep1 = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
-                    <span className="material-symbols-outlined text-base">call</span>
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">+94</span>
+                {!isMinor && (
+                  <>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">call</span>
+                        Phone Number
+                      </label>
+                      <div className="relative">
+                        {/* <span className="absolute left-5 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">+94</span> */}
+                        <input
+                          className="form-input-kiosk pl-16 w-full"
+                          placeholder="077 123 4567"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">mail</span>
+                        Email Address
+                      </label>
+                      <input
+                        className="form-input-kiosk"
+                        placeholder="example@domain.com"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {!isMinor ? (
+                  <div className="flex flex-col col-span-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base">fingerprint</span>
+                      NIC Number
+                    </label>
                     <input
-                      className="form-input-kiosk pl-16 w-full"
-                      placeholder="77 123 4567"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className="form-input-kiosk"
+                      placeholder="Enter your NIC number"
+                      type="text"
+                      value={formData.nic}
+                      onChange={(e) => handleInputChange('nic', e.target.value)}
                     />
                   </div>
-                </div>
+                ) : (
+                  <div className="col-span-2 grid grid-cols-2 gap-x-12 gap-y-8 animate-in fade-in slide-in-from-top-2 duration-300 bg-primary/5 p-8 rounded-[2rem] border border-primary/10">
+                    <div className="col-span-2 -mb-2">
+                      <h3 className="text-sm font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+                        <span className="material-symbols-outlined">family_restroom</span>
+                        Guardian Details (Required for Minor)
+                      </h3>
+                    </div>
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
-                    <span className="material-symbols-outlined text-base">mail</span>
-                    Email Address
-                  </label>
-                  <input
-                    className="form-input-kiosk"
-                    placeholder="example@domain.com"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                  />
-                </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">person</span>
+                        Guardian Name
+                      </label>
+                      <input
+                        className="form-input-kiosk"
+                        placeholder="Enter guardian's full name"
+                        type="text"
+                        value={formData.guardianName}
+                        onChange={(e) => handleInputChange('guardianName', e.target.value)}
+                      />
+                    </div>
 
-                <div className="flex flex-col col-span-2 gap-2">
-                  <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
-                    <span className="material-symbols-outlined text-base">fingerprint</span>
-                    NIC Number
-                  </label>
-                  <input
-                    className="form-input-kiosk"
-                    placeholder="Enter your NIC number"
-                    type="text"
-                    value={formData.nic}
-                    onChange={(e) => handleInputChange('nic', e.target.value)}
-                  />
-                </div>
+                    <div className="flex flex-col gap-2 relative">
+                      <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">fingerprint</span>
+                        Guardian NIC
+                      </label>
+                      <input
+                        className="form-input-kiosk w-full"
+                        placeholder="Enter guardian's NIC"
+                        type="text"
+                        value={formData.guardianNic}
+                        onChange={(e) => handleInputChange('guardianNic', e.target.value)}
+                      />
+                      {isSearching && (
+                        <div className="absolute right-4 top-[3.2rem] flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">
+                          <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          Checking...
+                        </div>
+                      )}
+                      {!isSearching && formData.guardianId && (
+                        <div className="absolute right-4 top-[3.2rem] flex items-center gap-1 text-[10px] font-black text-green-600 uppercase tracking-widest animate-in fade-in zoom-in duration-300">
+                          <span className="material-symbols-outlined text-sm">verified</span>
+                          Linked Patient
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">call</span>
+                        Guardian Phone
+                      </label>
+                      <input
+                        className="form-input-kiosk"
+                        placeholder="077 123 4567"
+                        type="tel"
+                        value={formData.guardianPhone}
+                        onChange={(e) => handleInputChange('guardianPhone', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">mail</span>
+                        Guardian Email
+                      </label>
+                      <input
+                        className="form-input-kiosk"
+                        placeholder="guardian@example.com"
+                        type="email"
+                        value={formData.guardianEmail}
+                        onChange={(e) => handleInputChange('guardianEmail', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">account_tree</span>
+                        Relationship
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {relationships.map((r) => (
+                          <button
+                            key={r}
+                            onClick={() => handleInputChange('relationship', r)}
+                            className={`py-2.5 rounded-xl text-xs font-bold transition-all ${formData.relationship === r ? 'btn-toggle-active' : 'bg-white text-slate-400 border border-slate-200'
+                              }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex flex-col col-span-2 gap-2">
                   <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">

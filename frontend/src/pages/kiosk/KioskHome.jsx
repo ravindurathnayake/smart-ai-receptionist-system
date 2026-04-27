@@ -227,7 +227,7 @@ const KioskHome = () => {
                     role: 'bot', 
                     text: "⚠️ Please go to the Emergency Room immediately! 📍 Ground Floor - Emergency Unit. 🚑 Medical staff has been notified of your situation.",
                     actions: [
-                        { label: 'View ER Route', type: 'navigate', payload: '/map' },
+                        { label: 'View ER Route', type: 'navigate', payload: '/hospital-map' },
                         { label: 'Exit Emergency Mode', type: 'message', payload: 'Thank you, I am okay now.' }
                     ]
                 }]);
@@ -589,7 +589,10 @@ const KioskHome = () => {
             </button>
 
             {/* Hospital Map */}
-            <button className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden">
+            <button 
+              onClick={() => navigate('/hospital-map')}
+              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
+            >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">map</span>
               </div>

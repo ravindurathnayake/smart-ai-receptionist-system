@@ -88,6 +88,14 @@ export const apiService = {
         const response = await api.get(`/patients/${id}/history`);
         return response.data.data;
     },
+    findPatientByNic: async (nic) => {
+        const response = await api.get(`/patients/find-by-nic/${nic}`);
+        return response.data;
+    },
+    loginByNic: async (nic) => {
+        const response = await api.get(`/patients/nic-login/${nic}`);
+        return response.data;
+    },
     deletePatient: async (id) => {
         const response = await api.delete(`/patients/${id}`);
         return response.data.data;

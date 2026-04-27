@@ -14,6 +14,7 @@ import KioskRegistrationStep4 from './pages/kiosk/KioskRegistrationStep4';
 import PatientDashboard from './pages/kiosk/PatientDashboard';
 import KioskPatientLogin from './pages/kiosk/KioskPatientLogin';
 import KioskPayment from './pages/kiosk/KioskPayment';
+import HospitalMap from './pages/kiosk/HospitalMap';
 
 // Admin Pages
 import AdminLayout from './pages/admin/AdminLayout';
@@ -47,6 +48,7 @@ function App() {
         <Route path="/patient-dashboard" element={<PatientDashboard />} />
         <Route path="/patient-login" element={<KioskPatientLogin />} />
         <Route path="/payment" element={<KioskPayment />} />
+        <Route path="/hospital-map" element={<HospitalMap />} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />

@@ -19,10 +19,17 @@ def get_patients():
                 "phone": p.phone_number,
                 "email": p.email,
                 "age": p.age,
+                "dob": p.dob,
                 "gender": p.gender,
                 "nic": p.nic,
                 "address": p.address,
                 "blood_type": p.blood_type,
+                "guardian_name": p.guardian_name,
+                "guardian_nic": p.guardian_nic,
+                "guardian_phone": p.guardian_phone,
+                "guardian_email": p.guardian_email,
+                "guardian_relationship": p.guardian_relationship,
+                "guardian_id": p.guardian_id,
                 "last_visit": p.created_at.strftime("%Y-%m-%d") if p.created_at else "N/A",
                 "created_at": p.created_at.strftime("%Y-%m-%d") if p.created_at else "N/A"
             })
@@ -42,10 +49,17 @@ def create_patient():
             email=data.get("email"),
             age=data.get("age"),
             gender=data.get("gender"),
+            dob=data.get("dob"),
             nic=data.get("nic"),
             address=data.get("address"),
             blood_type=data.get("blood_type"),
-            medical_history=data.get("medical_history")
+            medical_history=data.get("medical_history"),
+            guardian_name=data.get("guardian_name"),
+            guardian_nic=data.get("guardian_nic"),
+            guardian_phone=data.get("guardian_phone"),
+            guardian_email=data.get("guardian_email"),
+            guardian_relationship=data.get("guardian_relationship"),
+            guardian_id=data.get("guardian_id")
         )
         
         # Handle face capture
@@ -79,10 +93,17 @@ def update_patient(patient_id):
         patient.full_name = data.get("full_name", patient.full_name)
         patient.phone_number = data.get("phone_number", patient.phone_number)
         patient.nic = data.get("nic", patient.nic)
+        patient.dob = data.get("dob", patient.dob)
         patient.age = data.get("age", patient.age)
         patient.gender = data.get("gender", patient.gender)
         patient.address = data.get("address", patient.address)
         patient.blood_type = data.get("blood_type", patient.blood_type)
+        patient.guardian_name = data.get("guardian_name", patient.guardian_name)
+        patient.guardian_nic = data.get("guardian_nic", patient.guardian_nic)
+        patient.guardian_phone = data.get("guardian_phone", patient.guardian_phone)
+        patient.guardian_email = data.get("guardian_email", patient.guardian_email)
+        patient.guardian_relationship = data.get("guardian_relationship", patient.guardian_relationship)
+        patient.guardian_id = data.get("guardian_id", patient.guardian_id)
         
         db.session.commit()
         return success_response("Patient updated successfully")
@@ -117,6 +138,62 @@ def get_patient_history(patient_id):
         }
         
         return success_response("Patient history retrieved", history)
+    except Exception as e:
+        return error_response(str(e), 500)
+
+@patient_bp.route("/nic-login/<string:nic>", methods=["GET"])
+def nic_login(nic):
+    try:
+        # Find the adult (primary patient)
+        # and all minors linked via guardian_nic
+        patients = Patient.query.filter(
+            (Patient.nic == nic) | (Patient.guardian_nic == nic)
+        ).all()
+        
+        if not patients:
+            return error_response("No profiles found for this NIC", 404)
+        
+        result = []
+        for p in patients:
+            result.append({
+                "id": p.id,
+                "formatted_id": f"PAT-{p.id:04d}",
+                "full_name": p.full_name,
+                "name": p.full_name,
+                "phone": p.phone_number,
+                "email": p.email,
+                "age": p.age,
+                "dob": p.dob,
+                "gender": p.gender,
+                "nic": p.nic,
+                "address": p.address,
+                "blood_type": p.blood_type,
+                "guardian_name": p.guardian_name,
+                "guardian_nic": p.guardian_nic,
+                "guardian_phone": p.guardian_phone,
+                "guardian_email": p.guardian_email,
+                "guardian_relationship": p.guardian_relationship,
+                "guardian_id": p.guardian_id,
+                "face_embedding": True if p.face_embedding else False
+            })
+            
+        return success_response(f"Found {len(result)} profiles", result)
+    except Exception as e:
+        return error_response(str(e), 500)
+
+@patient_bp.route("/find-by-nic/<string:nic>", methods=["GET"])
+def find_patient_by_nic(nic):
+    try:
+        patient = Patient.query.filter_by(nic=nic).first()
+        if not patient:
+            return error_response("Patient not found", 404)
+        
+        return success_response("Patient found", {
+            "id": patient.id,
+            "name": patient.full_name,
+            "phone": patient.phone_number,
+            "nic": patient.nic
+        })
     except Exception as e:
         return error_response(str(e), 500)
 
@@ -162,7 +239,15 @@ def login_face():
             "name": patient.full_name,
             "email": patient.email,
             "nic": patient.nic,
-            "phone": patient.phone_number
+            "phone": patient.phone_number,
+            "age": patient.age,
+            "dob": patient.dob,
+            "guardian_name": patient.guardian_name,
+            "guardian_nic": patient.guardian_nic,
+            "guardian_phone": patient.guardian_phone,
+            "guardian_email": patient.guardian_email,
+            "guardian_relationship": patient.guardian_relationship,
+            "guardian_id": patient.guardian_id
         })
     except Exception as e:
         return error_response(str(e), 500)

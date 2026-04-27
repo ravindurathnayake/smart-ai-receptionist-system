@@ -70,6 +70,7 @@ const AdminPatients = () => {
   const filteredPatients = patients.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.nic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.guardian_nic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.formatted_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.id.toString().includes(searchTerm)
@@ -137,9 +138,17 @@ const AdminPatients = () => {
                   </div>
                   <div className="id-tag">{patient.formatted_id}</div>
                 </div>
-                <div className="badge-status">
-                  <span className="pulse-dot"></span>
-                  ACTIVE PATIENT
+                <div className="badge-status-container">
+                  <div className="badge-status">
+                    <span className="pulse-dot"></span>
+                    {patient.nic ? 'ADULT PATIENT' : 'MINOR / CHILD'}
+                  </div>
+                  {patient.guardian_name && (
+                    <div className="guardian-tag">
+                      <span className="material-symbols-rounded text-[10px]">family_restroom</span>
+                      Guardian: {patient.guardian_name}
+                    </div>
+                  )}
                 </div>
               </div>
 

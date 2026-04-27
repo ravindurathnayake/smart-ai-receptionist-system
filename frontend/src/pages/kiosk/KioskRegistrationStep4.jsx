@@ -124,21 +124,27 @@ const KioskRegistrationStep4 = () => {
         }
     }, []);
 
+    const calculateAge = (dobString) => {
+        if (!dobString) return 0;
+        const today = new Date();
+        const birthDate = new Date(dobString);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
+    const age = calculateAge(regData?.dob);
+    const isMinor = age > 0 && age < 18;
+
     const handleConfirm = async () => {
         if (!regData) return;
         setIsSaving(true);
         try {
-            // Calculate age from DOB
-            let age = null;
-            if (regData.dob) {
-                const birthDate = new Date(regData.dob);
-                const today = new Date();
-                age = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                    age--;
-                }
-            }
+            const age = calculateAge(regData.dob);
+            const isMinor = age > 0 && age < 18;
 
             // Map frontend data to backend model
             const patientPayload = {
@@ -146,13 +152,20 @@ const KioskRegistrationStep4 = () => {
                 phone_number: regData.phone,
                 email: regData.email,
                 gender: regData.gender,
-                nic: regData.nic,
+                nic: isMinor ? null : regData.nic,
                 blood_type: regData.bloodGroup,
                 age: age,
                 dob: regData.dob, 
                 address: regData.address,
                 medical_history: regData.symptomDetails ? `Category: ${regData.symptomCategory}. Details: ${regData.symptomDetails}` : `Category: ${regData.symptomCategory}`,
-                face_image: regData.faceImage
+                face_image: regData.faceImage,
+                // Add guardian fields
+                guardian_name: isMinor ? regData.guardianName : null,
+                guardian_nic: isMinor ? regData.guardianNic : null,
+                guardian_phone: isMinor ? regData.guardianPhone : null,
+                guardian_email: isMinor ? regData.guardianEmail : null,
+                guardian_relationship: isMinor ? regData.relationship : null,
+                guardian_id: isMinor ? regData.guardianId : null
             };
 
             await apiService.createPatient(patientPayload);
@@ -218,14 +231,47 @@ const KioskRegistrationStep4 = () => {
                                         <p className="detail-label">Gender</p>
                                         <p className="detail-value">{regData.gender || 'N/A'}</p>
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <p className="detail-label">Phone Number</p>
-                                        <p className="detail-value">{regData.phone ? `+94 ${regData.phone}` : 'N/A'}</p>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <p className="detail-label">NIC Number</p>
-                                        <p className="detail-value">{regData.nic || 'N/A'}</p>
-                                    </div>
+                                    {!isMinor && (
+                                        <>
+                                            <div className="space-y-1.5">
+                                                <p className="detail-label">Phone Number</p>
+                                                <p className="detail-value">{regData.phone ? `+94 ${regData.phone}` : 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <p className="detail-label">Email Address</p>
+                                                <p className="detail-value">{regData.email || 'N/A'}</p>
+                                            </div>
+                                        </>
+                                    )}
+                                    {!isMinor ? (
+                                        <div className="space-y-1.5">
+                                            <p className="detail-label">NIC Number</p>
+                                            <p className="detail-value">{regData.nic || 'N/A'}</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-1.5">
+                                                <p className="detail-label">Guardian Name</p>
+                                                <p className="detail-value">{regData.guardianName || 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <p className="detail-label">Guardian NIC</p>
+                                                <p className="detail-value">{regData.guardianNic || 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <p className="detail-label">Guardian Phone</p>
+                                                <p className="detail-value">{regData.guardianPhone ? `+94 ${regData.guardianPhone}` : 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <p className="detail-label">Guardian Email</p>
+                                                <p className="detail-value">{regData.guardianEmail || 'N/A'}</p>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <p className="detail-label">Relationship</p>
+                                                <p className="detail-value">{regData.relationship || 'N/A'}</p>
+                                            </div>
+                                        </>
+                                    )}
                                     <div className="space-y-1.5">
                                         <p className="detail-label">Blood Group</p>
                                         <p className="detail-value text-red-600 font-black">{regData.bloodGroup || 'N/A'}</p>
@@ -240,15 +286,22 @@ const KioskRegistrationStep4 = () => {
                             {/* Biometric Photo Card */}
                             <div className="col-span-4 bg-white rounded-[2rem] p-4 photo-preview-frame flex flex-col">
                                 <div className="relative flex-1 rounded-[1.5rem] overflow-hidden group">
-                                    <img
-                                        alt="Patient biometric photo"
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        src={regData.faceImage || "https://lh3.googleusercontent.com/aida-public/AB6AXuCgoYCMeblfAUwvzraPb-OOYfAShsJV1O7I8kZTyY4weH-0Gco9y9UsIa6SEt08n4AmAqkhiCyL8wWA3UqcjVGHhYGe2-nC8T7HwOu9JqlyexuxVyfPgb_8egLbgjKPvG7YYpF9SCxX5uYfpHcN1LWQysFPcv45vlM36ADl__2o4Bimy3YyFAJyufIdWIu7SxRjksRx9BZZPX9FKcTYNQmSPTSwsyRX4Fg1iD8QGzrrP-swpSGZXYVrpa0bBXH-_thzwLEqsAGOQs0"}
-                                    />
+                                    {regData.faceImage ? (
+                                        <img
+                                            alt="Patient biometric photo"
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            src={regData.faceImage}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center text-slate-400 gap-4">
+                                            <span className="material-symbols-outlined text-6xl">person_off</span>
+                                            <p className="text-[10px] font-black uppercase tracking-widest">No Photo Provided</p>
+                                        </div>
+                                    )}
                                     <div className="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors"></div>
                                     <div className="absolute bottom-4 left-4 right-4 glass-card px-4 py-2.5 rounded-xl flex items-center justify-between border border-white/40">
-                                        <span className="text-[10px] font-extrabold uppercase text-primary tracking-widest">Verified Photo</span>
-                                        <span className="material-symbols-outlined text-secondary text-base" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                                        <span className="text-[10px] font-extrabold uppercase text-primary tracking-widest">{regData.faceImage ? 'Verified Photo' : 'Photo Skipped'}</span>
+                                        <span className="material-symbols-outlined text-secondary text-base" style={{ fontVariationSettings: "'FILL' 1" }}>{regData.faceImage ? 'check_circle' : 'info'}</span>
                                     </div>
                                 </div>
                             </div>
