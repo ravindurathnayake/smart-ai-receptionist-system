@@ -205,6 +205,12 @@ export const apiService = {
     respondToReview: async (reviewId, data) => {
         const response = await api.patch(`/reviews/${reviewId}/respond`, data);
         return response.data;
+    },
+
+    // System Health
+    getSystemHealth: async (isDiagnostic = false) => {
+        const response = await api.get(`/system/health${isDiagnostic ? '?diagnostic=true' : ''}`);
+        return response.data.data;
     }
 };
 

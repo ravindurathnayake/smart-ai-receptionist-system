@@ -27,6 +27,7 @@ import HospitalAnalytics from './pages/admin/HospitalAnalytics';
 import AdminLogin from './pages/admin/AdminLogin';
 
 import AdminReviews from './pages/admin/AdminReviews';
+import AdminSystemHealth from './pages/admin/AdminSystemHealth';
 
 import './App.css';
 
@@ -62,6 +63,7 @@ function App() {
           <Route path="patients" element={<AdminPatients />} />
           <Route path="analytics" element={<HospitalAnalytics />} />
           <Route path="reviews" element={<AdminReviews />} />
+          <Route path="system-health" element={<AdminSystemHealth />} />
         </Route>
       </Routes>
     </Router>

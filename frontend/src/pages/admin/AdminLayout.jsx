@@ -14,6 +14,7 @@ const AdminLayout = () => {
     { name: 'Patient Records', icon: 'person_search', path: '/admin/patients' },
     { name: 'Analytics', icon: 'analytics', path: '/admin/analytics' },
     { name: 'Reviews & Complaints', icon: 'rate_review', path: '/admin/reviews' },
+    { name: 'System Health', icon: 'monitor_heart', path: '/admin/system-health' },
   ];
 
   return (
