@@ -20,6 +20,16 @@ def check_in_patient(patient_id):
     if not appointment:
         return {"error": "No appointment found for today. Please register or book an appointment."}
     
+    # Prepare full response data
+    patient = Patient.query.get(patient_id)
+    specialist = appointment.specialist
+    title = specialist.title if (specialist and specialist.title) else "Dr."
+    doctor_full = f"{title} {specialist.name}" if specialist else "N/A"
+    dept_name = specialist.department if specialist else "General"
+    room = appointment.session.room_number if appointment.session and appointment.session.room_number else "Room 04"
+    app_time = appointment.appointment_date.strftime("%I:%M %p") if appointment.appointment_date else "N/A"
+    full_name = patient.full_name if patient else "Patient"
+
     # Check if already in queue
     existing_queue = Queue.query.filter_by(appointment_id=appointment.id).first()
     if existing_queue:
@@ -27,6 +37,12 @@ def check_in_patient(patient_id):
             "success": True, 
             "queue_number": existing_queue.queue_number, 
             "estimated_wait_time": existing_queue.estimated_wait_time,
+            "doctor": doctor_full,
+            "department": dept_name,
+            "room": room,
+            "appointment_time": app_time,
+            "patient_name": full_name,
+            "patient_id": patient_id,
             "message": "Already checked in."
         }
     
@@ -48,40 +64,76 @@ def check_in_patient(patient_id):
     db.session.commit()
     
     # Trigger Notifications
-    patient = Patient.query.get(patient_id)
-    doctor_name = appointment.specialist.name if appointment.specialist else "N/A"
-    
     notifications = {"email": "skipped", "whatsapp": "skipped"}
-    
     if patient:
         if patient.email:
-            email_sent = send_checkin_notification(patient.email, patient.full_name, next_num, next_num * 5, doctor_name)
+            email_sent = send_checkin_notification(patient.email, full_name, next_num, next_num * 5, doctor_full)
             notifications["email"] = "sent" if email_sent else "failed"
-            
         if patient.phone_number:
-            wa_sent = send_checkin_whatsapp(patient.phone_number, patient.full_name, next_num, next_num * 5, doctor_name)
+            wa_sent = send_checkin_whatsapp(patient.phone_number, full_name, next_num, next_num * 5, doctor_full)
             notifications["whatsapp"] = "sent" if wa_sent else "failed"
     
     return {
         "success": True, 
         "queue_number": next_num, 
         "estimated_wait_time": next_num * 5,
-        "doctor": doctor_name,
+        "doctor": doctor_full,
+        "department": dept_name,
+        "room": room,
+        "appointment_time": app_time,
+        "patient_name": full_name,
+        "patient_id": patient_id,
         "notifications": notifications
     }
 
-def manual_check_in(identifier):
+def manual_check_in(identifier, patient_id=None):
     """
     Checks in a patient using NIC or Phone Number.
+    Supports guardian profile selection.
     """
-    patient = Patient.query.filter(
+    if patient_id:
+        return check_in_patient(patient_id)
+
+    # Find primary matching patient (usually the adult/guardian)
+    primary = Patient.query.filter(
         (Patient.phone_number == identifier) | (Patient.nic == identifier)
     ).first()
     
-    if not patient:
+    if not primary:
         return {"error": "Patient not found. Please check your NIC or Phone Number."}
     
-    return check_in_patient(patient.id)
+    # Check for linked profiles (children)
+    linked = Patient.query.filter(
+        (Patient.guardian_id == primary.id) | 
+        (Patient.guardian_nic == primary.nic) |
+        (Patient.guardian_phone == primary.phone_number)
+    ).all()
+
+    # Filter only those who have appointments today (optional but better UX?)
+    # The user asked to "show accounts", so we show all even if no appt?
+    # Usually we show all linked accounts.
+    
+    if linked:
+        profiles = [{
+            "id": primary.id,
+            "name": primary.full_name,
+            "age": primary.age,
+            "nic": primary.nic,
+            "role": "Self",
+            "image": primary.profile_image
+        }]
+        for child in linked:
+            profiles.append({
+                "id": child.id,
+                "name": child.full_name,
+                "age": child.age,
+                "role": "Family Member",
+                "image": child.profile_image
+            })
+        return {"success": True, "profiles": profiles}
+    
+    # Only one profile found, proceed with check-in
+    return check_in_patient(primary.id)
 
 def check_out_patient(patient_id):
     """

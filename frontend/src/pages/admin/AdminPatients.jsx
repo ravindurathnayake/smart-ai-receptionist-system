@@ -67,14 +67,19 @@ const AdminPatients = () => {
     }
   };
 
-  const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.nic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.guardian_nic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.formatted_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.id.toString().includes(searchTerm)
-  );
+  const filteredPatients = patients.filter(p => {
+    const term = searchTerm.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(term) ||
+      p.nic?.toLowerCase().includes(term) ||
+      p.phone?.toLowerCase().includes(term) ||
+      p.guardian_nic?.toLowerCase().includes(term) ||
+      p.guardian_phone?.toLowerCase().includes(term) ||
+      p.guardian_name?.toLowerCase().includes(term) ||
+      p.formatted_id?.toLowerCase().includes(term) ||
+      p.id.toString().includes(term)
+    );
+  });
 
   return (
     <div className="patients-wrapper admin-page-transition">

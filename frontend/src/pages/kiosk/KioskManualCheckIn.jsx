@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
 import queueService from '../../services/queueService';
@@ -42,8 +42,11 @@ const StepIndicator = ({ current = 0, total = 3 }) => (
 
 const KioskManualCheckIn = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const isCheckOutMode = location.state?.mode === 'checkout';
     const [patient, setPatient] = useState(null);
     const [form, setForm] = useState({ name: '', phone: '', nic: '' });
+    const [profiles, setProfiles] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [bookingData, setBookingData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -66,22 +69,76 @@ const KioskManualCheckIn = () => {
 
     const isValid = form.name.trim() && (form.phone.trim() || form.nic.trim());
 
+    const saveSession = (id, name, nic) => {
+        localStorage.setItem('activePatient', JSON.stringify({
+            id: id,
+            name: name,
+            full_name: name,
+            nic: nic
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!isValid) return;
 
         setLoading(true);
         try {
-            const identifier = form.nic || form.phone;
-            const response = await queueService.manualCheckIn(identifier);
+            if (isCheckOutMode) {
+                const identifier = form.nic || form.phone;
+                // Use loginByNic which returns profiles if linked
+                const response = await apiService.loginByNic(identifier);
+                
+                if (response.status === 'success' || response.data) {
+                    const data = response.data || response;
+                    if (data.length > 1) {
+                        setProfiles(data);
+                    } else if (data.length === 1) {
+                        const p = data[0];
+                        saveSession(p.id, p.name || p.full_name, p.nic);
+                        navigate('/checkout');
+                    } else if (data.id) { // Single object response
+                        saveSession(data.id, data.name || data.full_name, data.nic);
+                        navigate('/checkout');
+                    }
+                }
+            } else {
+                const identifier = form.nic || form.phone;
+                const response = await queueService.manualCheckIn(identifier);
 
-            if (response.success) {
-                setBookingData(response);
-                setSubmitted(true);
+                if (response.profiles) {
+                    setProfiles(response.profiles);
+                } else if (response.success) {
+                    saveSession(response.patient_id, response.patient_name, form.nic);
+                    setBookingData(response);
+                    setSubmitted(true);
+                }
             }
         } catch (err) {
-            console.error('Check-in error:', err);
-            alert(err.error || 'Check-in failed. Please try again.');
+            console.error('Identification error:', err);
+            alert(err.error || 'Identification failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSelectProfile = async (profile) => {
+        setLoading(true);
+        try {
+            if (isCheckOutMode) {
+                saveSession(profile.id, profile.name || profile.full_name, profile.nic);
+                navigate('/checkout');
+            } else {
+                const response = await queueService.manualCheckIn(null, profile.id);
+                if (response.success) {
+                    saveSession(profile.id, profile.name, profile.nic);
+                    setBookingData(response);
+                    setSubmitted(true);
+                    setProfiles(null);
+                }
+            }
+        } catch (err) {
+            alert(err.error || 'Selection failed');
         } finally {
             setLoading(false);
         }
@@ -145,12 +202,18 @@ const KioskManualCheckIn = () => {
                         </button>
                         <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">MediAssist AI</h1>
                         <div className="h-4 w-px bg-outline-variant mx-1" />
-                        <span className="text-slate-500 font-medium text-sm">Manual Check-In</span>
+                        <span className="text-slate-500 font-medium text-sm">{isCheckOutMode ? 'Manual Check-Out' : 'Manual Check-In'}</span>
                     </div>
                     <div className="flex items-center gap-6">
-                        <div className="flex gap-3">
-                            <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors" onClick={() => navigate('/assistant')}>notifications</span>
-                            <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors" onClick={() => navigate('/assistant')}>help</span>
+                        <div className="flex gap-4">
+                            <button onClick={() => window.print()} className="p-2.5 text-slate-400 hover:text-primary rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 font-bold text-xs uppercase">
+                                <span className="material-symbols-outlined text-xl">print</span>
+                                Print
+                            </button>
+                            <button onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }} className="p-2.5 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all flex items-center gap-2 font-bold text-xs uppercase">
+                                <span className="material-symbols-outlined text-xl">logout</span>
+                                Log Out
+                            </button>
                         </div>
                         <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
                             <div className="text-right">
@@ -166,27 +229,166 @@ const KioskManualCheckIn = () => {
 
                 <div className="flex-1 overflow-hidden flex flex-col px-10 py-5 z-10">
                     <div className="text-center mb-5 shrink-0">
-                        <h2 className="font-headline text-3xl font-black text-on-surface tracking-tight mb-1">Manual Check-In</h2>
-                        <p className="text-on-surface-variant text-sm mb-3">Please enter your details to verify your appointment.</p>
+                        <h2 className="font-headline text-3xl font-black text-on-surface tracking-tight mb-1">{isCheckOutMode ? 'Manual Check-Out' : 'Manual Check-In'}</h2>
+                        <p className="text-on-surface-variant text-sm mb-3">{isCheckOutMode ? 'Please enter your NIC or Appointment ID to finalize your visit.' : 'Please enter your details to verify your appointment.'}</p>
                         <StepIndicator current={0} total={3} />
                     </div>
 
                     <div className="flex-1 flex flex-col min-h-0 max-w-3xl w-full mx-auto">
                         {submitted ? (
-                            <div className="glass-card flex-1 rounded-3xl p-8 border border-white/40 shadow-xl flex flex-col items-center justify-center text-center gap-4">
-                                <div className="w-20 h-20 rounded-full bg-secondary-container flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-4xl text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                            <div className="animate-scale-up w-full max-w-xl mx-auto bg-white rounded-[3rem] shadow-2xl overflow-y-auto max-h-[85vh] scrollbar-hide border border-slate-100 flex flex-col">
+                                <div className="bg-green-500 p-8 text-white text-center">
+                                    <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                                        <span className="material-symbols-outlined text-5xl">check_circle</span>
+                                    </div>
+                                    <h2 className="text-3xl font-black font-headline">✅ Check-In Successful</h2>
+                                    <p className="text-white/80 font-medium mt-1">Your appointment is confirmed</p>
                                 </div>
-                                <h3 className="font-headline text-2xl font-extrabold text-on-surface">Verified Successfully!</h3>
-                                <p className="text-on-surface-variant text-base max-w-sm">Welcome, <strong>{form.name}</strong>. Your appointment has been confirmed. Please proceed to the waiting area.</p>
-                                <div className="flex items-center gap-3 bg-surface-container-low px-6 py-3 rounded-2xl mt-2">
-                                    <span className="material-symbols-outlined text-primary">confirmation_number</span>
-                                    <span className="font-bold text-on-surface text-sm">Token #A-{bookingData?.queue_number?.toString().padStart(2, '0')} • Room 04</span>
+
+                                <div className="p-10 space-y-8">
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center pb-4 border-b border-slate-50">
+                                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Patient</span>
+                                            <span className="text-lg font-bold text-on-surface">{bookingData.patient_name}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1">Queue Number</span>
+                                                <span className="text-5xl font-black text-primary tracking-tighter">
+                                                    {bookingData.queue_number.toString().padStart(2, '0')}
+                                                </span>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Est. Wait Time</span>
+                                                <span className="text-2xl font-black text-on-surface">{bookingData.estimated_wait_time} <small className="text-xs text-slate-400 uppercase">min</small></span>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 pt-4">
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Assigned Doctor</span>
+                                                <span className="text-sm font-bold text-on-surface">{bookingData.doctor}</span>
+                                            </div>
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Room</span>
+                                                <span className="text-sm font-bold text-primary">{bookingData.room}</span>
+                                            </div>
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Department</span>
+                                                <span className="text-sm font-bold text-on-surface">{bookingData.department}</span>
+                                            </div>
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Appt. Time</span>
+                                                <span className="text-sm font-bold text-on-surface">{bookingData.appointment_time}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-center text-slate-400 text-sm font-medium italic">Please wait until your queue number is called in the waiting area.</p>
+
+                                    <div className="flex flex-col gap-3 pt-2">
+                                        <button 
+                                            onClick={() => navigate('/queue')}
+                                            className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 no-print"
+                                        >
+                                            <span className="material-symbols-outlined">analytics</span>
+                                            View Queue Status
+                                        </button>
+                                        <div className="grid grid-cols-2 gap-3 no-print">
+                                            <button 
+                                                onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }}
+                                                className="py-4 bg-red-50 text-red-600 rounded-2xl font-bold text-sm hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">logout</span>
+                                                Log Out
+                                            </button>
+                                            <button 
+                                                onClick={() => window.print()}
+                                                className="py-4 bg-slate-100 text-primary rounded-2xl font-bold text-sm border border-primary/10 flex items-center justify-center gap-2 hover:bg-white transition-all"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">print</span>
+                                                Print Token
+                                            </button>
+                                        </div>
+                                        <button 
+                                            onClick={() => navigate('/')}
+                                            className="w-full py-3 text-slate-400 font-bold text-xs hover:text-primary transition-colors no-print"
+                                        >
+                                            Back to Home Screen
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex gap-4 mt-4">
-                                    <button onClick={() => { setSubmitted(false); setForm({ name: '', phone: '', nic: '' }); }} className="text-primary text-sm font-semibold hover:underline">Start over</button>
-                                    <button onClick={() => navigate('/queue')} className="bg-primary text-white px-6 py-2 rounded-full text-sm font-bold shadow-md">View Queue Status</button>
+
+                                {/* ─── Professional Printable Token (Hidden on screen) ─── */}
+                                <div className="printable-token">
+                                    <div className="text-center pb-4 border-b border-black mb-4">
+                                        <h1 className="text-xl font-black uppercase tracking-widest">MediAssist</h1>
+                                        <p className="text-[8px] font-bold uppercase tracking-[0.3em]">Smart Medical Center</p>
+                                    </div>
+                                    
+                                    <div className="text-center py-6 border-b-2 border-dashed border-black mb-6">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest mb-1">Queue Token</p>
+                                        <h2 className="text-7xl font-black leading-none">
+                                            {bookingData.queue_number.toString().padStart(2, '0')}
+                                        </h2>
+                                    </div>
+
+                                    <div className="space-y-4 mb-6">
+                                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-1">
+                                            <span className="text-[8px] font-black uppercase text-slate-500">Patient</span>
+                                            <span className="text-sm font-bold">{bookingData.patient_name}</span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-1">
+                                            <span className="text-[8px] font-black uppercase text-slate-500">Doctor</span>
+                                            <span className="text-sm font-bold">{bookingData.doctor}</span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-1">
+                                            <span className="text-[8px] font-black uppercase text-slate-500">Dept/Room</span>
+                                            <span className="text-sm font-bold">{bookingData.department} • {bookingData.room}</span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-1">
+                                            <span className="text-[8px] font-black uppercase text-slate-500">Time</span>
+                                            <span className="text-sm font-bold">{bookingData.appointment_time}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center pt-4 opacity-70">
+                                        <p className="text-[9px] font-bold italic">Please wait until your number is called.</p>
+                                        <p className="text-[7px] font-black uppercase mt-3 tracking-widest">
+                                            {new Date().toLocaleString()}
+                                        </p>
+                                    </div>
                                 </div>
+                            </div>
+                        ) : profiles ? (
+                            <div className="animate-scale-up w-full max-w-2xl mx-auto space-y-6 flex flex-col">
+                                <div className="text-center">
+                                <h3 className="text-2xl font-black font-headline text-on-surface">Select Patient Profile</h3>
+                                <p className="text-on-surface-variant text-sm">Multiple accounts found for this identifier. Who is {isCheckOutMode ? 'checking out' : 'checking in'}?</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {profiles.map(p => (
+                                        <button 
+                                            key={p.id}
+                                            onClick={() => handleSelectProfile(p)}
+                                            className="flex items-center gap-4 p-5 bg-white rounded-3xl border border-slate-100 shadow-sm hover:border-primary hover:shadow-md transition-all text-left"
+                                        >
+                                            <div className="w-14 h-14 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+                                                {p.image ? (
+                                                    <img src={p.image} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="material-symbols-outlined text-slate-400 text-3xl">person</span>
+                                                )}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-on-surface truncate">{p.name}</p>
+                                                <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">{p.role}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                                <button onClick={() => setProfiles(null)} className="py-3 text-slate-400 font-bold text-sm hover:text-primary transition-colors mt-2">
+                                    ← Back to entry form
+                                </button>
                             </div>
                         ) : (
                             <form onSubmit={handleSubmit} className="glass-card flex-1 rounded-3xl p-8 border border-white/40 shadow-[0_20px_50px_rgba(0,71,141,0.04)] flex flex-col gap-5">

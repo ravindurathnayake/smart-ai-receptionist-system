@@ -233,6 +233,31 @@ def login_face():
         if not patient:
             return error_response("Face not recognized. Please use NIC login or register.", 404)
             
+        # Check for linked profiles (family members)
+        linked = Patient.query.filter(
+            (Patient.guardian_id == patient.id) | 
+            (Patient.guardian_nic == patient.nic) |
+            (Patient.guardian_phone == patient.phone_number)
+        ).all()
+
+        if linked:
+            profiles = [{
+                "id": patient.id,
+                "name": patient.full_name,
+                "age": patient.age,
+                "role": "Self",
+                "image": None # p.profile_image if added
+            }]
+            for child in linked:
+                profiles.append({
+                    "id": child.id,
+                    "name": child.full_name,
+                    "age": child.age,
+                    "role": "Family Member",
+                    "image": None
+                })
+            return success_response("Guardian identified", {"profiles": profiles})
+
         return success_response("Login successful", {
             "id": patient.id,
             "formatted_id": f"PAT-{patient.id:04d}",

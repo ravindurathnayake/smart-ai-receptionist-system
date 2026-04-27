@@ -7,3 +7,46 @@
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
 }
+
+/* ─── Kiosk Token Print Styles ─── */
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden !important;
+    background: none !important;
+  }
+
+  /* Show ONLY the printable token */
+  .printable-token, .printable-token * {
+    visibility: visible !important;
+  }
+
+  .printable-token {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important; /* Standard thermal printer width */
+    margin: 0 !important;
+    padding: 10mm !important;
+    display: block !important;
+    background: white !important;
+    color: black !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+
+  /* Clean up page artifacts */
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  
+  /* Disable screen-only components */
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Screen utility */
+.printable-token {
+  display: none;
+}

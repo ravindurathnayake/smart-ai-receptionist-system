@@ -669,7 +669,7 @@ const KioskHome = () => {
           <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{patient ? translations[language].viewProfile : translations[language].login}</span>
         </button>
         <button 
-          onClick={() => navigate('/checkout')}
+          onClick={() => navigate('/checkin-out', { state: { mode: 'checkout' } })}
           className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
         >
           <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>logout</span>

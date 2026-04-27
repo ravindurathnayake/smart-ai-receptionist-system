@@ -13,9 +13,9 @@ const queueService = {
         }
     },
 
-    manualCheckIn: async (identifier) => {
+    manualCheckIn: async (identifier, patientId = null) => {
         try {
-            const response = await axios.post(`${API_BASE_URL}/manual-check-in`, { identifier });
+            const response = await axios.post(`${API_BASE_URL}/manual-check-in`, { identifier, patient_id: patientId });
             return response.data;
         } catch (error) {
             console.error('Error in manual check-in:', error);

@@ -325,7 +325,7 @@ const KioskQueueStatus = () => {
     return (
     <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface text-left">
         {/* ── Left Sidebar ── */}
-        <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0">
+        <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0 no-print">
             <div className="p-6 pb-4 cursor-pointer" onClick={() => navigate('/')}>
                 <Logo size="sm" className="w-full" />
             </div>
@@ -368,11 +368,11 @@ const KioskQueueStatus = () => {
 
         {/* ── Main Canvas ── */}
         <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
-            <div className="ambient-blob-top" />
-            <div className="ambient-blob-bottom" />
+            <div className="ambient-blob-top no-print" />
+            <div className="ambient-blob-bottom no-print" />
 
             {/* Top Bar */}
-            <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
+            <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0 no-print">
                 <div className="flex items-center gap-3">
                     <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
                         <span className="material-symbols-outlined text-slate-600">arrow_back</span>
@@ -382,9 +382,15 @@ const KioskQueueStatus = () => {
                     <span className="text-slate-500 font-medium text-sm">Queue Status</span>
                 </div>
                 <div className="flex items-center gap-6">
-                    <div className="flex gap-3">
-                        <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors" onClick={() => navigate('/assistant')}>notifications</span>
-                        <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors" onClick={() => navigate('/assistant')}>help</span>
+                    <div className="flex gap-4">
+                        <button onClick={() => window.print()} className="p-2.5 text-slate-400 hover:text-primary rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 font-bold text-xs uppercase">
+                            <span className="material-symbols-outlined text-xl">print</span>
+                            Print
+                        </button>
+                        <button onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }} className="p-2.5 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all flex items-center gap-2 font-bold text-xs uppercase">
+                            <span className="material-symbols-outlined text-xl">logout</span>
+                            Log Out
+                        </button>
                     </div>
                     <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
                         <div className="text-right">
@@ -399,7 +405,7 @@ const KioskQueueStatus = () => {
             </header>
 
             {/* Content area */}
-            <div className="flex-1 overflow-hidden flex flex-col px-10 py-5 z-10">
+            <div className="flex-1 overflow-hidden flex flex-col px-10 py-5 z-10 no-print">
                 <div className="text-center mb-4 font-headline">
                     <p className="text-secondary font-bold tracking-widest uppercase text-xs mb-1">Live Status Update</p>
                     <h2 className="text-3xl font-extrabold text-on-surface leading-tight">Clinic Queue & Appointment</h2>
@@ -421,7 +427,7 @@ const KioskQueueStatus = () => {
 
             {/* Reschedule Modal */}
             {showRescheduleModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 no-print">
                     <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
                         <div className="p-8 border-b border-slate-100 bg-primary/5">
                             <h3 className="text-2xl font-bold text-on-surface font-headline">Reschedule Appointment</h3>
@@ -447,6 +453,49 @@ const KioskQueueStatus = () => {
                                 <button type="submit" className="flex-[2] py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Update Date</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Professional Printable Token (Hidden on screen) ─── */}
+            {patientQueue && (
+                <div className="printable-token">
+                    <div className="text-center pb-4 border-b border-black mb-4">
+                        <h1 className="text-xl font-black uppercase tracking-widest">MediAssist</h1>
+                        <p className="text-[8px] font-bold uppercase tracking-[0.3em]">Smart Medical Center</p>
+                    </div>
+                    
+                    <div className="text-center py-6 border-b-2 border-dashed border-black mb-6">
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-1">Queue Token</p>
+                        <h2 className="text-7xl font-black leading-none">
+                            {patientQueue.token || '--'}
+                        </h2>
+                    </div>
+
+                    <div className="space-y-4 mb-6">
+                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-1">
+                            <span className="text-[8px] font-black uppercase text-slate-500">Patient</span>
+                            <span className="text-sm font-bold">{patientName}</span>
+                        </div>
+                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-1">
+                            <span className="text-[8px] font-black uppercase text-slate-500">Doctor</span>
+                            <span className="text-sm font-bold">{patientQueue.doctor}</span>
+                        </div>
+                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-1">
+                            <span className="text-[8px] font-black uppercase text-slate-500">Dept/Room</span>
+                            <span className="text-sm font-bold">{patientQueue.department} • {patientQueue.room}</span>
+                        </div>
+                        <div className="flex justify-between items-baseline border-b border-slate-100 pb-1">
+                            <span className="text-[8px] font-black uppercase text-slate-500">Time</span>
+                            <span className="text-sm font-bold">{patientQueue.time}</span>
+                        </div>
+                    </div>
+
+                    <div className="text-center pt-4 opacity-70">
+                        <p className="text-[9px] font-bold italic">Please wait until your number is called.</p>
+                        <p className="text-[7px] font-black uppercase mt-3 tracking-widest">
+                            {new Date().toLocaleString()}
+                        </p>
                     </div>
                 </div>
             )}

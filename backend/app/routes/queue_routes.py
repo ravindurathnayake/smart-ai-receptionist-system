@@ -22,11 +22,12 @@ def check_in():
 def manual_check_in_route():
     data = request.json
     identifier = data.get('identifier')
+    patient_id = data.get('patient_id')
     
-    if not identifier:
-        return jsonify({"error": "identifier (Phone or NIC) is required"}), 400
+    if not identifier and not patient_id:
+        return jsonify({"error": "identifier or patient_id is required"}), 400
         
-    result = manual_check_in(identifier)
+    result = manual_check_in(identifier, patient_id)
     if "error" in result:
         return jsonify(result), 400
         
@@ -50,21 +51,45 @@ def check_out():
 def face_check_in():
     data = request.json
     face_image = data.get('face_image')
+    patient_id = data.get('patient_id')
     
+    if patient_id:
+        result = check_in_patient(patient_id)
+        return jsonify(result), 200
+
     if not face_image:
         return jsonify({"error": "face_image (base64) is required"}), 400
         
     patient = find_patient_by_face(face_image)
     if not patient:
-        return jsonify({"error": "Face not recognized. Please use manual check-in."}), 404
+        return jsonify({"success": False, "error": "Face not recognized."}), 200
         
+    # Check for linked profiles
+    from app.models import Patient
+    linked = Patient.query.filter(
+        (Patient.guardian_id == patient.id) | 
+        (Patient.guardian_nic == patient.nic) |
+        (Patient.guardian_phone == patient.phone_number)
+    ).all()
+
+    if linked:
+        profiles = [{
+            "id": patient.id,
+            "name": patient.full_name,
+            "age": patient.age,
+            "role": "Self",
+            "image": patient.profile_image
+        }]
+        for child in linked:
+            profiles.append({
+                "id": child.id,
+                "name": child.full_name,
+                "age": child.age,
+                "role": "Family Member",
+                "image": child.profile_image
+            })
+        return jsonify({"success": True, "profiles": profiles}), 200
+
     # Trigger check-in for the identified patient
-    print(f"DEBUG: Triggering check-in for patient {patient.id}...")
     result = check_in_patient(patient.id)
-    if "error" in result:
-        print(f"DEBUG: Check-in error: {result['error']}")
-        return jsonify(result), 400
-        
-    # Include patient name in the response for feedback
-    result["patient_name"] = patient.full_name
     return jsonify(result), 200
