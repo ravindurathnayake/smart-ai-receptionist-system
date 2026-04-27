@@ -16,7 +16,7 @@ const SideNav = () => {
         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
         { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
-        { icon: 'map',              label: 'Hospital Map',         path: '#' },
+        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
     ];
 
     const handleSignOut = () => {
@@ -121,6 +121,32 @@ const PatientDashboard = () => {
     const [history, setHistory] = useState([]);
     const [queue, setQueue] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [selectedAppt, setSelectedAppt] = useState(null);
+    const [rating, setRating] = useState(5);
+    const [reviewText, setReviewText] = useState('');
+    const [complaintText, setComplaintText] = useState('');
+    const [isComplaint, setIsComplaint] = useState(false);
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editData, setEditData] = useState({ name: '', phone: '' });
+
+    const fetchData = async () => {
+        const savedPatient = localStorage.getItem('activePatient');
+        if (!savedPatient) return;
+        const parsedPatient = JSON.parse(savedPatient);
+        try {
+            const historyData = await apiService.getPatientHistory(parsedPatient.id);
+            setHistory(historyData?.appointments || []);
+            
+            const queueData = await apiService.getPatientQueueStatus(parsedPatient.id);
+            setQueue(queueData);
+        } catch (err) {
+            console.error("Error fetching data:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
@@ -130,27 +156,11 @@ const PatientDashboard = () => {
         }
         
         const parsedPatient = JSON.parse(savedPatient);
-        // Normalize name field
         parsedPatient.full_name = parsedPatient.full_name || parsedPatient.name;
         setPatient(parsedPatient);
 
-        // Fetch patient history and queue status
-        const fetchData = async () => {
-            try {
-                const historyData = await apiService.getPatientHistory(parsedPatient.id);
-                setHistory(historyData?.appointments || []);
-                
-                const queueData = await apiService.getPatientQueueStatus(parsedPatient.id);
-                setQueue(queueData);
-            } catch (err) {
-                console.error("Error fetching data:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
 
-        // REAL-TIME UPDATES
         socketService.connect();
         socketService.on('queue_updated', fetchData);
 
@@ -158,6 +168,31 @@ const PatientDashboard = () => {
             socketService.off('queue_updated', fetchData);
         };
     }, [navigate]);
+
+    const handleSubmitReview = async () => {
+        if (!selectedAppt) return;
+        setSubmittingReview(true);
+        try {
+            await apiService.submitReview({
+                appointment_id: selectedAppt.id,
+                rating,
+                review_text: reviewText,
+                complaint_text: isComplaint ? complaintText : "",
+                is_complaint: isComplaint
+            });
+            setIsReviewModalOpen(false);
+            setRating(5);
+            setReviewText('');
+            setComplaintText('');
+            setIsComplaint(false);
+            fetchData();
+        } catch (err) {
+            console.error("Failed to submit review:", err);
+            alert("Failed to submit review. You may have already reviewed this session.");
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
 
     const calculateAge = (dobString) => {
         if (!dobString) return 0;
@@ -173,7 +208,24 @@ const PatientDashboard = () => {
 
     const isMinor = patient ? calculateAge(patient.dob || patient.date_of_birth) < 18 : false;
 
-    if (!patient) return null;
+    const handleEditProfile = () => {
+        setEditData({ name: patient?.full_name || '', phone: patient?.phone || '' });
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveProfile = async () => {
+        try {
+            const updatedPatient = { ...patient, name: editData.name, full_name: editData.name, phone: editData.phone };
+            localStorage.setItem('activePatient', JSON.stringify(updatedPatient));
+            setPatient(updatedPatient);
+            setIsEditModalOpen(false);
+            alert("Profile updated successfully!");
+        } catch (err) {
+            alert("Failed to update profile");
+        }
+    };
+
+    if (loading) return null;
 
     return (
         <div className="w-screen h-screen overflow-hidden flex font-body bg-slate-50 text-on-surface dashboard-container">
@@ -185,14 +237,12 @@ const PatientDashboard = () => {
                     onSignOut={() => { localStorage.removeItem('activePatient'); navigate('/'); }} 
                 />
 
-                {/* Ambient blobs like other kiosk pages */}
                 <div className="ambient-blob-top" />
                 <div className="ambient-blob-bottom" />
 
                 <div className="flex-1 overflow-y-auto p-10 custom-scrollbar z-10 relative">
                     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
                         
-                        {/* Profile Overview Card */}
                         <div className="grid grid-cols-12 gap-6">
                             <div className="col-span-8 glass-card rounded-[2.5rem] p-8 shadow-lg relative overflow-hidden border border-white">
                                 <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 blur-[60px] rounded-full -mr-16 -mt-16"></div>
@@ -207,7 +257,9 @@ const PatientDashboard = () => {
                                                 <h2 className="text-3xl font-black text-on-surface font-headline tracking-tight">{patient.full_name}</h2>
                                                 <p className="text-slate-500 font-bold mt-1">Patient ID: <span className="text-primary">PAT-{patient.id.toString().padStart(4, '0')}</span></p>
                                             </div>
-                                            <button className="px-5 py-2 bg-slate-50 text-primary rounded-xl font-bold text-xs border border-slate-100 hover:bg-white transition-all shadow-sm">
+                                            <button 
+                                                onClick={handleEditProfile}
+                                                className="px-5 py-2 bg-slate-50 text-primary rounded-xl font-bold text-xs border border-slate-100 hover:bg-white transition-all shadow-sm">
                                                 Edit Profile
                                             </button>
                                         </div>
@@ -248,10 +300,6 @@ const PatientDashboard = () => {
                                                     <div className="space-y-0.5">
                                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Emergency Contact</p>
                                                         <p className="text-sm font-bold text-on-surface">{patient.guardian_phone || 'N/A'}</p>
-                                                    </div>
-                                                    <div className="space-y-0.5">
-                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Guardian Email</p>
-                                                        <p className="text-sm font-bold text-on-surface lowercase">{patient.guardian_email || 'N/A'}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -310,9 +358,7 @@ const PatientDashboard = () => {
                             </div>
                         </div>
 
-                        {/* History and Records Grid */}
                         <div className="grid grid-cols-12 gap-6">
-                            {/* Appointment History */}
                             <div className="col-span-7 glass-card rounded-[2.5rem] p-8 shadow-lg border border-white flex flex-col">
                                 <div className="flex justify-between items-center mb-8">
                                     <h3 className="text-xl font-black text-on-surface font-headline flex items-center gap-2">
@@ -335,13 +381,25 @@ const PatientDashboard = () => {
                                                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mt-1">{appt.department}</p>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
+                                            <div className="flex items-center gap-3">
                                                 <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
                                                     appt.status === 'Completed' ? 'bg-green-100 text-green-700' : 
                                                     appt.status === 'Scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
                                                 }`}>
                                                     {appt.status}
                                                 </span>
+                                                {appt.status === 'Completed' && !appt.has_review && (
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedAppt(appt);
+                                                            setIsReviewModalOpen(true);
+                                                        }}
+                                                        className="px-3 py-1 bg-primary text-white rounded-full text-[8px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm"
+                                                    >
+                                                        Rate & Review
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     )) : (
@@ -353,7 +411,6 @@ const PatientDashboard = () => {
                                 </div>
                             </div>
 
-                            {/* Medical Records / Documents */}
                             <div className="col-span-5 glass-card rounded-[2.5rem] p-8 shadow-lg border border-white flex flex-col">
                                 <div className="flex justify-between items-center mb-8">
                                     <h3 className="text-xl font-black text-on-surface font-headline flex items-center gap-2">
@@ -400,6 +457,143 @@ const PatientDashboard = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Review & Complaint Modal */}
+            {isReviewModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fade-in">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsReviewModalOpen(false)}></div>
+                    <div className="bg-white rounded-[3rem] w-full max-w-xl relative z-10 shadow-2xl overflow-hidden border border-white">
+                        <div className="p-10">
+                            <div className="flex justify-between items-center mb-8">
+                                <div>
+                                    <h2 className="text-3xl font-black text-on-surface font-headline tracking-tight">Experience Feedback</h2>
+                                    <p className="text-slate-500 font-bold text-sm mt-1">Reviewing: {selectedAppt?.specialist}</p>
+                                </div>
+                                <button onClick={() => setIsReviewModalOpen(false)} className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+
+                            <div className="space-y-8">
+                                <div className="text-center bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Overall Rating</p>
+                                    <div className="flex justify-center gap-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button 
+                                                key={star} 
+                                                onClick={() => setRating(star)}
+                                                className={`text-4xl transition-all ${rating >= star ? 'text-yellow-500 scale-110' : 'text-slate-200'}`}
+                                            >
+                                                <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: rating >= star ? "'FILL' 1" : "" }}>star</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-sm font-black text-primary mt-4">
+                                        {rating === 5 ? 'Excellent Experience' : rating === 4 ? 'Very Good' : rating === 3 ? 'Good' : rating === 2 ? 'Fair' : 'Poor'}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-2">Your Feedback</label>
+                                    <textarea 
+                                        className="w-full p-6 bg-slate-50 border-none rounded-[2rem] text-sm font-bold placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all min-h-[120px]"
+                                        placeholder="Tell us about your consultation..."
+                                        value={reviewText}
+                                        onChange={(e) => setReviewText(e.target.value)}
+                                    ></textarea>
+                                </div>
+
+                                <div className="flex items-center justify-between p-6 bg-red-50 rounded-[2rem] border border-red-100">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-red-600 shadow-sm">
+                                            <span className="material-symbols-outlined">report_problem</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-red-700">File a Formal Complaint?</p>
+                                            <p className="text-[10px] text-red-500 font-bold">This will be flagged for admin review</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setIsComplaint(!isComplaint)}
+                                        className={`w-14 h-8 rounded-full relative transition-all ${isComplaint ? 'bg-red-600' : 'bg-slate-200'}`}
+                                    >
+                                        <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-sm ${isComplaint ? 'left-7' : 'left-1'}`}></div>
+                                    </button>
+                                </div>
+
+                                {isComplaint && (
+                                    <div className="space-y-3 animate-fade-in">
+                                        <label className="text-[10px] font-black text-red-600 uppercase tracking-widest ml-2">Complaint Details</label>
+                                        <textarea 
+                                            className="w-full p-6 bg-red-50/30 border border-red-100 rounded-[2rem] text-sm font-bold placeholder:text-red-300 focus:bg-white focus:ring-4 focus:ring-red-500/5 transition-all min-h-[100px]"
+                                            placeholder="What went wrong? Please be specific..."
+                                            value={complaintText}
+                                            onChange={(e) => setComplaintText(e.target.value)}
+                                        ></textarea>
+                                    </div>
+                                )}
+
+                                <button 
+                                    onClick={handleSubmitReview}
+                                    disabled={submittingReview}
+                                    className={`w-full py-5 rounded-[2rem] font-black text-lg transition-all shadow-xl flex items-center justify-center gap-3 ${
+                                        submittingReview ? 'bg-slate-100 text-slate-300' : 'bg-primary text-white hover:scale-[1.02] active:scale-[0.95]'
+                                    }`}
+                                >
+                                    {submittingReview ? 'Submitting...' : 'Submit Feedback'}
+                                    {!submittingReview && <span className="material-symbols-outlined">send</span>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Profile Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-on-surface/20 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl border border-white animate-in zoom-in-95 duration-300">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-black font-headline text-primary">Edit Personal Info</h3>
+                            <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-red-500">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
+                                <input 
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
+                                    value={editData.name}
+                                    onChange={(e) => setEditData({...editData, name: e.target.value})}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Contact Number</label>
+                                <input 
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
+                                    value={editData.phone}
+                                    onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <button 
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="flex-1 py-4 bg-slate-50 text-slate-500 rounded-2xl font-black text-sm hover:bg-slate-100 transition-all">
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSaveProfile}
+                                className="flex-[2] py-4 bg-primary text-white rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

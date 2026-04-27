@@ -17,7 +17,7 @@ def create_app():
     socketio.init_app(app)
 
     # IMPORTANT: Import models so Flask-Migrate can detect them
-    from app.models import Specialist, Patient, Appointment, Queue, Department, DoctorSession, Payment, User
+    from app.models import Specialist, Patient, Appointment, Queue, Department, DoctorSession, Payment, User, Review
     
     from app.routes import appointment_bp, specialist_bp, department_bp, admin_bp, patient_bp, queue_bp
     app.register_blueprint(appointment_bp, url_prefix="/api")
@@ -26,6 +26,9 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(patient_bp, url_prefix="/api/patients")
     app.register_blueprint(queue_bp)
+
+    from app.routes.review_routes import review_bp
+    app.register_blueprint(review_bp)
 
     from app.routes import recommendation_bp
     app.register_blueprint(recommendation_bp, url_prefix="/api")

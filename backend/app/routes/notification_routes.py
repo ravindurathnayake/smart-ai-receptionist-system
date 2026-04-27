@@ -23,7 +23,13 @@ def create_notification():
 @notification_bp.route("/", methods=["GET"])
 def get_notifications():
     try:
-        notifications = Notification.query.order_by(Notification.created_at.desc()).limit(20).all()
+        patient_id = request.args.get("patient_id")
+        if patient_id:
+            notifications = Notification.query.filter(
+                (Notification.patient_id == patient_id) | (Notification.patient_id == None)
+            ).order_by(Notification.created_at.desc()).limit(20).all()
+        else:
+            notifications = Notification.query.order_by(Notification.created_at.desc()).limit(20).all()
         return success_response("Notifications retrieved", [n.to_dict() for n in notifications])
     except Exception as e:
         return error_response(str(e), 500)

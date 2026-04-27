@@ -7,3 +7,4 @@ from .doctor_session import DoctorSession
 from .payment import Payment
 from .user import User
 from .notification import Notification
+from .review import Review

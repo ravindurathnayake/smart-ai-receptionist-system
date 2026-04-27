@@ -13,6 +13,7 @@ class DoctorSession(db.Model):
     end_time = db.Column(db.Time, nullable=False)
     max_patients = db.Column(db.Integer, default=20)
     current_count = db.Column(db.Integer, default=0)
+    session_number = db.Column(db.Integer, nullable=True) # e.g. 1, 2, 3
     room_number = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(20), default="Active") # Active, Cancelled, Full
 

@@ -126,7 +126,8 @@ def get_patient_history(patient_id):
                 "specialist": appt.specialist.name,
                 "department": appt.specialist.department,
                 "status": appt.status,
-                "symptom": appt.symptom
+                "symptom": appt.symptom,
+                "has_review": appt.review is not None
             } for appt in appointments],
             "queue": [{
                 "id": q.id,

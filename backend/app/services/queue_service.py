@@ -418,14 +418,14 @@ def get_all_sessions_queues():
             
         results.append({
             "session_id": session.id,
-            "doctor": session.specialist.name,
-            "department": session.specialist.department,
-            "room": session.room_number,
+            "doctor": session.specialist.name if session.specialist else "N/A",
+            "department": session.specialist.department if session.specialist else "N/A",
+            "room": session.room_number or "N/A",
             "status": session.status,
             "current_patient": {
                 "id": active_qe.id,
                 "token": f"TKN-{active_qe.queue_number:03d}",
-                "name": active_qe.appointment.patient.full_name
+                "name": active_qe.appointment.patient.full_name if active_qe.appointment and active_qe.appointment.patient else "Unknown"
             } if active_qe else None,
             "waiting_count": len(waiting_list),
             "waiting_list": waiting_list

@@ -13,6 +13,7 @@ const AdminLayout = () => {
     { name: 'Queue Control', icon: 'queue', path: '/admin/queue' },
     { name: 'Patient Records', icon: 'person_search', path: '/admin/patients' },
     { name: 'Analytics', icon: 'analytics', path: '/admin/analytics' },
+    { name: 'Reviews & Complaints', icon: 'rate_review', path: '/admin/reviews' },
   ];
 
   return (

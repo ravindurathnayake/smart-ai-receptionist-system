@@ -400,7 +400,7 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                                                             {sess.start_time}
                                                         </span>
                                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isSelected ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'}`}>
-                                                            {sess.room_number}
+                                                            {sess.session_number ? `Session ${sess.session_number} • ` : ''}{sess.room_number}
                                                         </span>
                                                     </div>
 

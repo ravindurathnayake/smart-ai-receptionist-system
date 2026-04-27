@@ -447,8 +447,23 @@ const AdminDoctors = () => {
                         {formData.sessions.map((session, idx) => (
                           <div key={idx} className="p-6 bg-white border border-outline-variant/10 rounded-[1.75rem] shadow-sm hover:shadow-md hover:border-primary/20 transition-all group animate-in slide-in-from-bottom-2 duration-300">
                             <div className="grid grid-cols-12 gap-6 items-center">
+                              {/* Session Identity */}
+                              <div className="col-span-1 space-y-2">
+                                <div className="flex items-center gap-2 px-1">
+                                  <span className="material-symbols-rounded text-sm text-primary">pin</span>
+                                  <label className="text-[10px] font-black text-outline uppercase tracking-widest">No</label>
+                                </div>
+                                <input 
+                                  type="number"
+                                  className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all text-center"
+                                  value={session.session_number || ''}
+                                  onChange={(e) => handleSessionChange(idx, 'session_number', e.target.value)}
+                                  placeholder="1"
+                                />
+                              </div>
+
                               {/* Date Selection */}
-                              <div className="col-span-3 space-y-2">
+                              <div className="col-span-2 space-y-2">
                                 <div className="flex items-center gap-2 px-1">
                                   <span className="material-symbols-rounded text-sm text-primary">calendar_month</span>
                                   <label className="text-[10px] font-black text-outline uppercase tracking-widest">Session Date</label>

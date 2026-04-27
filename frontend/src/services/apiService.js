@@ -184,13 +184,27 @@ export const apiService = {
         const response = await api.post('/notifications/', data);
         return response.data.data;
     },
-    getNotifications: async () => {
-        const response = await api.get('/notifications/');
+    getNotifications: async (patientId) => {
+        const response = await api.get(`/notifications/`, { params: { patient_id: patientId } });
         return response.data.data;
     },
     markNotificationAsRead: async (id) => {
         const response = await api.patch(`/notifications/${id}/read`);
         return response.data.data;
+    },
+
+    // Reviews & Complaints
+    submitReview: async (data) => {
+        const response = await api.post('/reviews/', data);
+        return response.data;
+    },
+    getAllReviews: async () => {
+        const response = await api.get('/reviews/');
+        return response.data;
+    },
+    respondToReview: async (reviewId, data) => {
+        const response = await api.patch(`/reviews/${reviewId}/respond`, data);
+        return response.data;
     }
 };
 

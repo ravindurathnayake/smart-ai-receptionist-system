@@ -26,6 +26,8 @@ import AdminPatients from './pages/admin/AdminPatients';
 import HospitalAnalytics from './pages/admin/HospitalAnalytics';
 import AdminLogin from './pages/admin/AdminLogin';
 
+import AdminReviews from './pages/admin/AdminReviews';
+
 import './App.css';
 
 function App() {
@@ -59,6 +61,7 @@ function App() {
           <Route path="queue" element={<AdminQueue />} />
           <Route path="patients" element={<AdminPatients />} />
           <Route path="analytics" element={<HospitalAnalytics />} />
+          <Route path="reviews" element={<AdminReviews />} />
         </Route>
       </Routes>
     </Router>

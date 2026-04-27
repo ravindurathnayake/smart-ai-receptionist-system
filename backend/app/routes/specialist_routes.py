@@ -35,6 +35,7 @@ def get_specialists():
                 "start_time": sess.start_time.strftime("%H:%M"),
                 "end_time": sess.end_time.strftime("%H:%M"),
                 "max_patients": sess.max_patients,
+                "session_number": sess.session_number,
                 "room_number": sess.room_number
             } for sess in s.sessions]
         } for s in specialists])
@@ -65,6 +66,7 @@ def get_specialist(specialist_id):
                 "end_time": sess.end_time.strftime("%H:%M"),
                 "max_patients": sess.max_patients,
                 "current_count": sess.current_count,
+                "session_number": sess.session_number,
                 "room_number": sess.room_number,
                 "status": sess.status
             } for sess in s.sessions]
@@ -115,6 +117,7 @@ def add_specialist():
                 start_time=start_t,
                 end_time=end_t,
                 max_patients=sess.get("max_patients", 20),
+                session_number=sess.get("session_number"),
                 room_number=sess.get("room_number")
             )
             db.session.add(new_sess)
@@ -180,6 +183,7 @@ def update_specialist(specialist_id):
                     start_time=start_t,
                     end_time=end_t,
                     max_patients=sess.get("max_patients", 20),
+                    session_number=sess.get("session_number"),
                     room_number=sess.get("room_number")
                 )
                 db.session.add(new_sess)
@@ -216,6 +220,7 @@ def add_session(specialist_id):
             start_time=start_t,
             end_time=end_t,
             max_patients=data.get("max_patients", 20),
+            session_number=data.get("session_number"),
             room_number=data.get("room_number")
         )
         db.session.add(new_sess)
