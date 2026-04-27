@@ -129,7 +129,21 @@ const PatientDashboard = () => {
     const [isComplaint, setIsComplaint] = useState(false);
     const [submittingReview, setSubmittingReview] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editData, setEditData] = useState({ name: '', phone: '' });
+    const [editData, setEditData] = useState({ 
+        name: '', 
+        phone: '', 
+        email: '', 
+        dob: '', 
+        address: '', 
+        blood_type: '' 
+    });
+    const [showPresModal, setShowPresModal] = useState(false);
+    const [showLabModal, setShowLabModal] = useState(false);
+    const [prescriptions, setPrescriptions] = useState([]);
+    const [labReports, setLabReports] = useState([]);
+
+    const [medicalSummary, setMedicalSummary] = useState({ prescriptions_count: 0, lab_reports_count: 0 });
+    const [aiInsight, setAiInsight] = useState("Your AI Assistant is ready to summarize your medical history or answer health queries.");
 
     const fetchData = async () => {
         const savedPatient = localStorage.getItem('activePatient');
@@ -141,6 +155,19 @@ const PatientDashboard = () => {
             
             const queueData = await apiService.getPatientQueueStatus(parsedPatient.id);
             setQueue(queueData);
+
+            const summaryData = await apiService.getMedicalSummary(parsedPatient.id);
+            setMedicalSummary(summaryData);
+
+            // Generate a simple AI insight
+            const insights = [
+                "Stay hydrated! Aim for at least 8 glasses of water today.",
+                "Based on your last visit, remember to continue your prescribed medications.",
+                "Did you know? Regular walking can improve your cardiovascular health significantly.",
+                "Your next routine check-up should be scheduled within the next 3 months.",
+                "AI Tip: Balanced nutrition is the foundation of long-term wellness."
+            ];
+            setAiInsight(insights[Math.floor(Math.random() * insights.length)]);
         } catch (err) {
             console.error("Error fetching data:", err);
         } finally {
@@ -209,19 +236,81 @@ const PatientDashboard = () => {
     const isMinor = patient ? calculateAge(patient.dob || patient.date_of_birth) < 18 : false;
 
     const handleEditProfile = () => {
-        setEditData({ name: patient?.full_name || '', phone: patient?.phone || '' });
+        setEditData({ 
+            name: patient?.full_name || patient?.name || '', 
+            phone: patient?.phone_number || patient?.phone || '',
+            email: patient?.email || '',
+            dob: patient?.dob || '',
+            address: patient?.address || '',
+            blood_type: patient?.blood_type || ''
+        });
         setIsEditModalOpen(true);
     };
 
     const handleSaveProfile = async () => {
         try {
-            const updatedPatient = { ...patient, name: editData.name, full_name: editData.name, phone: editData.phone };
+            await apiService.updatePatient(patient.id, {
+                full_name: editData.name,
+                phone_number: editData.phone,
+                email: editData.email,
+                dob: editData.dob,
+                address: editData.address,
+                blood_type: editData.blood_type
+            });
+            
+            const updatedPatient = { 
+                ...patient, 
+                full_name: editData.name, 
+                name: editData.name,
+                phone_number: editData.phone,
+                phone: editData.phone,
+                email: editData.email,
+                dob: editData.dob,
+                address: editData.address,
+                blood_type: editData.blood_type
+            };
+            
             localStorage.setItem('activePatient', JSON.stringify(updatedPatient));
             setPatient(updatedPatient);
             setIsEditModalOpen(false);
             alert("Profile updated successfully!");
         } catch (err) {
+            console.error("Failed to update profile:", err);
             alert("Failed to update profile");
+        }
+    };
+
+    const handleViewAttachment = (base64Data) => {
+        try {
+            if (!base64Data) return;
+            
+            // Check if it's already a URL or needs conversion
+            if (base64Data.startsWith('http')) {
+                window.open(base64Data, '_blank');
+                return;
+            }
+
+            const parts = base64Data.split(';base64,');
+            if (parts.length !== 2) {
+                window.open(base64Data, '_blank');
+                return;
+            }
+            
+            const contentType = parts[0].split(':')[1];
+            const raw = window.atob(parts[1]);
+            const rawLength = raw.length;
+            const uInt8Array = new Uint8Array(rawLength);
+
+            for (let i = 0; i < rawLength; ++i) {
+                uInt8Array[i] = raw.charCodeAt(i);
+            }
+
+            const blob = new Blob([uInt8Array], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (err) {
+            console.error("Failed to open attachment:", err);
+            alert("Failed to open document. The file might be corrupted.");
         }
     };
 
@@ -311,33 +400,40 @@ const PatientDashboard = () => {
                             <div className="col-span-4 space-y-4">
                                 <div 
                                     onClick={() => navigate('/queue')}
-                                    className={`glass-card rounded-[2rem] p-6 shadow-md hover:shadow-lg transition-all cursor-pointer group border-none ${
-                                        queue ? 'bg-gradient-to-br from-primary to-primary-container text-white' : 'bg-slate-100 text-slate-400'
+                                    className={`rounded-[2rem] p-6 shadow-xl transition-all cursor-pointer group ${
+                                        (queue && queue.status) 
+                                            ? 'bg-gradient-to-br from-primary to-blue-700 text-white shadow-primary/20' 
+                                            : 'bg-slate-50 border-2 border-dashed border-slate-200 text-slate-500'
                                     }`}
                                 >
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${queue ? 'bg-white/20' : 'bg-slate-200'}`}>
-                                            <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>hourglass_empty</span>
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${ (queue && queue.status) ? 'bg-white/20 backdrop-blur-md' : 'bg-white shadow-sm'}`}>
+                                            <span className={`material-symbols-outlined text-3xl ${ (queue && queue.status) ? 'text-white' : 'text-slate-400'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                                                {(queue && queue.status) ? 'hourglass_empty' : 'no_accounts'}
+                                            </span>
                                         </div>
-                                        <span className="material-symbols-outlined text-lg opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
+                                        <span className={`material-symbols-outlined text-lg ${ (queue && queue.status) ? 'text-white' : 'text-slate-400'} opacity-0 group-hover:opacity-100 transition-opacity`}>arrow_forward</span>
                                     </div>
-                                    <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${queue ? 'opacity-80' : 'text-slate-500'}`}>
-                                        {queue?.status || 'No Active Session'}
+                                    <p className={`text-[11px] font-black uppercase tracking-widest mb-1 ${ (queue && queue.status) ? 'text-white/80' : 'text-slate-400'}`}>
+                                        {(queue && queue.status) ? queue.status : 'NO ACTIVE SESSION'}
                                     </p>
-                                    <h3 className={`text-2xl font-black font-headline leading-tight ${queue ? '' : 'text-slate-400'}`}>
-                                        {queue?.status === 'In Queue' ? `Room ${queue.room} • ${queue.token}` : 
-                                         queue?.status === 'Scheduled' ? 'Upcoming Visit' : 'Check-In Required'}
+                                    <h3 className="text-2xl font-black font-headline leading-tight">
+                                        {(queue && queue.status) ? (
+                                            queue.status === 'In Queue' ? `${queue.room} • ${queue.token}` : 'Upcoming Visit'
+                                        ) : 'Check-In Required'}
                                     </h3>
-                                    <div className="mt-3 flex items-center gap-3">
-                                        {queue?.status === 'In Queue' ? (
-                                            <>
-                                                <div className="px-3 py-1 bg-white/20 rounded-lg font-black text-base">Pos: {queue.people_ahead + 1}</div>
-                                                <p className="text-[10px] font-bold opacity-80">~ {queue.estimated_wait} mins wait</p>
-                                            </>
-                                        ) : queue?.status === 'Scheduled' ? (
-                                            <div className="px-3 py-1 bg-white/20 rounded-lg font-black text-xs uppercase tracking-wider">{queue.date}</div>
+                                    <div className="mt-4 flex items-center gap-3">
+                                        {(queue && queue.status) ? (
+                                            queue.status === 'In Queue' ? (
+                                                <>
+                                                    <div className="px-3 py-1 bg-white/20 rounded-lg font-black text-base">Pos: {parseInt(queue.people_ahead) + 1}</div>
+                                                    <p className="text-[10px] font-bold text-white/80">~ {queue.estimated_wait} mins wait</p>
+                                                </>
+                                            ) : (
+                                                <div className="px-3 py-1 bg-white/20 rounded-lg font-black text-xs uppercase tracking-wider">{queue.date}</div>
+                                            )
                                         ) : (
-                                            <p className="text-[10px] font-bold">Visit reception to check-in</p>
+                                            <p className="text-[10px] font-bold">Visit reception to get started</p>
                                         )}
                                     </div>
                                 </div>
@@ -353,7 +449,7 @@ const PatientDashboard = () => {
                                         <span className="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
                                     </div>
                                     <h3 className="text-lg font-black text-primary font-headline">AI Assistant</h3>
-                                    <p className="text-xs text-slate-500 font-bold mt-1">Discuss your medical history</p>
+                                    <p className="text-[10px] text-slate-500 font-bold mt-1 line-clamp-2">"{aiInsight}"</p>
                                 </div>
                             </div>
                         </div>
@@ -420,24 +516,38 @@ const PatientDashboard = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-3">
-                                    <button className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 hover:bg-white hover:shadow-md transition-all border border-slate-100 group text-left">
+                                    <button 
+                                        onClick={async () => {
+                                            const data = await apiService.getPrescriptions(patient.id);
+                                            setPrescriptions(data);
+                                            setShowPresModal(true);
+                                        }}
+                                        className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 hover:bg-white hover:shadow-md transition-all border border-slate-100 group text-left w-full"
+                                    >
                                         <div className="w-11 h-11 rounded-xl bg-white shadow-inner flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                                             <span className="material-symbols-outlined text-2xl">prescriptions</span>
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="font-black text-on-surface text-sm">Prescriptions</h4>
-                                            <p className="text-[10px] text-slate-500 font-bold mt-0.5">3 Available Records</p>
+                                            <p className="text-[10px] text-slate-500 font-bold mt-0.5">{medicalSummary.prescriptions_count} Records Available</p>
                                         </div>
-                                        <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors text-lg">download</span>
+                                        <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors text-lg">visibility</span>
                                     </button>
-
-                                    <button className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 hover:bg-white hover:shadow-md transition-all border border-slate-100 group text-left">
+ 
+                                    <button 
+                                        onClick={async () => {
+                                            const data = await apiService.getLabReports(patient.id);
+                                            setLabReports(data);
+                                            setShowLabModal(true);
+                                        }}
+                                        className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 hover:bg-white hover:shadow-md transition-all border border-slate-100 group text-left w-full"
+                                    >
                                         <div className="w-11 h-11 rounded-xl bg-white shadow-inner flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
                                             <span className="material-symbols-outlined text-2xl">lab_research</span>
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="font-black text-on-surface text-sm">Lab Reports</h4>
-                                            <p className="text-[10px] text-slate-500 font-bold mt-0.5">1 New Result</p>
+                                            <p className="text-[10px] text-slate-500 font-bold mt-0.5">{medicalSummary.lab_reports_count} New Results</p>
                                         </div>
                                         <span className="material-symbols-outlined text-slate-300 group-hover:text-secondary transition-colors text-lg">visibility</span>
                                     </button>
@@ -560,22 +670,69 @@ const PatientDashboard = () => {
                             </button>
                         </div>
                         
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
-                                <input 
-                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
-                                    value={editData.name}
-                                    onChange={(e) => setEditData({...editData, name: e.target.value})}
+                        <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
+                                    <input 
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-xs"
+                                        value={editData.name}
+                                        onChange={(e) => setEditData({...editData, name: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Contact Number</label>
+                                    <input 
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-xs"
+                                        value={editData.phone}
+                                        onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Email Address</label>
+                                    <input 
+                                        type="email"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-xs"
+                                        value={editData.email}
+                                        onChange={(e) => setEditData({...editData, email: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Date of Birth</label>
+                                    <input 
+                                        type="date"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-xs"
+                                        value={editData.dob}
+                                        onChange={(e) => setEditData({...editData, dob: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Residential Address</label>
+                                <textarea 
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-xs resize-none"
+                                    rows="2"
+                                    value={editData.address}
+                                    onChange={(e) => setEditData({...editData, address: e.target.value})}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Contact Number</label>
-                                <input 
-                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
-                                    value={editData.phone}
-                                    onChange={(e) => setEditData({...editData, phone: e.target.value})}
-                                />
+
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Blood Group</label>
+                                <select 
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-xs appearance-none"
+                                    value={editData.blood_type}
+                                    onChange={(e) => setEditData({...editData, blood_type: e.target.value})}
+                                >
+                                    <option value="">Select Blood Group</option>
+                                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(type => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
@@ -594,8 +751,128 @@ const PatientDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {showPresModal && (
+                <ViewPrescriptionsModal 
+                    prescriptions={prescriptions} 
+                    onClose={() => setShowPresModal(false)} 
+                    onViewAttachment={handleViewAttachment}
+                />
+            )}
+
+            {showLabModal && (
+                <ViewLabReportsModal 
+                    reports={labReports} 
+                    onClose={() => setShowLabModal(false)} 
+                    onViewAttachment={handleViewAttachment}
+                />
+            )}
         </div>
     );
 };
+
+const ViewPrescriptionsModal = ({ prescriptions, onClose, onViewAttachment }) => (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="bg-white rounded-[3rem] w-full max-w-2xl shadow-2xl overflow-hidden border border-white flex flex-col max-h-[80vh]">
+            <div className="p-10 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <div>
+                    <h2 className="text-3xl font-black text-on-surface font-headline tracking-tight">Your Prescriptions</h2>
+                    <p className="text-slate-500 font-bold text-sm mt-1">Access and review your prescribed medications.</p>
+                </div>
+                <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
+                    <span className="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div className="p-10 overflow-y-auto space-y-4">
+                {prescriptions.length === 0 ? (
+                    <div className="text-center py-20">
+                        <span className="material-symbols-outlined text-5xl text-slate-200 mb-4 block">prescriptions</span>
+                        <p className="text-slate-400 font-bold">No prescriptions found in your record.</p>
+                    </div>
+                ) : (
+                    prescriptions.map(p => (
+                        <div key={p.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-4 py-1.5 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-full">{p.date}</span>
+                                <p className="text-xs font-bold text-slate-500">Dr. {p.doctor_name}</p>
+                            </div>
+                            <h4 className="text-lg font-black text-on-surface mb-2">{p.medications}</h4>
+                            {p.instructions && (
+                                <div className="mt-3 p-4 bg-white rounded-2xl border border-slate-200 border-l-4 border-l-primary">
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Pharmacist Instructions:</p>
+                                    <p className="text-sm font-bold text-slate-600">{p.instructions}</p>
+                                </div>
+                            )}
+                            {p.attachment && (
+                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <button 
+                                        onClick={() => onViewAttachment(p.attachment)}
+                                        className="w-full flex items-center justify-center gap-2 py-3 bg-white text-primary border border-primary/20 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary/5 transition-all shadow-sm"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">visibility</span>
+                                        View Attached Document
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    </div>
+);
+
+const ViewLabReportsModal = ({ reports, onClose, onViewAttachment }) => (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="bg-white rounded-[3rem] w-full max-w-2xl shadow-2xl overflow-hidden border border-white flex flex-col max-h-[80vh]">
+            <div className="p-10 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <div>
+                    <h2 className="text-3xl font-black text-on-surface font-headline tracking-tight">Lab Reports</h2>
+                    <p className="text-slate-500 font-bold text-sm mt-1">Review your latest laboratory test results.</p>
+                </div>
+                <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 hover:text-secondary transition-colors">
+                    <span className="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div className="p-10 overflow-y-auto space-y-4">
+                {reports.length === 0 ? (
+                    <div className="text-center py-20">
+                        <span className="material-symbols-outlined text-5xl text-slate-200 mb-4 block">lab_research</span>
+                        <p className="text-slate-400 font-bold">No lab reports found in your record.</p>
+                    </div>
+                ) : (
+                    reports.map(r => (
+                        <div key={r.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                            <div className="flex justify-between items-start mb-4">
+                                <span className="px-4 py-1.5 bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-widest rounded-full">{r.date}</span>
+                                <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full ${r.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                    {r.status}
+                                </span>
+                            </div>
+                            <h4 className="text-lg font-black text-on-surface mb-2">{r.test_name}</h4>
+                            {r.result_summary && (
+                                <div className="mt-3 p-4 bg-white rounded-2xl border border-slate-200 border-l-4 border-l-secondary">
+                                    <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">Result Summary:</p>
+                                    <p className="text-sm font-bold text-slate-600">{r.result_summary}</p>
+                                </div>
+                            )}
+                            {r.attachment && (
+                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <button 
+                                        onClick={() => onViewAttachment(r.attachment)}
+                                        className="w-full flex items-center justify-center gap-2 py-3 bg-white text-secondary border border-secondary/20 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-secondary/5 transition-all shadow-sm"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">visibility</span>
+                                        View Attached Document
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    </div>
+);
 
 export default PatientDashboard;

@@ -211,6 +211,28 @@ export const apiService = {
     getSystemHealth: async (isDiagnostic = false) => {
         const response = await api.get(`/system/health${isDiagnostic ? '?diagnostic=true' : ''}`);
         return response.data.data;
+    },
+
+    // Medical Records
+    getPrescriptions: async (patientId) => {
+        const response = await api.get('/medical/prescriptions', { params: { patient_id: patientId } });
+        return response.data.data;
+    },
+    getLabReports: async (patientId) => {
+        const response = await api.get('/medical/lab-reports', { params: { patient_id: patientId } });
+        return response.data.data;
+    },
+    getMedicalSummary: async (patientId) => {
+        const response = await api.get(`/medical/summary/${patientId}`);
+        return response.data.data;
+    },
+    addPrescription: async (data) => {
+        const response = await api.post('/medical/prescriptions', data);
+        return response.data;
+    },
+    addLabReport: async (data) => {
+        const response = await api.post('/medical/lab-reports', data);
+        return response.data;
     }
 };
 

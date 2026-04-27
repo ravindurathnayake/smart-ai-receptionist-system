@@ -12,6 +12,7 @@ const AdminPatients = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showApptModal, setShowApptModal] = useState(false);
+  const [showMedicalModal, setShowMedicalModal] = useState(false);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -182,6 +183,10 @@ const AdminPatients = () => {
                     <span className="material-symbols-rounded">history</span>
                     HISTORY
                   </button>
+                  <button onClick={() => { setSelectedPatient(patient); setShowMedicalModal(true); }} className="btn-icon-label secondary" title="Add Medical Record">
+                    <span className="material-symbols-rounded">description</span>
+                    MEDICAL
+                  </button>
                   <button onClick={() => { setSelectedPatient(patient); setShowEditModal(true); }} className="btn-icon-label secondary" title="Edit Profile">
                     <span className="material-symbols-rounded">edit</span>
                     EDIT
@@ -248,6 +253,14 @@ const AdminPatients = () => {
           patient={selectedPatient}
           onClose={() => setShowApptModal(false)} 
           onSuccess={() => setShowApptModal(false)}
+        />
+      )}
+
+      {showMedicalModal && selectedPatient && (
+        <MedicalRecordsModal 
+          patient={selectedPatient}
+          onClose={() => setShowMedicalModal(false)} 
+          onSuccess={() => setShowMedicalModal(false)}
         />
       )}
     </div>
@@ -407,20 +420,26 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
 
 const HistoryModal = ({ patient, onClose }) => {
   const [history, setHistory] = useState({ appointments: [], queue: [] });
+  const [medical, setMedical] = useState({ prescriptions: [], labReports: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHistory = async () => {
+    const fetchData = async () => {
       try {
-        const data = await apiService.getPatientHistory(patient.id);
-        setHistory(data);
+        const [historyData, presData, labData] = await Promise.all([
+          apiService.getPatientHistory(patient.id),
+          apiService.getPrescriptions(patient.id),
+          apiService.getLabReports(patient.id)
+        ]);
+        setHistory(historyData);
+        setMedical({ prescriptions: presData, labReports: labData });
       } catch (err) {
         console.error("Failed to fetch history:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchHistory();
+    fetchData();
   }, [patient.id]);
 
   return (
@@ -482,36 +501,47 @@ const HistoryModal = ({ patient, onClose }) => {
               <div className="grid grid-cols-2 gap-8">
                 <section>
                   <div className="flex items-center gap-3 mb-5">
-                    <span className="material-symbols-rounded text-amber-600 bg-amber-50 p-2 rounded-xl">clinical_notes</span>
-                    <h4 className="text-lg font-bold text-on-surface font-display">Recommended Specialist</h4>
+                    <span className="material-symbols-rounded text-indigo-600 bg-indigo-50 p-2 rounded-xl">prescriptions</span>
+                    <h4 className="text-lg font-bold text-on-surface font-display">Prescriptions</h4>
                   </div>
-                  <div className="p-6 bg-amber-50/50 rounded-[2rem] border border-amber-100">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 font-black">AI</div>
-                      <div>
-                        <p className="text-sm font-bold text-on-surface">Neurology (Dr. Samantha)</p>
-                        <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Based on symptom history</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-on-surface-variant leading-relaxed">
-                      Patient has mentioned recurring migraines. Recommendation: Consultation with Neurology department for a comprehensive neurological screening.
-                    </p>
+                  <div className="space-y-3">
+                    {medical.prescriptions.length === 0 ? (
+                      <p className="text-xs text-outline italic p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">No prescriptions recorded.</p>
+                    ) : (
+                      medical.prescriptions.map(p => (
+                        <div key={p.id} className="p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{p.date}</span>
+                            <span className="text-[10px] font-bold text-outline">Dr. {p.doctor_name}</span>
+                          </div>
+                          <p className="text-sm font-bold text-on-surface">{p.medications}</p>
+                          {p.instructions && <p className="text-[11px] text-on-surface-variant mt-1 italic">{p.instructions}</p>}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </section>
 
                 <section>
                   <div className="flex items-center gap-3 mb-5">
-                    <span className="material-symbols-rounded text-rose-600 bg-rose-50 p-2 rounded-xl">forum</span>
-                    <h4 className="text-lg font-bold text-on-surface font-display">Complaints & Feedback</h4>
+                    <span className="material-symbols-rounded text-teal-600 bg-teal-50 p-2 rounded-xl">lab_research</span>
+                    <h4 className="text-lg font-bold text-on-surface font-display">Lab Reports</h4>
                   </div>
                   <div className="space-y-3">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Complaint</span>
-                        <span className="text-[10px] font-bold text-outline">2024-04-10</span>
-                      </div>
-                      <p className="text-xs font-medium text-on-surface">Long waiting time at the pharmacy counter during last visit.</p>
-                    </div>
+                    {medical.labReports.length === 0 ? (
+                      <p className="text-xs text-outline italic p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">No lab reports found.</p>
+                    ) : (
+                      medical.labReports.map(r => (
+                        <div key={r.id} className="p-4 bg-teal-50/30 rounded-2xl border border-teal-100">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest">{r.date}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${r.status === 'Completed' ? 'bg-teal-100 text-teal-700' : 'bg-amber-100 text-amber-700'}`}>{r.status}</span>
+                          </div>
+                          <p className="text-sm font-bold text-on-surface">{r.test_name}</p>
+                          {r.result_summary && <p className="text-[11px] text-on-surface-variant mt-1">{r.result_summary}</p>}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </section>
               </div>
@@ -541,7 +571,239 @@ const HistoryModal = ({ patient, onClose }) => {
                   )}
                 </div>
               </section>
+
+              <section>
+                <div className="flex items-center gap-3 mb-5">
+                  <span className="material-symbols-rounded text-rose-600 bg-rose-50 p-2 rounded-xl">rate_review</span>
+                  <h4 className="text-lg font-bold text-on-surface font-display">Reviews & Complaints</h4>
+                </div>
+                <div className="space-y-4">
+                  {history.appointments.filter(a => a.has_review).length === 0 ? (
+                    <p className="text-sm text-outline italic p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">No feedback received from this patient yet.</p>
+                  ) : (
+                    history.appointments.filter(a => a.has_review).map(appt => (
+                      <div key={`rev-${appt.id}`} className={`p-6 rounded-[2rem] border ${appt.review.is_complaint ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <span key={star} className={`material-symbols-rounded text-sm ${appt.review.rating >= star ? 'text-yellow-500' : 'text-slate-200'}`} style={{ fontVariationSettings: appt.review.rating >= star ? "'FILL' 1" : "" }}>star</span>
+                              ))}
+                            </div>
+                            <span className="text-[10px] font-black text-outline uppercase tracking-widest">{appt.date}</span>
+                          </div>
+                          {appt.review.is_complaint && (
+                            <span className="px-3 py-1 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest rounded-full shadow-sm">FORMAL COMPLAINT</span>
+                          )}
+                        </div>
+                        <p className="text-sm font-bold text-on-surface mb-2">Visit to {appt.specialist}</p>
+                        <p className="text-xs text-on-surface-variant italic leading-relaxed">"{appt.review.comment}"</p>
+                        {appt.review.complaint && (
+                          <div className="mt-4 p-4 bg-white/60 rounded-2xl border border-red-200">
+                            <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Complaint Details:</p>
+                            <p className="text-xs font-medium text-red-800">{appt.review.complaint}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
             </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MedicalRecordsModal = ({ patient, onClose, onSuccess }) => {
+  const [activeTab, setActiveTab] = useState('prescription');
+  const [loading, setLoading] = useState(false);
+  const [pData, setPData] = useState({ doctor_name: '', medications: '', instructions: '', attachment: '' });
+  const [lData, setLData] = useState({ test_name: '', result_summary: '', status: 'Completed', attachment: '' });
+  const [fileName, setFileName] = useState('');
+
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFileName(file.name);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (type === 'prescription') {
+          setPData({ ...pData, attachment: reader.result });
+        } else {
+          setLData({ ...lData, attachment: reader.result });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePrescriptionSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await apiService.addPrescription({ patient_id: patient.id, ...pData });
+      alert("Prescription added successfully!");
+      onSuccess();
+    } catch (err) {
+      console.error("Prescription error:", err);
+      alert("Failed to add prescription: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLabSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await apiService.addLabReport({ patient_id: patient.id, ...lData });
+      alert("Lab report added successfully!");
+      onSuccess();
+    } catch (err) {
+      console.error("Lab report error:", err);
+      alert("Failed to add lab report: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+        <div className="p-8 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center justify-between">
+            <h3 className="text-2xl font-bold text-on-surface font-display">Add Medical Record</h3>
+            <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-200 transition-colors flex items-center justify-center text-outline">
+              <span className="material-symbols-rounded">close</span>
+            </button>
+          </div>
+          <p className="text-sm text-on-surface-variant font-medium mt-1">Patient: <strong>{patient.name}</strong></p>
+          
+          <div className="flex gap-2 mt-6 p-1 bg-slate-200/50 rounded-xl">
+            <button 
+              onClick={() => setActiveTab('prescription')}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'prescription' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}>
+              Prescription
+            </button>
+            <button 
+              onClick={() => setActiveTab('lab')}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'lab' ? 'bg-white text-secondary shadow-sm' : 'text-slate-500 hover:bg-white/50'}`}>
+              Lab Report
+            </button>
+          </div>
+        </div>
+
+        <div className="p-8">
+          {activeTab === 'prescription' ? (
+            <form onSubmit={handlePrescriptionSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Doctor Name</label>
+                <input 
+                  required
+                  className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm"
+                  placeholder="e.g. Dr. Smith"
+                  value={pData.doctor_name}
+                  onChange={e => setPData({...pData, doctor_name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Medications</label>
+                <textarea 
+                  required
+                  className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm h-24 resize-none"
+                  placeholder="List medications here..."
+                  value={pData.medications}
+                  onChange={e => setPData({...pData, medications: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Special Instructions</label>
+                <input 
+                  className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm"
+                  placeholder="Take after meals..."
+                  value={pData.instructions}
+                  onChange={e => setPData({...pData, instructions: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Attach Prescription Image/File</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer transition-all">
+                    <span className="material-symbols-rounded text-slate-500">upload_file</span>
+                    <span className="text-xs font-bold text-slate-600">{fileName || 'Choose File...'}</span>
+                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'prescription')} />
+                  </label>
+                  {pData.attachment && (
+                    <button type="button" onClick={() => {setPData({...pData, attachment: ''}); setFileName('');}} className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center hover:bg-red-100 transition-colors">
+                      <span className="material-symbols-rounded">delete</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.01] transition-all disabled:opacity-50 mt-4">
+                {loading ? 'Adding...' : 'Save Prescription'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleLabSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Test Name</label>
+                <input 
+                  required
+                  className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm"
+                  placeholder="e.g. Full Blood Count"
+                  value={lData.test_name}
+                  onChange={e => setLData({...lData, test_name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Result Summary</label>
+                <textarea 
+                  className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm h-24 resize-none"
+                  placeholder="Enter key findings..."
+                  value={lData.result_summary}
+                  onChange={e => setLData({...lData, result_summary: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Report Status</label>
+                <select 
+                  className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm appearance-none"
+                  value={lData.status}
+                  onChange={e => setLData({...lData, status: e.target.value})}
+                >
+                  <option>Completed</option>
+                  <option>Pending</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Attach Lab Report Image/File</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer transition-all">
+                    <span className="material-symbols-rounded text-slate-500">upload_file</span>
+                    <span className="text-xs font-bold text-slate-600">{fileName || 'Choose File...'}</span>
+                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'lab')} />
+                  </label>
+                  {lData.attachment && (
+                    <button type="button" onClick={() => {setLData({...lData, attachment: ''}); setFileName('');}} className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center hover:bg-red-100 transition-colors">
+                      <span className="material-symbols-rounded">delete</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full py-4 rounded-2xl font-bold bg-secondary text-white shadow-lg shadow-secondary/20 hover:scale-[1.01] transition-all disabled:opacity-50 mt-4">
+                {loading ? 'Adding...' : 'Save Lab Report'}
+              </button>
+            </form>
           )}
         </div>
       </div>

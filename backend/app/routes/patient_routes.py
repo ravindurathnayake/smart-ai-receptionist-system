@@ -114,7 +114,7 @@ def update_patient(patient_id):
 @patient_bp.route("/<int:patient_id>/history", methods=["GET"])
 def get_patient_history(patient_id):
     try:
-        from ..models import Appointment, Queue
+        from ..models import Appointment, Queue, Review
         
         appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(Appointment.appointment_date.desc()).all()
         queue_entries = Queue.query.join(Appointment).filter(Appointment.patient_id == patient_id).order_by(Queue.created_at.desc()).all()
@@ -127,7 +127,13 @@ def get_patient_history(patient_id):
                 "department": appt.specialist.department,
                 "status": appt.status,
                 "symptom": appt.symptom,
-                "has_review": appt.review is not None
+                "has_review": appt.review is not None,
+                "review": {
+                    "rating": appt.review.rating,
+                    "comment": appt.review.review_text,
+                    "complaint": appt.review.complaint_text,
+                    "is_complaint": appt.review.is_complaint
+                } if appt.review else None
             } for appt in appointments],
             "queue": [{
                 "id": q.id,

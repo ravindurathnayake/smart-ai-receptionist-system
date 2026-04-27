@@ -45,4 +45,7 @@ def create_app():
     from app.routes.notification_routes import notification_bp
     app.register_blueprint(notification_bp, url_prefix="/api/notifications")
 
+    from app.routes.medical_routes import medical_bp
+    app.register_blueprint(medical_bp, url_prefix="/api/medical")
+
     return app

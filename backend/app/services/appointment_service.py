@@ -153,14 +153,15 @@ def get_patient_queue_info(patient_id):
     queue_entry = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status == "Active"
+        Queue.status.in_(["Active", "WAITING"])
     ).first()
 
     if queue_entry:
         # Calculate people ahead
         people_ahead = Queue.query.filter(
             Queue.id < queue_entry.id,
-            Queue.status == "Active"
+            Queue.status == "WAITING",
+            db.func.date(Queue.created_at) == today
         ).count()
         
         return {

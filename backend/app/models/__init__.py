@@ -8,3 +8,4 @@ from .payment import Payment
 from .user import User
 from .notification import Notification
 from .review import Review
+from .medical_record import Prescription, LabReport
