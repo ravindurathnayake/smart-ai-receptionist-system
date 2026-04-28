@@ -1,4 +1,5 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
+import { apiService } from '../../services/apiService';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, AreaChart, Area, PieChart, Pie, Cell 
@@ -6,33 +7,40 @@ import {
 import './HospitalAnalytics.css';
 
 const HospitalAnalytics = () => {
-  const volumeData = [
-    { day: 'Mon', count: 120 },
-    { day: 'Tue', count: 142 },
-    { day: 'Wed', count: 98 },
-    { day: 'Thu', count: 115 },
-    { day: 'Fri', count: 165 },
-    { day: 'Sat', count: 180 },
-    { day: 'Sun', count: 142 },
-  ];
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const specialtyData = [
-    { name: 'General Physician', value: 45, color: '#00478d' },
-    { name: 'Cardiology', value: 25, color: '#006e1c' },
-    { name: 'Orthopedics', value: 15, color: '#004f5d' },
-    { name: 'Pediatrics', value: 10, color: '#ba1a1a' },
-    { name: 'Other', value: 5, color: '#727783' },
-  ];
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        const result = await apiService.getHospitalAnalytics();
+        setData(result);
+      } catch (err) {
+        console.error("Failed to fetch analytics:", err);
+        setError("Failed to load live analytics data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
 
-  const hourlyData = [
-    { time: '08:00', patients: 12 },
-    { time: '10:00', patients: 45 },
-    { time: '12:00', patients: 38 },
-    { time: '14:00', patients: 52 },
-    { time: '16:00', patients: 30 },
-    { time: '18:00', patients: 15 },
-    { time: '20:00', patients: 8 },
-  ];
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+        <p className="text-outline font-bold uppercase tracking-widest text-xs">Aggregating hospital intelligence...</p>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return <div className="p-10 text-center text-error font-bold">{error || "Something went wrong"}</div>;
+  }
+
+  const { volumeData, specialtyData, hourlyData, metrics } = data;
 
   return (
     <div className="analytics-wrapper admin-page-transition">
@@ -137,15 +145,15 @@ const HospitalAnalytics = () => {
           <div className="mt-8 grid grid-cols-3 gap-4">
              <div className="analytics-stat-tile">
                 <p>Avg Wait</p>
-                <p>12.5m</p>
+                <p>{metrics.avgWait}</p>
              </div>
              <div className="analytics-stat-tile">
                 <p>SAT Score</p>
-                <p style={{ color: 'var(--md-sys-color-secondary, #006e1c)' }}>4.8/5</p>
+                <p style={{ color: 'var(--md-sys-color-secondary, #006e1c)' }}>{metrics.satScore}</p>
              </div>
              <div className="analytics-stat-tile">
                 <p>Canceled</p>
-                <p style={{ color: 'var(--md-sys-color-error, #ba1a1a)' }}>1.2%</p>
+                <p style={{ color: 'var(--md-sys-color-error, #ba1a1a)' }}>{metrics.cancelRate}</p>
              </div>
           </div>
         </div>

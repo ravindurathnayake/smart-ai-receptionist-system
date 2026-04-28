@@ -241,6 +241,12 @@ export const apiService = {
     addLabReport: async (data) => {
         const response = await api.post('/medical/lab-reports', data);
         return response.data;
+    },
+    
+    // Analytics
+    getHospitalAnalytics: async () => {
+        const response = await api.get('/admin/analytics/summary');
+        return response.data.data;
     }
 };
 

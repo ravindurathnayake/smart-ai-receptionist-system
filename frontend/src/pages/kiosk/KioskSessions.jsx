@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 import './KioskSessions.css';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -407,12 +408,14 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                                                     <div className="space-y-1.5">
                                                         <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight text-slate-400">
                                                             <span>Patients</span>
-                                                            <span className={isSelected ? 'text-primary' : ''}>0/{sess.max_patients}</span>
+                                                            <span className={isSelected ? 'text-primary' : ''}>
+                                                                {sess.current_bookings || 0}/{sess.max_patients}
+                                                            </span>
                                                         </div>
                                                         <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                                             <div 
                                                                 className={`h-full transition-all duration-1000 ${isSelected ? 'bg-primary' : 'bg-slate-300'}`} 
-                                                                style={{ width: '0%' }} 
+                                                                style={{ width: `${Math.min(100, ((sess.current_bookings || 0) / sess.max_patients) * 100)}%` }} 
                                                             />
                                                         </div>
                                                     </div>
@@ -502,9 +505,54 @@ const AIFloatingBtn = ({ doctor }) => {
 
 const KioskSessions = () => {
     const location = useLocation();
-    const doctor = location.state?.doctor;
+    const [doctor, setDoctor] = useState(location.state?.doctor);
     const [selectedDate, setSelectedDate] = useState(DATES[0].iso);
     const [selectedSlot, setSelectedSlot] = useState(null);
+
+    const refreshDoctor = useCallback(async () => {
+        if (!doctor?.id) return;
+        try {
+            const specs = await apiService.getSpecialists();
+            const updated = specs.find(s => s.id === doctor.id);
+            if (updated) {
+                setDoctor({
+                    ...updated,
+                    name: updated.title ? `${updated.title} ${updated.name}` : `Dr. ${updated.name}`,
+                    specialty: updated.specialization || updated.department,
+                    rating: updated.rating || 4.8,
+                    sessions: updated.sessions
+                });
+            }
+        } catch (err) {
+            console.error("Failed to refresh doctor sessions:", err);
+        }
+    }, [doctor?.id]);
+
+    useEffect(() => {
+        if (!doctor?.id) return;
+
+        socketService.on('appointment_booked', (data) => {
+            if (data.doctor_session_id) refreshDoctor();
+        });
+
+        socketService.on('appointment_rescheduled', (data) => {
+            if (data.doctor_session_id) refreshDoctor();
+        });
+
+        socketService.on('appointment_booked', () => refreshDoctor());
+        socketService.on('appointment_rescheduled', () => refreshDoctor());
+        socketService.on('specialist_updated', (data) => {
+            if (data.specialist_id === doctor?.id) {
+                refreshDoctor();
+            }
+        });
+
+        return () => {
+            socketService.off('appointment_booked');
+            socketService.off('appointment_rescheduled');
+            socketService.off('specialist_updated');
+        };
+    }, [doctor?.id, refreshDoctor]);
 
     // Reset selected slot when date changes
     useEffect(() => {

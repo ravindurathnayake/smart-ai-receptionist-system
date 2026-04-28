@@ -28,6 +28,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminSystemHealth from './pages/admin/AdminSystemHealth';
+import { AdminSearchProvider } from './context/AdminSearchContext';
 
 import './App.css';
 
@@ -55,7 +56,7 @@ function App() {
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin" element={<AdminSearchProvider><AdminLayout /></AdminSearchProvider>}>
           <Route index element={<AdminDashboard />} />
           <Route path="appointments" element={<AdminAppointments />} />
           <Route path="doctors" element={<AdminDoctors />} />

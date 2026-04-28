@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify
 from ..extensions import db
 from ..models.specialist import Specialist
 from ..models.doctor_session import DoctorSession
-from datetime import datetime
+from ..models.appointment import Appointment
+from datetime import datetime, date
 
 from ..utils.response import success_response, error_response
 
@@ -11,6 +12,7 @@ specialist_bp = Blueprint("specialist_bp", __name__)
 @specialist_bp.route("/", methods=["GET"])
 def get_specialists():
     try:
+        today = date.today()
         specialists = Specialist.query.all()
         return success_response("Specialists retrieved successfully", [{
             "id": s.id,
@@ -35,6 +37,11 @@ def get_specialists():
                 "start_time": sess.start_time.strftime("%H:%M"),
                 "end_time": sess.end_time.strftime("%H:%M"),
                 "max_patients": sess.max_patients,
+                "current_bookings": Appointment.query.filter(
+                    Appointment.doctor_session_id == sess.id,
+                    db.func.date(Appointment.appointment_date) == (sess.session_date if sess.session_date else today),
+                    Appointment.status != "Cancelled"
+                ).count(),
                 "session_number": sess.session_number,
                 "room_number": sess.room_number
             } for sess in s.sessions]

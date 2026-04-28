@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from app.extensions import db
+from app.extensions import db, socketio
 from app.models import Patient, Appointment, Queue, Specialist
 
 
@@ -21,6 +21,14 @@ def move_appointment(appointment_id, new_date, new_doctor_session_id=None):
     
     appt.status = "Rescheduled" # Updated status to Rescheduled after reschedule
     db.session.commit()
+
+    # EMIT REAL-TIME UPDATE
+    socketio.emit('appointment_rescheduled', {
+        'appointment_id': appt.id,
+        'doctor_session_id': appt.doctor_session_id,
+        'date': appt.appointment_date.strftime("%Y-%m-%d") if isinstance(appt.appointment_date, datetime) else str(appt.appointment_date)
+    })
+
     return appt
 
 def get_specialist_availability(specialist_id, target_date_str):
@@ -108,6 +116,12 @@ def book_appointment(full_name, phone_number, specialist_id, symptom, appointmen
     )
     db.session.add(appointment)
     db.session.commit()
+
+    # EMIT REAL-TIME UPDATE
+    socketio.emit('appointment_booked', {
+        'doctor_session_id': doctor_session_id,
+        'date': str(appointment_date)
+    })
 
     return {
         "appointment_id": appointment.id,
@@ -248,16 +262,45 @@ def get_patient_queue_info(patient_id):
 
 def get_all_specialists():
     """
-    Returns list of all specialists
+    Returns list of all specialists with enriched session and booking data
     """
+    from datetime import date
+    today = date.today()
     specialists = Specialist.query.all()
 
     result = []
-    for specialist in specialists:
+    for s in specialists:
         result.append({
-            "id": specialist.id,
-            "name": specialist.name,
-            "department": specialist.department
+            "id": s.id,
+            "name": s.name,
+            "title": s.title,
+            "email": s.email,
+            "phone_number": s.phone_number,
+            "department": s.department,
+            "department_id": s.department_id,
+            "specialization": s.specialization,
+            "experience_years": s.experience_years,
+            "rating": s.rating,
+            "languages": s.languages,
+            "consultation_fee": s.consultation_fee,
+            "profile_image": s.profile_image,
+            "availability_status": s.availability_status,
+            "bio": s.bio,
+            "sessions": [{
+                "id": sess.id,
+                "day_of_week": sess.day_of_week,
+                "session_date": sess.session_date.strftime("%Y-%m-%d") if sess.session_date else None,
+                "start_time": sess.start_time.strftime("%H:%M"),
+                "end_time": sess.end_time.strftime("%H:%M"),
+                "max_patients": sess.max_patients,
+                "current_bookings": Appointment.query.filter(
+                    Appointment.doctor_session_id == sess.id,
+                    db.func.date(Appointment.appointment_date) == (sess.session_date if sess.session_date else today),
+                    Appointment.status != "Cancelled"
+                ).count(),
+                "session_number": sess.session_number,
+                "room_number": sess.room_number
+            } for sess in s.sessions]
         })
 
     return result

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
+import { useAdminSearch } from '../../context/AdminSearchContext';
 import './AdminPatients.css';
 
 const AdminPatients = () => {
+  const { searchQuery } = useAdminSearch();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -69,16 +70,17 @@ const AdminPatients = () => {
   };
 
   const filteredPatients = patients.filter(p => {
-    const term = searchTerm.toLowerCase();
+    const term = searchQuery.toLowerCase();
     return (
-      p.name?.toLowerCase().includes(term) ||
-      p.nic?.toLowerCase().includes(term) ||
-      p.phone?.toLowerCase().includes(term) ||
-      p.guardian_nic?.toLowerCase().includes(term) ||
-      p.guardian_phone?.toLowerCase().includes(term) ||
-      p.guardian_name?.toLowerCase().includes(term) ||
-      p.formatted_id?.toLowerCase().includes(term) ||
-      p.id.toString().includes(term)
+      (p.name || "").toLowerCase().includes(term) ||
+      (p.nic || "").toLowerCase().includes(term) ||
+      (p.phone || "").toLowerCase().includes(term) ||
+      (p.phone_number || "").toLowerCase().includes(term) ||
+      (p.guardian_nic || "").toLowerCase().includes(term) ||
+      (p.guardian_phone || "").toLowerCase().includes(term) ||
+      (p.guardian_name || "").toLowerCase().includes(term) ||
+      (p.formatted_id || "").toLowerCase().includes(term) ||
+      (p.id || "").toString().includes(term)
     );
   });
 
@@ -97,19 +99,7 @@ const AdminPatients = () => {
         </button>
       </div>
 
-      <div className="patient-search-bar group">
-        <span className="material-symbols-rounded text-outline group-focus-within:text-primary transition-colors text-2xl">search</span>
-        <input 
-          type="text" 
-          placeholder="Search by Name, NIC, Token, or Phone Number..." 
-          className="search-input-field"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <button className="bg-surface-container hover:bg-primary/10 hover:text-primary transition-all p-2.5 rounded-xl">
-          <span className="material-symbols-rounded">filter_alt</span>
-        </button>
-      </div>
+      <div className="h-8"></div> {/* Spacer replaces redundant search bar */}
 
       <div className="patient-grid">
         {loading ? (
@@ -131,8 +121,8 @@ const AdminPatients = () => {
           </div>
         ) : filteredPatients.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-surface-container-low rounded-[2rem] border-2 border-dashed border-outline-variant/30">
-            <span className="material-symbols-rounded text-5xl text-outline/30 mb-4">{searchTerm ? 'search_off' : 'person_off'}</span>
-            <p className="text-on-surface-variant font-bold">{searchTerm ? `No results for "${searchTerm}"` : 'No patient records found'}</p>
+            <span className="material-symbols-rounded text-5xl text-outline/30 mb-4">{searchQuery ? 'search_off' : 'person_off'}</span>
+            <p className="text-on-surface-variant font-bold">{searchQuery ? `No results for "${searchQuery}"` : 'No patient records found'}</p>
           </div>
         ) : (
           filteredPatients.map((patient, idx) => (

@@ -1,10 +1,12 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAdminSearch } from '../../context/AdminSearchContext';
 import Logo from '../../components/common/Logo';
 import './AdminLayout.css';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
+  const { searchQuery, setSearchQuery } = useAdminSearch();
 
   const menuItems = [
     { name: 'Dashboard', icon: 'dashboard', path: '/admin' },
@@ -82,6 +84,8 @@ const AdminLayout = () => {
               type="text" 
               placeholder="Search patients, doctors, or reports..." 
               className="admin-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
 

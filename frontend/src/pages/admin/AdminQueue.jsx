@@ -2,10 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
 import { voiceService } from '../../services/voiceService';
+import { useAdminSearch } from '../../context/AdminSearchContext';
 import './AdminQueue.css';
 
 const AdminQueue = () => {
+  const { searchQuery } = useAdminSearch();
   const [sessions, setSessions] = useState([]);
+  const [filteredSessions, setFilteredSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -55,6 +58,24 @@ const AdminQueue = () => {
       socketService.off('session_status_changed');
     };
   }, [fetchQueueData]);
+
+  useEffect(() => {
+    let result = [...sessions];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(s => 
+        (s.doctor && s.doctor.toLowerCase().includes(q)) || 
+        (s.department && s.department.toLowerCase().includes(q)) ||
+        (s.specialization && s.specialization.toLowerCase().includes(q))
+      );
+    }
+    setFilteredSessions(result);
+
+    // If active session is filtered out, select the first one of filtered results
+    if (result.length > 0 && !result.find(s => s.session_id === activeSessionId)) {
+      setActiveSessionId(result[0].session_id);
+    }
+  }, [sessions, searchQuery, activeSessionId]);
 
   const handleCallNext = async (sessionId) => {
     try {
@@ -106,7 +127,7 @@ const AdminQueue = () => {
   if (loading) return <div className="p-10 text-center">Loading Queue Control Center...</div>;
   if (error) return <div className="p-10 text-center text-error">{error}</div>;
 
-  const activeSession = sessions.find(s => s.session_id === activeSessionId) || sessions[0];
+  const activeSession = filteredSessions.find(s => s.session_id === activeSessionId) || filteredSessions[0];
 
   return (
     <div className="queue-wrapper admin-page-transition">
@@ -162,7 +183,12 @@ const AdminQueue = () => {
         <div className="lg:col-span-4 space-y-4">
            <h3 className="text-xs font-black text-outline uppercase tracking-widest mb-4">Active Sessions</h3>
            <div className="space-y-3">
-             {sessions.map((session) => (
+             {filteredSessions.length === 0 ? (
+               <div className="p-8 text-center bg-surface-container/20 rounded-2xl border border-dashed border-outline-variant/30">
+                 <p className="text-xs font-bold text-outline-variant uppercase tracking-widest">No matching sessions</p>
+               </div>
+             ) : (
+               filteredSessions.map((session) => (
                <div 
                  key={session.session_id} 
                  onClick={() => setActiveSessionId(session.session_id)}
@@ -201,7 +227,8 @@ const AdminQueue = () => {
                     </div>
                  </div>
                </div>
-             ))}
+               ))
+             )}
            </div>
         </div>
 
@@ -244,13 +271,19 @@ const AdminQueue = () => {
                       
                       <div className="flex flex-col gap-3">
                         {activeSession.status?.toUpperCase() === 'NOT_STARTED' ? (
-                           <button 
-                             onClick={() => handleStartSession(activeSession.session_id)}
-                             className="bg-primary text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                           >
-                             <span className="material-symbols-rounded">play_circle</span>
-                             Start Session
-                           </button>
+                           <div className="flex flex-col gap-4">
+                              <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-center gap-3">
+                                 <span className="material-symbols-rounded text-amber-600">info</span>
+                                 <p className="text-xs font-bold text-amber-700">Doctor has not arrived yet. Mark arrival to begin the session.</p>
+                              </div>
+                              <button 
+                                onClick={() => handleStartSession(activeSession.session_id)}
+                                className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                              >
+                                <span className="material-symbols-rounded">how_to_reg</span>
+                                Doctor Arrived & Start Session
+                              </button>
+                           </div>
                         ) : (
                           <>
                             <button 
@@ -276,9 +309,9 @@ const AdminQueue = () => {
                                <button 
                                  onClick={() => handleEndSession(activeSession.session_id)}
                                  disabled={activeSession.status?.toUpperCase() === 'ENDED' || activeSession.status?.toUpperCase() === 'COMPLETED'}
-                                 className="flex-1 bg-white border-2 border-outline-variant/30 text-error py-3 rounded-xl font-bold hover:bg-error/5 transition-all disabled:opacity-30"
+                                 className="flex-1 bg-rose-50 border-2 border-rose-100 text-rose-600 py-3 rounded-xl font-bold hover:bg-rose-600 hover:text-white transition-all disabled:opacity-30 shadow-sm"
                                >
-                                 End Session
+                                 Doctor Left & End Session
                                </button>
                             </div>
                           </>
