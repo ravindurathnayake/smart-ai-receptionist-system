@@ -146,7 +146,22 @@ const KioskSearchDoctors = () => {
         const matchSpec = activeSpecialty === 'All' || 
                          d.specialty.toLowerCase().includes(activeSpecialty.toLowerCase().replace('ist', '')) ||
                          activeSpecialty.toLowerCase().includes(d.specialty.toLowerCase().replace('ology', ''));
-        return matchName && matchSpec;
+        
+        let matchDate = true;
+        if (dateFilter) {
+            try {
+                const searchDate = new Date(dateFilter);
+                if (!isNaN(searchDate.getTime())) {
+                    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const searchDay = days[searchDate.getDay()];
+                    matchDate = d.sessions && d.sessions.some(sess => sess.day_of_week === searchDay);
+                }
+            } catch (e) {
+                console.error("Invalid date filter:", e);
+            }
+        }
+
+        return matchName && matchSpec && matchDate;
     });
 
     const patientName = patient ? (patient.full_name || patient.name || 'Patient') : 'Guest Visitor';
@@ -237,7 +252,7 @@ const KioskSearchDoctors = () => {
                                 <label className="text-[10px] font-bold text-outline uppercase tracking-wider px-1">Date</label>
                                 <div className="relative">
                                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">calendar_today</span>
-                                    <input className="search-input w-full pl-10 pr-3 py-3 bg-surface-container-low border-none rounded-xl text-on-surface text-sm" placeholder="MM/DD/YYYY" type="text" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+                                    <input className="search-input w-full pl-10 pr-3 py-3 bg-surface-container-low border-none rounded-xl text-on-surface text-sm" type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} min={new Date().toISOString().split('T')[0]} />
                                 </div>
                             </div>
                             <button className="py-3 px-6 bg-primary text-white font-bold rounded-xl hover:bg-primary-container transition-colors flex items-center justify-center gap-2 text-sm shadow-sm">
