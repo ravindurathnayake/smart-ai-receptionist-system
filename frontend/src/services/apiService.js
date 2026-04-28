@@ -146,6 +146,10 @@ export const apiService = {
         });
         return response.data.data;
     },
+    getSpecialistAvailability: async (specialistId, date) => {
+        const response = await api.get(`/availability/${specialistId}`, { params: { date } });
+        return response.data.data;
+    },
     faceCheckIn: async (faceImage, patientId = null) => {
         const response = await api.post('/queue/face-check-in', { face_image: faceImage, patient_id: patientId });
         return response.data;

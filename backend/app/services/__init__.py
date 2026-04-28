@@ -6,7 +6,8 @@ from .appointment_service import (
     cancel_appointment,
     get_all_appointments,
     get_patient_queue_info,
-    move_appointment
+    move_appointment,
+    get_specialist_availability
 )
 from .queue_service import (
     check_in_patient,

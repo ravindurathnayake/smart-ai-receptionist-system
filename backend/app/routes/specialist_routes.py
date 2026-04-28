@@ -157,12 +157,14 @@ def update_specialist(specialist_id):
             old_sessions = DoctorSession.query.filter_by(specialist_id=s.id).all()
             old_doctor_session_ids = [sess.id for sess in old_sessions]
             
-            # Set doctor_session_id to NULL in linked appointments to avoid FK constraint error
+            # Set doctor_session_id to NULL in linked appointments and queues to avoid FK constraint error
             if old_doctor_session_ids:
                 Appointment.query.filter(Appointment.doctor_session_id.in_(old_doctor_session_ids)).update({Appointment.doctor_session_id: None}, synchronize_session=False)
+                from ..models.queue import Queue
+                Queue.query.filter(Queue.doctor_session_id.in_(old_doctor_session_ids)).update({Queue.doctor_session_id: None}, synchronize_session=False)
             
             # Delete old sessions
-            DoctorSession.query.filter_by(specialist_id=s.id).delete()
+            DoctorSession.query.filter(DoctorSession.id.in_(old_doctor_session_ids)).delete(synchronize_session=False)
             
             sessions_data = data.get("sessions", [])
             for sess in sessions_data:

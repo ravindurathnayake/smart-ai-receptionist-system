@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 import KioskTopBar from '../../components/kiosk/KioskTopBar';
 import './KioskQueueStatus.css';
 
@@ -217,7 +218,7 @@ const AppointmentDetailsCard = ({ patientQueue, onCancel, onReschedule }) => (
     </div>
 );
 
-const UpcomingAppointmentsCard = ({ appointments = [] }) => (
+const UpcomingAppointmentsCard = ({ appointments = [], onSelect }) => (
     <div className="flex-1 bg-surface-container-lowest rounded-[1.75rem] p-5 shadow-sm border border-outline-variant/10 flex flex-col min-h-0 font-headline text-left">
         <div className="flex items-center justify-between mb-4 shrink-0">
             <h4 className="text-base font-bold text-primary flex items-center gap-2">
@@ -233,12 +234,18 @@ const UpcomingAppointmentsCard = ({ appointments = [] }) => (
 
         <div className="appt-scroll-track flex-1 min-w-0">
             {appointments.length > 0 ? appointments.map((appt) => (
-                <div key={appt.id} className="appt-card bg-surface-container-low rounded-2xl p-3 flex flex-col gap-2 border border-outline-variant/10 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer">
+                <div 
+                    key={appt.id} 
+                    onClick={() => onSelect(appt)}
+                    className="appt-card bg-surface-container-low rounded-2xl p-3 flex flex-col gap-2 border border-outline-variant/10 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer"
+                >
                     <div className="flex justify-between items-start">
                         <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full w-fit bg-secondary-container text-on-secondary-container`}>
                             {appt.date}
                         </span>
-                        <span className="text-[10px] font-black text-primary">{appt.status}</span>
+                        <span className={`text-[10px] font-black ${
+                            appt.status === 'Cancelled' ? 'text-red-500' : 'text-primary'
+                        }`}>{appt.status}</span>
                     </div>
                     <p className="text-base font-black text-on-surface font-headline leading-tight">{appt.specialist}</p>
                     <div className="flex items-center gap-1.5">
@@ -275,6 +282,11 @@ const KioskQueueStatus = () => {
 
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
     const [selectedRescheduleAppt, setSelectedRescheduleAppt] = useState(null);
+    const [selectedHistoryItem, setSelectedHistoryItem] = useState(null); // Detail modal for history
+    const [availableSessions, setAvailableSessions] = useState([]);
+    const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+    const [selectedNewSessionId, setSelectedNewSessionId] = useState(null);
+    const [newDate, setNewDate] = useState('');
 
     const fetchQueue = async (pData) => {
         try {
@@ -317,8 +329,25 @@ const KioskQueueStatus = () => {
         setPatient(pData);
 
         fetchQueue(pData);
-        const interval = setInterval(() => fetchQueue(pData), 10000);
-        return () => clearInterval(interval);
+
+        // Real-time updates
+        socketService.on('queue_updated', (data) => {
+            console.log('Queue updated:', data);
+            fetchQueue(pData);
+        });
+
+        socketService.on('session_status_changed', (data) => {
+            console.log('Session status changed:', data);
+            fetchQueue(pData);
+        });
+
+        const interval = setInterval(() => fetchQueue(pData), 30000); // Reduced polling frequency since we have sockets
+        
+        return () => {
+            clearInterval(interval);
+            socketService.off('queue_updated');
+            socketService.off('session_status_changed');
+        };
     }, [navigate]);
 
     const handleCancelAppointment = async (apptId) => {
@@ -336,12 +365,53 @@ const KioskQueueStatus = () => {
 
     const handleReschedule = (appt) => {
         setSelectedRescheduleAppt(appt);
+        setNewDate(appt.date || new Date().toISOString().split('T')[0]);
+        setSelectedNewSessionId(null);
+        setAvailableSessions([]);
         setShowRescheduleModal(true);
     };
 
-    const submitReschedule = async (newDate) => {
+    const checkAvailability = async (date) => {
+        if (!selectedRescheduleAppt) return;
+        setIsCheckingAvailability(true);
         try {
-            await apiService.rescheduleAppointment(selectedRescheduleAppt.appointment_id, newDate);
+            // Need specialist_id from patientQueue or stats
+            // Let's assume patientQueue has specialist_id or we find it
+            // Based on earlier code, we might need to add specialist_id to the patient info
+            const specialistId = patientQueue?.specialist_id || selectedRescheduleAppt?.specialist_id;
+            
+            if (!specialistId) {
+                // Fallback: search specialists by name if id missing
+                const specialists = await apiService.getSpecialists();
+                const spec = specialists.find(s => s.name === selectedRescheduleAppt.doctor);
+                if (spec) {
+                    const sessions = await apiService.getSpecialistAvailability(spec.id, date);
+                    setAvailableSessions(sessions);
+                }
+            } else {
+                const sessions = await apiService.getSpecialistAvailability(specialistId, date);
+                setAvailableSessions(sessions);
+            }
+        } catch (err) {
+            console.error("Failed to check availability:", err);
+        } finally {
+            setIsCheckingAvailability(false);
+        }
+    };
+
+    useEffect(() => {
+        if (showRescheduleModal && newDate) {
+            checkAvailability(newDate);
+        }
+    }, [newDate, showRescheduleModal]);
+
+    const submitReschedule = async () => {
+        if (!selectedNewSessionId) {
+            alert("Please select a session.");
+            return;
+        }
+        try {
+            await apiService.rescheduleAppointment(selectedRescheduleAppt.appointment_id, newDate, selectedNewSessionId);
             alert("Appointment rescheduled successfully.");
             setShowRescheduleModal(false);
             fetchQueue(patient);
@@ -422,7 +492,10 @@ const KioskQueueStatus = () => {
                             onCancel={handleCancelAppointment}
                             onReschedule={handleReschedule}
                         />
-                        <UpcomingAppointmentsCard appointments={patientHistory} />
+                        <UpcomingAppointmentsCard 
+                            appointments={patientHistory} 
+                            onSelect={(appt) => setSelectedHistoryItem(appt)}
+                        />
                     </div>
                 </div>
             </div>
@@ -430,31 +503,183 @@ const KioskQueueStatus = () => {
             {/* Reschedule Modal */}
             {showRescheduleModal && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 no-print">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
-                        <div className="p-8 border-b border-slate-100 bg-primary/5">
-                            <h3 className="text-2xl font-bold text-on-surface font-headline">Reschedule Appointment</h3>
-                            <p className="text-sm text-on-surface-variant font-medium">Select a new date for your visit.</p>
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+                        <div className="p-8 border-b border-slate-100 bg-primary/5 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-2xl font-bold text-on-surface font-headline">Reschedule Appointment</h3>
+                                <p className="text-sm text-on-surface-variant font-medium">Choose a new date and available session.</p>
+                            </div>
+                            <button onClick={() => setShowRescheduleModal(false)} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-all">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
                         </div>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            submitReschedule(e.target.new_date.value);
-                        }} className="p-8 space-y-6">
+                        
+                        <div className="p-8 space-y-6">
                             <div className="space-y-2 text-left">
-                                <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">New Appointment Date</label>
+                                <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">1. Select New Date</label>
                                 <input 
-                                    name="new_date"
                                     type="date"
                                     required
                                     min={new Date().toISOString().split('T')[0]}
-                                    defaultValue={selectedRescheduleAppt?.date}
+                                    value={newDate}
+                                    onChange={(e) => {
+                                        setNewDate(e.target.value);
+                                        setSelectedNewSessionId(null);
+                                    }}
                                     className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-4 rounded-2xl outline-none transition-all font-bold text-lg"
                                 />
                             </div>
+
+                            <div className="space-y-3 text-left">
+                                <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">2. Choose Available Session</label>
+                                <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {isCheckingAvailability ? (
+                                        <div className="py-10 text-center animate-pulse">
+                                            <span className="material-symbols-outlined text-4xl text-primary/30 mb-2">event_repeat</span>
+                                            <p className="text-xs font-bold text-outline uppercase tracking-widest">Checking sessions...</p>
+                                        </div>
+                                    ) : availableSessions.length > 0 ? (
+                                        availableSessions.map(sess => (
+                                            <div 
+                                                key={sess.id}
+                                                onClick={() => setSelectedNewSessionId(sess.id)}
+                                                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
+                                                    selectedNewSessionId === sess.id 
+                                                    ? 'border-primary bg-primary/5 ring-4 ring-primary/5' 
+                                                    : 'border-slate-100 bg-slate-50 hover:border-primary/20'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
+                                                        selectedNewSessionId === sess.id ? 'bg-primary text-white' : 'bg-white text-primary border border-slate-100'
+                                                    }`}>
+                                                        <span className="material-symbols-outlined">alarm</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-on-surface">{sess.start_time} - {sess.end_time}</p>
+                                                        <p className="text-xs font-medium text-on-surface-variant uppercase tracking-tight">
+                                                            Session {sess.session_number} • Room {sess.room}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase ${
+                                                        sess.available_slots > 5 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                    }`}>
+                                                        {sess.available_slots} Slots Left
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="py-10 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                            <span className="material-symbols-outlined text-4xl text-outline/30 mb-2">event_busy</span>
+                                            <p className="text-xs font-bold text-outline uppercase tracking-widest">No sessions available on this date</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={() => setShowRescheduleModal(false)} className="flex-1 py-4 rounded-2xl font-bold text-outline hover:bg-slate-100 transition-all">Cancel</button>
-                                <button type="submit" className="flex-[2] py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Update Date</button>
+                                <button 
+                                    onClick={submitReschedule}
+                                    disabled={!selectedNewSessionId}
+                                    className={`flex-[2] py-4 rounded-2xl font-bold transition-all shadow-lg ${
+                                        selectedNewSessionId 
+                                        ? 'bg-primary text-white shadow-primary/20 hover:scale-[1.02]' 
+                                        : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                                    }`}
+                                >
+                                    Confirm Reschedule
+                                </button>
                             </div>
-                        </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* History Details Modal */}
+            {selectedHistoryItem && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 no-print">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+                        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-primary/5">
+                            <div>
+                                <h3 className="text-2xl font-bold text-on-surface font-headline">Appointment Details</h3>
+                                <p className="text-sm text-on-surface-variant font-medium">Record for {selectedHistoryItem.date}</p>
+                            </div>
+                            <button onClick={() => setSelectedHistoryItem(null)} className="w-10 h-10 rounded-full hover:bg-slate-200 flex items-center justify-center transition-all">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <div className="p-8 space-y-6 text-left">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Specialist</label>
+                                    <p className="font-bold text-on-surface text-lg">{selectedHistoryItem.specialist}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Department</label>
+                                    <p className="font-bold text-on-surface text-lg">{selectedHistoryItem.department}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Time & Room</label>
+                                    <p className="font-bold text-on-surface">{selectedHistoryItem.time} • {selectedHistoryItem.room}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Session</label>
+                                    <p className="font-bold text-on-surface">{selectedHistoryItem.session_name}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Status</label>
+                                    <div className="flex">
+                                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
+                                            selectedHistoryItem.status === 'Completed' ? 'bg-green-100 text-green-700' : 
+                                            selectedHistoryItem.status === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-primary/10 text-primary'
+                                        }`}>
+                                            {selectedHistoryItem.status}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Reference ID</label>
+                                    <p className="font-bold text-on-surface">#APT-{selectedHistoryItem.id.toString().padStart(4, '0')}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-outline">Symptoms / Reason</label>
+                                <p className="text-sm font-medium text-on-surface-variant leading-relaxed">
+                                    {selectedHistoryItem.symptom || "No specific symptoms recorded."}
+                                </p>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button 
+                                    onClick={() => setSelectedHistoryItem(null)}
+                                    className="flex-1 py-4 bg-surface-container rounded-2xl font-bold text-on-surface-variant hover:bg-slate-200 transition-all"
+                                >
+                                    Close
+                                </button>
+                                {selectedHistoryItem.status === 'Booked' && (
+                                    <button 
+                                        onClick={() => {
+                                            setSelectedHistoryItem(null);
+                                            handleReschedule({
+                                                appointment_id: selectedHistoryItem.id,
+                                                date: selectedHistoryItem.date,
+                                                doctor: selectedHistoryItem.specialist,
+                                                specialist_id: selectedHistoryItem.specialist_id
+                                            });
+                                        }}
+                                        className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
+                                    >
+                                        Reschedule
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

@@ -11,7 +11,8 @@ from app.services import (
     check_in_patient,
     check_out_patient,
     get_patient_queue_info,
-    move_appointment
+    move_appointment,
+    get_specialist_availability
 )
 
 from app.utils.response import success_response, error_response
@@ -179,6 +180,19 @@ def reschedule_appointment(appointment_id):
             "id": appt.id,
             "new_date": appt.appointment_date.strftime("%Y-%m-%d")
         })
+    except Exception as e:
+        return error_response(str(e), 500)
+
+# GET SPECIALIST AVAILABILITY
+@appointment_bp.route("/availability/<int:specialist_id>", methods=["GET"])
+def get_availability_route(specialist_id):
+    try:
+        date_str = request.args.get("date")
+        if not date_str:
+            return error_response("Date is required", 400)
+            
+        sessions = get_specialist_availability(specialist_id, date_str)
+        return success_response("Availability retrieved successfully", sessions)
     except Exception as e:
         return error_response(str(e), 500)
 

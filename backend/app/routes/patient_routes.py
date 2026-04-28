@@ -127,6 +127,10 @@ def get_patient_history(patient_id):
                 "department": appt.specialist.department,
                 "status": appt.status,
                 "symptom": appt.symptom,
+                "time": appt.appointment_date.strftime("%I:%M %p"),
+                "room": appt.session.room_number if appt.session else "Room 04",
+                "session_name": f"Session {appt.session.session_number}" if appt.session else "Active Session",
+                "specialist_id": appt.specialist_id,
                 "has_review": appt.review is not None,
                 "review": {
                     "rating": appt.review.rating,

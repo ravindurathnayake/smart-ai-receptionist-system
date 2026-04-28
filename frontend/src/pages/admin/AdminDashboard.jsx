@@ -11,9 +11,12 @@ const AdminDashboard = () => {
   ]);
 
   const [queueItems, setQueueItems] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'rescheduled', 'cancelled'
+  const [selectedItem, setSelectedItem] = useState(null); // For details modal
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,12 +46,18 @@ const AdminDashboard = () => {
           })));
         }
 
+        const appointmentsResponse = await apiService.getAllAppointments();
+        if (appointmentsResponse) {
+          setAppointments(appointmentsResponse);
+        }
+
         if (specialistsResponse) {
           setDoctors(specialistsResponse.map(d => ({
+            id: d.id,
             name: d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`,
             specialty: d.specialization || d.department,
             status: d.availability_status || 'Available',
-            room: 'Room 04', // Fallback until session management is fully implemented in UI
+            room: 'Room 04', 
             fee: d.consultation_fee
           })));
         }
@@ -147,38 +156,84 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Live Queue Control */}
-        <div className="lg:col-span-2 queue-control-card shadow-sm">
-          <div className="p-8 pb-4 flex items-center justify-between border-b border-outline-variant/5">
-            <h3 className="text-xl font-bold font-display">Live Queue Control</h3>
-            <button className="text-sm font-bold text-primary hover:bg-primary/5 px-4 py-2 rounded-xl transition-all">View Full Queue</button>
+        {/* Upcoming Appointments & Activity */}
+        <div className="lg:col-span-2 queue-control-card shadow-sm flex flex-col">
+          <div className="p-8 pb-0 border-b border-outline-variant/5">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold font-display">Upcoming Appointments & Activity</h3>
+              <div className="flex bg-surface-container/50 p-1 rounded-xl">
+                <button 
+                  onClick={() => setActiveTab('upcoming')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'upcoming' ? 'bg-white shadow-sm text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+                >
+                  Upcoming
+                </button>
+                <button 
+                  onClick={() => setActiveTab('rescheduled')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'rescheduled' ? 'bg-white shadow-sm text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+                >
+                  Rescheduled
+                </button>
+                <button 
+                  onClick={() => setActiveTab('cancelled')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'cancelled' ? 'bg-white shadow-sm text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+                >
+                  Cancelled
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="p-4 flex-1">
+
+          <div className="p-4 flex-1 overflow-y-auto max-h-[600px] no-scrollbar">
             <div className="space-y-2">
-              {queueItems.map((item, idx) => (
-                <div key={idx} className="queue-item group cursor-pointer">
-                  <div className="token-badge group-hover:scale-105 transition-transform">
-                    <span className="token-label">Token</span>
-                    <span className="token-number">{item.token}</span>
+              {appointments
+                .filter(apt => {
+                  if (activeTab === 'upcoming') return apt.status === 'Booked' || apt.status === 'Confirmed' || apt.status === 'Checked-In';
+                  if (activeTab === 'rescheduled') return apt.status === 'Rescheduled';
+                  if (activeTab === 'cancelled') return apt.status === 'Cancelled';
+                  return false;
+                })
+                .map((item, idx) => (
+                <div 
+                  key={idx} 
+                  className="queue-item group cursor-pointer hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all"
+                  onClick={() => setSelectedItem(item)}
+                >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all ${
+                    activeTab === 'upcoming' ? 'bg-primary/10 text-primary' : 
+                    activeTab === 'rescheduled' ? 'bg-warning/10 text-warning' : 
+                    'bg-error/10 text-error'
+                  }`}>
+                    <span className="material-symbols-rounded">
+                      {activeTab === 'upcoming' ? 'event' : activeTab === 'rescheduled' ? 'event_repeat' : 'event_busy'}
+                    </span>
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-on-surface text-lg">{item.patient}</h4>
                     <div className="flex items-center gap-2 text-on-surface-variant text-xs mt-1">
                       <span className="material-symbols-rounded text-sm italic">medical_information</span>
-                      <span className="font-semibold">{item.doctor}</span>
+                      <span className="font-semibold">{item.dr}</span>
                       <span className="opacity-30">•</span>
-                      <span className="font-medium text-outline">{item.type}</span>
+                      <span className="font-medium text-outline">{item.status}</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      item.wait === 'Called' ? 'bg-secondary text-white' : 'bg-surface-container text-on-surface-variant'
-                    }`}>
-                      {item.wait}
-                    </div>
+                    <p className="text-sm font-black text-on-surface">{item.time}</p>
+                    <p className="text-[10px] font-bold text-outline-variant uppercase tracking-widest">{item.date}</p>
                   </div>
                 </div>
               ))}
+              {appointments.filter(apt => {
+                  if (activeTab === 'upcoming') return apt.status === 'Booked' || apt.status === 'Confirmed' || apt.status === 'Checked-In';
+                  if (activeTab === 'rescheduled') return apt.status === 'Rescheduled';
+                  if (activeTab === 'cancelled') return apt.status === 'Cancelled';
+                  return false;
+                }).length === 0 && (
+                <div className="py-20 text-center opacity-40">
+                  <span className="material-symbols-rounded text-4xl mb-2">inventory_2</span>
+                  <p className="text-xs font-black uppercase tracking-widest">No activity found</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -230,6 +285,78 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Details Modal */}
+      {selectedItem && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-primary/5">
+              <div>
+                <h3 className="text-2xl font-bold text-on-surface">Appointment Details</h3>
+                <p className="text-sm text-on-surface-variant font-medium">Full information for {selectedItem.id}</p>
+              </div>
+              <button onClick={() => setSelectedItem(null)} className="w-10 h-10 rounded-full hover:bg-slate-200 flex items-center justify-center transition-all">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Patient Name</label>
+                  <p className="font-bold text-on-surface text-lg">{selectedItem.patient}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Assigned Doctor</label>
+                  <p className="font-bold text-on-surface text-lg">{selectedItem.dr}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Scheduled Time</label>
+                  <p className="font-bold text-on-surface">{selectedItem.time} on {selectedItem.date}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Dept & Room</label>
+                  <p className="font-bold text-on-surface">{selectedItem.department} • {selectedItem.room}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline">Status</label>
+                  <div className="flex">
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
+                      selectedItem.status === 'Booked' || selectedItem.status === 'Checked-In' ? 'bg-primary/10 text-primary' : 
+                      selectedItem.status === 'Rescheduled' ? 'bg-warning/10 text-warning' : 'bg-error/10 text-error'
+                    }`}>
+                      {selectedItem.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline">Symptoms / Reason</label>
+                <p className="text-sm font-medium text-on-surface-variant leading-relaxed">
+                  {selectedItem.type || "No specific symptoms provided during booking."}
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setSelectedItem(null)}
+                  className="flex-1 py-4 bg-surface-container rounded-2xl font-bold text-on-surface-variant hover:bg-slate-200 transition-all"
+                >
+                  Close
+                </button>
+                {selectedItem.status !== 'Cancelled' && (
+                  <button 
+                    className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
+                  >
+                    Manage Appointment
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -50,12 +50,12 @@ def check_in_patient(patient_id):
     last_q = Queue.query.filter_by(doctor_session_id=appointment.doctor_session_id).order_by(Queue.queue_number.desc()).first()
     next_num = (last_q.queue_number + 1) if last_q else 1
     
-    # SMART WAIT TIME: 10 mins per patient ahead IN THIS SESSION
+    # Wait time should be based on people ahead in arrival order
     patients_ahead = Queue.query.filter(
         Queue.doctor_session_id == appointment.doctor_session_id,
-        Queue.status.in_(["WAITING", "Active"])
+        Queue.status == "WAITING"
     ).count()
-    estimated_wait = patients_ahead * 10 
+    estimated_wait = patients_ahead * 10
 
     # Create queue record
     qe = Queue(
@@ -92,7 +92,7 @@ def check_in_patient(patient_id):
     return {
         "success": True, 
         "queue_number": next_num, 
-        "estimated_wait_time": (next_num - 1) * 10,
+        "estimated_wait_time": estimated_wait,
         "token": f"S{session_num}-{next_num:02d}",
         "doctor": doctor_full,
         "department": dept_name,
@@ -182,6 +182,7 @@ def check_out_patient(patient_id):
     queue_entry.status = "COMPLETED"
     queue_entry.check_out_time = datetime.now(timezone.utc)
     queue_entry.completed_at = datetime.now(timezone.utc)
+    queue_entry.appointment.status = "Completed"
     db.session.commit()
     
     # EMIT REAL-TIME UPDATE
@@ -213,17 +214,17 @@ def get_patient_queue_status(patient_id):
     queue_entry = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status == "WAITING"
+        Queue.status.in_(["ACTIVE", "WAITING"])
     ).first()
     
     if not queue_entry:
         return None
         
-    # Count people ahead in the same session
+    # Count people ahead in the same session based on check-in time
     people_ahead = Queue.query.filter(
         Queue.status == "WAITING",
         Queue.doctor_session_id == queue_entry.doctor_session_id,
-        Queue.queue_number < queue_entry.queue_number
+        Queue.check_in_time < queue_entry.check_in_time
     ).count()
     
     session = queue_entry.appointment.session
@@ -232,10 +233,19 @@ def get_patient_queue_status(patient_id):
     
     return {
         "token": token,
+        "doctor": queue_entry.appointment.specialist.name,
         "department": queue_entry.appointment.specialist.department if queue_entry.appointment.specialist else "General",
+        "room": session.room_number if session else "TBD",
         "people_ahead": people_ahead,
         "estimated_wait": people_ahead * 10,
-        "session_name": f"Session {session_num}" if session else "Active Session"
+        "session_name": f"Session {session_num}" if session else "Active Session",
+        "time": session.start_time.strftime("%I:%M %p") if session else "TBD",
+        "date": queue_entry.appointment.appointment_date.strftime("%Y-%m-%d"),
+        "status": "In Queue",
+        "session_status": session.status if session else "ACTIVE",
+        "is_serving": queue_entry.status and queue_entry.status.upper() == "ACTIVE",
+        "appointment_id": queue_entry.appointment_id,
+        "specialist_id": queue_entry.appointment.specialist_id
     }
 
 def get_all_queues_status():
@@ -249,7 +259,7 @@ def get_all_queues_status():
     active_queues = Queue.query.join(Appointment).filter(
         db.func.date(Appointment.appointment_date) == today,
         Queue.status.in_(["ACTIVE", "WAITING"])
-    ).order_by(Queue.status.desc(), Queue.queue_number.asc()).all()
+    ).order_by(db.case({ "ACTIVE": 0, "WAITING": 1 }, value=Queue.status), Queue.check_in_time.asc()).all()
     
     status_map = {}
     
@@ -345,7 +355,7 @@ def call_next_patient(doctor_session_id):
     next_qe = Queue.query.join(Appointment).filter(
         Appointment.doctor_session_id == doctor_session_id,
         Queue.status == "WAITING"
-    ).order_by(Queue.queue_number.asc()).first()
+    ).order_by(Queue.check_in_time.asc()).first()
     
     if not next_qe:
         db.session.commit()
@@ -474,12 +484,12 @@ def get_all_sessions_queues():
             Appointment.doctor_session_id == session.id,
             db.func.date(Appointment.appointment_date) == today,
             Queue.status == "WAITING"
-        ).order_by(Queue.queue_number.asc()).all()
+        ).order_by(Queue.check_in_time.asc()).all()
         
         waiting_list = []
         session_num = session.session_number if session.session_number is not None else 1
         for i, qe in enumerate(waiting_qes):
-            smart_wait = (i + 1) * 10 # 10 mins per person ahead
+            smart_wait = i * 10 # 10 mins per person strictly ahead of them
             waiting_list.append({
                 "id": qe.id,
                 "token": f"S{session_num}-{qe.queue_number:02d}",
