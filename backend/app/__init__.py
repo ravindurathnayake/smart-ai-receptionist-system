@@ -16,6 +16,9 @@ def create_app():
     mail.init_app(app)
     socketio.init_app(app)
 
+    # Register Socket Events
+    from app.sockets import chat_socket
+
     # IMPORTANT: Import models so Flask-Migrate can detect them
     from app.models import Specialist, Patient, Appointment, Queue, Department, DoctorSession, Payment, User, Review
     

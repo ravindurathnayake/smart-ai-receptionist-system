@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -17,6 +18,21 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'rescheduled', 'cancelled'
   const [selectedItem, setSelectedItem] = useState(null); // For details modal
+  const [kioskStatus, setKioskStatus] = useState('Offline');
+
+  useEffect(() => {
+    // KIOSK HEARTBEAT LISTENER
+    socketService.on('kiosk_heartbeat', (data) => {
+      setKioskStatus('Online');
+      // Set a timeout to mark it offline if no heartbeat for 10 seconds
+      clearTimeout(window.kioskTimeout);
+      window.kioskTimeout = setTimeout(() => setKioskStatus('Offline'), 10000);
+    });
+
+    return () => {
+      socketService.off('kiosk_heartbeat');
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,9 +106,18 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard-wrapper admin-page-transition">
       {/* Page Title */}
-      <div>
-        <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Hospital Overview</h2>
-        <p className="text-sm text-on-surface-variant mt-1 font-medium">Real-time status of MediAssist AI Facility.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Hospital Overview</h2>
+          <p className="text-sm text-on-surface-variant mt-1 font-medium">Real-time status of MediAssist AI Facility.</p>
+        </div>
+        <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-outline-variant/30 shadow-sm">
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-black uppercase tracking-widest text-outline">Kiosk Status</span>
+            <span className={`text-xs font-bold ${kioskStatus === 'Online' ? 'text-secondary' : 'text-error'}`}>{kioskStatus}</span>
+          </div>
+          <div className={`w-3 h-3 rounded-full ${kioskStatus === 'Online' ? 'bg-secondary animate-pulse' : 'bg-error shadow-[0_0_10px_rgba(255,0,0,0.5)]'}`}></div>
+        </div>
       </div>
 
       {/* Emergency Alerts Section */}
