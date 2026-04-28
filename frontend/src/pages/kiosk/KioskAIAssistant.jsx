@@ -140,7 +140,14 @@ const KioskAIAssistant = () => {
     const [patient, setPatient] = useState(null);
     const [chatHistory, setChatHistory] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
     const scrollRef = useRef(null);
+
+    const notifications = [
+        { id: 1, title: 'Appointment Reminder', message: 'Your appointment with Dr. Sarah Smith is in 15 mins.', time: 'Just now', unread: true },
+        { id: 2, title: 'Queue Update', message: 'You are currently #3 in the queue.', time: '10m ago', unread: true },
+        { id: 3, title: 'Welcome', message: 'Welcome to Colombo Central General Hospital!', time: '1h ago', unread: false },
+    ];
 
     // Auto-scroll to bottom whenever chatHistory or isTyping changes
     useEffect(() => {
@@ -237,7 +244,7 @@ const KioskAIAssistant = () => {
                         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
                         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
                         { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
-                        { icon: 'map',              label: 'Hospital Map',         path: '#' },
+                        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
                     ].map(({ icon, label, path, active }) => (
                         <div
                             key={label}
@@ -288,9 +295,40 @@ const KioskAIAssistant = () => {
                         <div className="h-4 w-px bg-outline-variant mx-1" />
                         <span className="text-slate-500 font-medium text-sm">AI Assistant</span>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <div className="flex gap-3">
-                            <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">notifications</span>
+                    <div className="flex items-center gap-6 relative">
+                        <div className="flex gap-4 items-center">
+                            <div className="relative">
+                                <span 
+                                    className={`material-symbols-outlined cursor-pointer transition-colors ${showNotifications ? 'text-primary' : 'text-slate-400 hover:text-primary'}`}
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                >
+                                    notifications
+                                </span>
+                                <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
+                                
+                                {showNotifications && (
+                                    <div className="absolute top-10 right-0 w-80 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-outline-variant/20 overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
+                                        <div className="p-4 border-b border-outline-variant/10 flex justify-between items-center bg-slate-50/50">
+                                            <h3 className="font-extrabold text-slate-800 text-sm">Notifications</h3>
+                                            <span className="text-[10px] font-bold text-white bg-primary px-2 py-0.5 rounded-full">2 New</span>
+                                        </div>
+                                        <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                                            {notifications.map(n => (
+                                                <div key={n.id} className={`p-4 border-b border-outline-variant/5 hover:bg-slate-50 transition-colors cursor-pointer ${n.unread ? 'bg-primary/5' : ''}`}>
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <h4 className={`font-bold text-sm ${n.unread ? 'text-primary' : 'text-slate-700'}`}>{n.title}</h4>
+                                                        <span className="text-[10px] font-bold text-slate-400">{n.time}</span>
+                                                    </div>
+                                                    <p className="text-xs text-slate-600 font-medium leading-relaxed">{n.message}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="p-3 text-center border-t border-outline-variant/10 bg-slate-50/50 hover:bg-slate-100 transition-colors cursor-pointer" onClick={() => setShowNotifications(false)}>
+                                            <span className="text-xs font-bold text-primary">Close</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors">help</span>
                         </div>
                         <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">

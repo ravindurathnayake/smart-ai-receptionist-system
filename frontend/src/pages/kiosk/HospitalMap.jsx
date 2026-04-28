@@ -2,7 +2,61 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { mapData, floors } from '../../utils/mapData';
 import Logo from '../../components/common/Logo';
+import KioskTopBar from '../../components/kiosk/KioskTopBar';
 import './HospitalMap.css';
+
+const SideNav = () => {
+    const navigate = useNavigate();
+    const navItems = [
+        { icon: 'account_circle',   label: 'Personal Dashboard',   path: '/patient-dashboard' },
+        { icon: 'smart_toy',        label: 'AI Assistant',         path: '/assistant' },
+        { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
+        { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
+        { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
+        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map', active: true },
+    ];
+
+    const handleSignOut = () => {
+        localStorage.removeItem('activePatient');
+        navigate('/');
+    };
+
+    return (
+        <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0">
+            <div className="p-6 pb-4 cursor-pointer" onClick={() => navigate('/')}>
+                <Logo size="sm" className="w-full" />
+            </div>
+            <nav className="flex-1 flex flex-col px-3 mt-4 gap-1">
+                {navItems.map(({ icon, label, path, active }) => (
+                    <div
+                        key={label}
+                        onClick={() => path !== '#' && navigate(path)}
+                        className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm cursor-pointer ${
+                            active ? 'nav-item-active' : 'text-primary hover:bg-slate-50'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-[22px]" style={active ? { fontVariationSettings: "'FILL' 1" } : {}}>{icon}</span>
+                        <span>{label}</span>
+                    </div>
+                ))}
+            </nav>
+            <div className="px-4 pb-5 mt-auto">
+                <div className="p-5 bg-slate-50 rounded-xl border border-dashed border-outline-variant/40 text-center mb-4">
+                    <span className="material-symbols-outlined text-primary text-2xl mb-2 block">support_agent</span>
+                    <p className="text-xs font-bold text-primary mb-3">Need Assistance?</p>
+                    <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity" onClick={() => navigate('/assistant')}>Call for Help</button>
+                </div>
+                <button 
+                    onClick={handleSignOut}
+                    className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4"
+                >
+                    <span className="material-symbols-outlined">logout</span>
+                    <span className="font-bold text-sm">Sign Out</span>
+                </button>
+            </div>
+        </aside>
+    );
+};
 
 const HospitalMap = () => {
   const [searchParams] = useSearchParams();
@@ -11,6 +65,16 @@ const HospitalMap = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDirections, setShowDirections] = useState(false);
+  const [patient, setPatient] = useState(null);
+
+  useEffect(() => {
+      const savedPatient = localStorage.getItem('activePatient');
+      if (savedPatient) {
+          setPatient(JSON.parse(savedPatient));
+      }
+  }, []);
+
+  const patientName = patient ? (patient.full_name || patient.name || 'Patient') : 'Guest Visitor';
 
   // Handle URL parameters for chatbot integration
   useEffect(() => {
@@ -47,27 +111,11 @@ const HospitalMap = () => {
   const userLocation = { x: 120, y: 500, floor: "Ground Floor" };
 
   return (
-    <div className="map-page-container bg-background font-body text-on-surface h-screen w-screen flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md px-8 py-4 border-b border-outline-variant/10 flex justify-between items-center z-50">
-        <div className="flex items-center gap-6">
-          <Logo className="cursor-pointer" onClick={() => navigate('/')} />
-          <div className="h-8 w-px bg-outline-variant/30 mx-2"></div>
-          <h1 className="text-2xl font-black font-headline text-primary tracking-tight">Hospital Directory</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right mr-4">
-            <div className="text-sm font-bold text-on-surface-variant">Colombo Central General Hospital</div>
-            <div className="text-xs font-medium text-primary uppercase tracking-widest">Indoor Navigation</div>
-          </div>
-          <button 
-            onClick={() => navigate('/')}
-            className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-all shadow-sm"
-          >
-            <span className="material-symbols-outlined">home</span>
-          </button>
-        </div>
-      </header>
+    <div className="map-page-container bg-background font-body text-on-surface h-screen w-screen flex overflow-hidden">
+      {patient && <SideNav />}
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Header */}
+        <KioskTopBar title="Hospital Directory" patientName={patientName} showNotifications={!!patient} />
 
       <main className="flex-grow flex overflow-hidden relative">
         {/* Left Sidebar: Search & Info */}
@@ -295,6 +343,7 @@ const HospitalMap = () => {
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 };

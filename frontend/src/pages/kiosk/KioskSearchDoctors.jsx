@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
+import KioskTopBar from '../../components/kiosk/KioskTopBar';
 import './KioskSearchDoctors.css';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -164,7 +165,7 @@ const KioskSearchDoctors = () => {
                         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
                         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors', active: true  },
                         { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
-                        { icon: 'map',              label: 'Hospital Map',         path: '#' },
+                        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
                     ].map(({ icon, label, path, active }) => (
                         <div
                             key={label}
@@ -199,31 +200,7 @@ const KioskSearchDoctors = () => {
                 <div className="ambient-blob-top" />
                 <div className="ambient-blob-bottom" />
 
-                <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
-                            <span className="material-symbols-outlined text-slate-600">arrow_back</span>
-                        </button>
-                        <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">MediAssist AI</h1>
-                        <div className="h-4 w-px bg-outline-variant mx-1" />
-                        <span className="text-slate-500 font-medium text-sm">Find Doctors</span>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className="flex gap-3">
-                            <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors" onClick={() => navigate('/assistant')}>notifications</span>
-                            <span className="material-symbols-outlined text-slate-400 hover:text-primary cursor-pointer transition-colors" onClick={() => navigate('/assistant')}>help</span>
-                        </div>
-                        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
-                            <div className="text-right">
-                                <p className="text-sm font-bold text-on-surface leading-none">{patientName}</p>
-                                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">{patient ? 'Patient' : 'Visitor'}</p>
-                            </div>
-                            <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">
-                                {patientName.charAt(0)}
-                            </div>
-                        </div>
-                    </div>
-                </header>
+                <KioskTopBar title="Find Doctors" patientName={patientName} />
 
                 <div className="flex-1 overflow-hidden flex flex-col px-10 py-5 z-10 min-h-0">
                     <div className="mb-4">

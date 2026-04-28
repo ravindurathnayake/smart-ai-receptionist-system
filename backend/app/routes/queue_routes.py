@@ -5,6 +5,7 @@ from app.services.queue_service import (
     check_out_patient, 
     get_all_queues_status,
     call_next_patient,
+    start_session,
     toggle_session_pause,
     end_session,
     skip_patient,
@@ -67,19 +68,24 @@ def get_sessions_queues():
     result = get_all_sessions_queues()
     return jsonify(result), 200
 
-@queue_bp.route('/call-next/<int:session_id>', methods=['POST'])
-def call_next(session_id):
-    result = call_next_patient(session_id)
+@queue_bp.route('/call-next/<int:doctor_session_id>', methods=['POST'])
+def call_next(doctor_session_id):
+    result = call_next_patient(doctor_session_id)
     return jsonify(result), 200
 
-@queue_bp.route('/toggle-pause/<int:session_id>', methods=['POST'])
-def toggle_pause(session_id):
-    result = toggle_session_pause(session_id)
+@queue_bp.route('/session/<int:doctor_session_id>/start', methods=['POST'])
+def start_session_route(doctor_session_id):
+    result = start_session(doctor_session_id)
     return jsonify(result), 200
 
-@queue_bp.route('/end-session/<int:session_id>', methods=['POST'])
-def end_session_route(session_id):
-    result = end_session(session_id)
+@queue_bp.route('/toggle-pause/<int:doctor_session_id>', methods=['POST'])
+def toggle_pause(doctor_session_id):
+    result = toggle_session_pause(doctor_session_id)
+    return jsonify(result), 200
+
+@queue_bp.route('/end-session/<int:doctor_session_id>', methods=['POST'])
+def end_session_route(doctor_session_id):
+    result = end_session(doctor_session_id)
     return jsonify(result), 200
 
 @queue_bp.route('/skip/<int:queue_id>', methods=['POST'])

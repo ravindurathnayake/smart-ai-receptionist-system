@@ -660,8 +660,17 @@ const KioskHome = () => {
                                 ? 'bg-primary-fixed text-on-primary-fixed' 
                                 : 'bg-secondary-container text-on-secondary-container'
                             }`}>
-                                {item.status}: {item.next_patient}
+                                {item.status}: {item.token}
                             </span>
+                            {item.session_status && item.session_status !== 'ACTIVE' && (
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                    item.session_status === 'PAUSED' ? 'bg-warning-container text-on-warning-container' : 
+                                    item.session_status === 'ENDED' ? 'bg-error-container text-on-error-container' : 
+                                    'bg-outline-variant/20 text-on-surface-variant'
+                                }`}>
+                                    {item.session_status.replace('_', ' ')}
+                                </span>
+                            )}
                         </div>
                         <div className="w-1.5 h-1.5 bg-outline-variant/30 rounded-full flex-shrink-0"></div>
                     </React.Fragment>

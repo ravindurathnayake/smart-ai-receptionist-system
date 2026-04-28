@@ -10,11 +10,16 @@ class Queue(db.Model):
     appointment_id = db.Column(
         db.Integer,
         db.ForeignKey("appointments.id"),
-        nullable=False
+        nullable=True
     )
+
+    patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"), nullable=True)
+    doctor_session_id = db.Column(db.Integer, db.ForeignKey("doctor_sessions.id"), nullable=True)
 
     queue_number = db.Column(db.Integer, nullable=False)
     estimated_wait_time = db.Column(db.Integer, nullable=False)
+
+    __table_args__ = (db.UniqueConstraint('doctor_session_id', 'queue_number', name='uq_queue_session_number'),)
 
     # NEW FIELDS
     status = db.Column(db.String(20), default="WAITING")  # WAITING, COMPLETED, CANCELLED

@@ -160,7 +160,7 @@ const KioskManualCheckIn = () => {
                         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
                         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
                         { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out', active: true  },
-                        { icon: 'map',              label: 'Hospital Map',         path: '#' },
+                        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
                     ].map(({ icon, label, path, active }) => (
                         <div
                             key={label}

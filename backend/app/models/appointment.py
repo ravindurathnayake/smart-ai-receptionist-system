@@ -13,7 +13,9 @@ class Appointment(db.Model):
     status = db.Column(db.String(50), default="Booked")
     priority_level = db.Column(db.String(20), default="Normal") # Normal, Urgent, Emergency
     
-    session_id = db.Column(db.Integer, db.ForeignKey("doctor_sessions.id"), nullable=True)
+    doctor_session_id = db.Column(db.Integer, db.ForeignKey("doctor_sessions.id"), nullable=True)
+    queue_number = db.Column(db.Integer, nullable=True)
+
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

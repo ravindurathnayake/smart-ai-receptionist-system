@@ -37,7 +37,7 @@ def book_appointment_route():
         specialist_id = data.get("specialist_id")
         symptom = data.get("symptom")
         appointment_date_str = data.get("appointment_date")
-        session_id = data.get("session_id")
+        doctor_session_id = data.get("doctor_session_id")
         patient_id = data.get("patient_id")
 
         # Basic validation
@@ -55,7 +55,7 @@ def book_appointment_route():
             specialist_id=specialist_id,
             symptom=symptom,
             appointment_date=appointment_date,
-            session_id=session_id,
+            doctor_session_id=doctor_session_id,
             patient_id=patient_id
         )
 
@@ -168,13 +168,13 @@ def reschedule_appointment(appointment_id):
     try:
         data = request.get_json()
         new_date_str = data.get("new_date")
-        new_session_id = data.get("session_id")
+        new_doctor_session_id = data.get("doctor_session_id")
         
         if not new_date_str:
             return error_response("New date is required", 400)
             
         new_date = datetime.fromisoformat(new_date_str)
-        appt = move_appointment(appointment_id, new_date, new_session_id)
+        appt = move_appointment(appointment_id, new_date, new_doctor_session_id)
         return success_response("Appointment rescheduled successfully", {
             "id": appt.id,
             "new_date": appt.appointment_date.strftime("%Y-%m-%d")
@@ -223,7 +223,7 @@ def confirm_payment_route():
                 }
                 appointment_details = {
                     "appointment_date": appointment.appointment_date.strftime("%Y-%m-%d %H:%M") if appointment.appointment_date else "N/A",
-                    "session_id": appointment.session_id
+                    "doctor_session_id": appointment.doctor_session_id
                 }
                 
                 send_appointment_confirmation(
@@ -240,7 +240,7 @@ def confirm_payment_route():
                     patient_name=patient.full_name,
                     doctor_name=doctor_details['name'],
                     date=appointment_details['appointment_date'],
-                    session_id=appointment_details['session_id']
+                    doctor_session_id=appointment_details['doctor_session_id']
                 )
         except Exception as notify_err:
             print(f"Non-critical Error: Notification failed: {str(notify_err)}")

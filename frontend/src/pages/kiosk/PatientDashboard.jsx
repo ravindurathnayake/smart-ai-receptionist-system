@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
+import KioskTopBar from '../../components/kiosk/KioskTopBar';
 import './PatientDashboard.css';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -73,45 +74,7 @@ const SideNav = () => {
     );
 };
 
-/** TopBar — matching other kiosk pages */
-const TopBar = ({ patientName, onSignOut }) => {
-    const navigate = useNavigate();
-    return (
-        <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
-            <div className="flex items-center gap-3">
-                <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
-                    <span className="material-symbols-outlined text-slate-600">arrow_back</span>
-                </button>
-                <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">
-                    MediAssist AI
-                </h1>
-                <div className="h-4 w-px bg-outline-variant mx-1" />
-                <span className="text-slate-500 font-medium text-sm">Personal Dashboard</span>
-            </div>
-            <div className="flex items-center gap-6">
-                <div className="flex gap-4">
-                    <button onClick={() => window.print()} className="p-2.5 text-slate-400 hover:text-primary rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 font-bold text-xs">
-                        <span className="material-symbols-outlined text-xl">print</span>
-                        PRINT
-                    </button>
-                    <button onClick={onSignOut} className="p-2.5 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all flex items-center gap-2 font-bold text-xs">
-                        <span className="material-symbols-outlined text-xl">logout</span>
-                        LOG OUT
-                    </button>
-                </div>
-                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
-                    <div className="text-right">
-                        <p className="text-sm font-bold text-on-surface leading-none">{patientName || 'Patient'}</p>
-                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
-                    </div>
-                    <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">
-                        {patientName ? patientName.charAt(0) : 'P'}
-                    </div>
-                </div>
-            </div>
-        </header>
-    );
-};
+
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
@@ -321,10 +284,7 @@ const PatientDashboard = () => {
             <SideNav />
 
             <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
-                <TopBar 
-                    patientName={patient.full_name} 
-                    onSignOut={() => { localStorage.removeItem('activePatient'); navigate('/'); }} 
-                />
+                <KioskTopBar title="Personal Dashboard" patientName={patient.full_name} />
 
                 <div className="ambient-blob-top" />
                 <div className="ambient-blob-bottom" />

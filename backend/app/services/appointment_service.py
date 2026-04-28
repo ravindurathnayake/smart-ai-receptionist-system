@@ -3,7 +3,7 @@ from app.extensions import db
 from app.models import Patient, Appointment, Queue, Specialist
 
 
-def move_appointment(appointment_id, new_date, new_session_id=None):
+def move_appointment(appointment_id, new_date, new_doctor_session_id=None):
     appt = Appointment.query.get(appointment_id)
     if not appt:
         raise Exception("Appointment not found")
@@ -12,14 +12,14 @@ def move_appointment(appointment_id, new_date, new_session_id=None):
         raise Exception(f"Cannot reschedule a {appt.status} appointment")
     
     appt.appointment_date = new_date
-    if new_session_id:
-        appt.session_id = new_session_id
+    if new_doctor_session_id:
+        appt.doctor_session_id = new_doctor_session_id
     
     db.session.commit()
     return appt
 
 
-def book_appointment(full_name, phone_number, specialist_id, symptom, appointment_date, session_id=None, patient_id=None):
+def book_appointment(full_name, phone_number, specialist_id, symptom, appointment_date, doctor_session_id=None, patient_id=None):
     """
     Handles full appointment booking logic:
     - Finds or creates patient
@@ -63,28 +63,28 @@ def book_appointment(full_name, phone_number, specialist_id, symptom, appointmen
         specialist_id=specialist_id,
         symptom=symptom,
         appointment_date=appointment_date,
-        session_id=session_id,
+        doctor_session_id=doctor_session_id,
         status="Booked"
     )
     db.session.add(appointment)
     db.session.commit()
 
-    # 3️⃣ Generate Next Queue Number
-    last_queue = Queue.query.order_by(Queue.queue_number.desc()).first()
+    # 3️⃣ Generate Next Queue Number for this specific session
+    last_queue = Queue.query.filter_by(doctor_session_id=doctor_session_id).order_by(Queue.queue_number.desc()).first()
+    next_queue_number = (last_queue.queue_number + 1) if last_queue else 1
 
-    if last_queue:
-        next_queue_number = last_queue.queue_number + 1
-    else:
-        next_queue_number = 1
-
-    # 4️⃣ Calculate Estimated Waiting Time (5 minutes per patient)
-    estimated_wait_time = next_queue_number * 5
+    # 4️⃣ Calculate Estimated Waiting Time (10 minutes per patient ahead in session)
+    patients_ahead = Queue.query.filter_by(doctor_session_id=doctor_session_id, status="WAITING").count()
+    estimated_wait_time = patients_ahead * 10
 
     # 5️⃣ Create Queue Entry
     queue_entry = Queue(
         appointment_id=appointment.id,
+        patient_id=patient.id,
+        doctor_session_id=doctor_session_id,
         queue_number=next_queue_number,
-        estimated_wait_time=estimated_wait_time
+        estimated_wait_time=estimated_wait_time,
+        status="WAITING"
     )
     db.session.add(queue_entry)
     db.session.commit()
@@ -104,39 +104,54 @@ def get_queue_status():
     from datetime import date
     today = date.today()
 
-    # Filter by entries created today
-    today_queue = Queue.query.filter(
-        db.func.date(Queue.created_at) == today,
-        Queue.status == "Active"
-    )
-
-    total_waiting = today_queue.count()
-    current_serving = today_queue.order_by(Queue.id.asc()).first()
+    # Filter by entries created today (Include WAITING to show who is next)
+    today_active = Queue.query.join(Appointment).filter(
+        db.func.date(Appointment.appointment_date) == today,
+        Queue.status.in_(["ACTIVE", "Active", "WAITING"])
+    ).order_by(Queue.status.desc(), Queue.queue_number.asc()).all()
 
     # Format the list for the frontend
     queue_list = []
-    for q in today_queue.order_by(Queue.queue_number.asc()).all():
+    active_tokens = []
+    for q in today_active:
         appointment = q.appointment
         if not appointment:
             continue
             
         patient_name = appointment.patient.full_name if appointment.patient else "Unknown"
         specialist_name = appointment.specialist.name if appointment.specialist else "Unknown"
+        session = appointment.session
+        session_num = session.session_number if (session and session.session_number is not None) else 1
+        session_name = f"S{session_num}"
+        
+        token = f"{session_name}-{q.queue_number:02d}"
+        active_tokens.append(token)
         
         queue_list.append({
             "id": q.id,
-            "token": f"A-{q.queue_number:02d}", # Formatted like in the UI
+            "token": token,
             "patient": patient_name,
             "doctor": specialist_name if specialist_name.startswith('Dr.') else f"Dr. {specialist_name}",
-            "status": "Waiting", # Default as the DB status is 'Active'
-            "waitTime": f"{q.estimated_wait_time}m",
-            "room": "04" # Hardcoded for now as it's not in DB
+            "status": "Serving" if (q.status and q.status.upper() == "ACTIVE") else "Waiting",
+            "waitTime": "0m" if (q.status and q.status.upper() == "ACTIVE") else "10m",
+            "room": session.room_number if session else "04"
         })
 
+    active_serving = [t for t, s in zip(active_tokens, [q.status for q in today_active]) if s and s.upper() == "ACTIVE"]
+
+    # Get session statuses summary
+    from app.models.doctor_session import DoctorSession
+    sessions_today = DoctorSession.query.filter(
+        (DoctorSession.day_of_week == datetime.now().strftime("%A")) | (DoctorSession.session_date == today),
+        DoctorSession.status != "Cancelled"
+    ).all()
+    session_statuses = {s.id: s.status for s in sessions_today}
+
     return {
-        "current_serving": current_serving.queue_number if current_serving else None,
-        "total_waiting": total_waiting,
-        "estimated_wait_time": total_waiting * 5,
+        "current_serving": active_serving[0] if active_serving else "---",
+        "session_statuses": session_statuses,
+        "total_waiting": Queue.query.join(Appointment).filter(db.func.date(Appointment.appointment_date) == today, Queue.status == "WAITING").count(),
+        "estimated_wait_time": 10,
         "queue": queue_list
     }
 
@@ -157,23 +172,31 @@ def get_patient_queue_info(patient_id):
     ).first()
 
     if queue_entry:
-        # Calculate people ahead
+        # Calculate people ahead in the SAME SESSION
         people_ahead = Queue.query.filter(
-            Queue.id < queue_entry.id,
-            Queue.status == "WAITING",
-            db.func.date(Queue.created_at) == today
+            Queue.doctor_session_id == queue_entry.doctor_session_id,
+            Queue.queue_number < queue_entry.queue_number,
+            Queue.status == "WAITING"
         ).count()
         
+        session = queue_entry.appointment.session
+        session_num = session.session_number if (session and session.session_number is not None) else 1
+        session_name = f"Session {session_num}"
+        token = f"S{session_num}-{queue_entry.queue_number:02d}"
+        
         return {
-            "token": f"A-{queue_entry.queue_number:02d}",
+            "token": token,
             "people_ahead": people_ahead,
-            "estimated_wait": queue_entry.estimated_wait_time,
+            "estimated_wait": people_ahead * 10,
             "doctor": queue_entry.appointment.specialist.name,
             "department": queue_entry.appointment.specialist.department,
-            "room": queue_entry.appointment.session.room_number if queue_entry.appointment.session else "TBD",
-            "time": queue_entry.appointment.session.start_time.strftime("%I:%M %p") if queue_entry.appointment.session else "TBD",
+            "room": session.room_number if session else "TBD",
+            "session_name": session_name,
+            "time": session.start_time.strftime("%I:%M %p") if session else "TBD",
             "date": queue_entry.appointment.appointment_date.strftime("%Y-%m-%d"),
             "status": "In Queue",
+            "session_status": session.status if session else "ACTIVE",
+            "is_serving": queue_entry.status and queue_entry.status.upper() == "ACTIVE",
             "appointment_id": queue_entry.appointment_id
         }
 

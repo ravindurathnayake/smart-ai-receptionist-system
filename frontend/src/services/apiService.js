@@ -142,7 +142,7 @@ export const apiService = {
     rescheduleAppointment: async (appointmentId, newDate, sessionId = null) => {
         const response = await api.post(`/move-appointment/${appointmentId}`, {
             new_date: newDate,
-            session_id: sessionId
+            doctor_session_id: sessionId
         });
         return response.data.data;
     },
@@ -164,6 +164,10 @@ export const apiService = {
     },
     callNextPatient: async (sessionId) => {
         const response = await api.post(`/queue/call-next/${sessionId}`);
+        return response.data;
+    },
+    startSession: async (sessionId) => {
+        const response = await api.post(`/queue/session/${sessionId}/start`);
         return response.data;
     },
     toggleSessionPause: async (sessionId) => {

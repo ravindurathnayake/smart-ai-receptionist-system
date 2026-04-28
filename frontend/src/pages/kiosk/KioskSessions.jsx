@@ -56,7 +56,7 @@ const SideNav = () => {
         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors', active: true  },
         { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
-        { icon: 'map',              label: 'Hospital Map',         path: '#' },
+        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
     ];
 
     return (
@@ -289,7 +289,7 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                 specialist_id: doctor.id,
                 symptom: "General consultation",
                 appointment_date: selectedDate,
-                session_id: selectedSlot.id
+                doctor_session_id: selectedSlot.id
             });
             
             if (response) {
@@ -297,7 +297,7 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                 const appointmentData = {
                     ...response,
                     appointment_date: selectedDate,
-                    session_id: selectedSlot?.id || selectedSlot?.start_time
+                    doctor_session_id: selectedSlot?.id || selectedSlot?.start_time
                 };
                 localStorage.setItem('last_appointment', JSON.stringify(appointmentData));
                 navigate('/payment', { state: { appointment: appointmentData, doctor: doctor } });

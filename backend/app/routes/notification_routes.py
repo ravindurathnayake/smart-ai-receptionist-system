@@ -12,7 +12,8 @@ def create_notification():
         new_notification = Notification(
             type=data.get("type"),
             message=data.get("message"),
-            kiosk_id=data.get("kiosk_id", "Kiosk #1")
+            kiosk_id=data.get("kiosk_id", "Kiosk #1"),
+            patient_id=data.get("patient_id")
         )
         db.session.add(new_notification)
         db.session.commit()

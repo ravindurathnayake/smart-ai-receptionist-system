@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
 import queueService from '../../services/queueService';
 import Webcam from 'react-webcam';
+import KioskTopBar from '../../components/kiosk/KioskTopBar';
 import './KioskCheckInOut.css';
 
 // ─── Biometric Scanner ────────────────────────────────────────────────────────
@@ -321,7 +322,7 @@ const KioskCheckInOut = () => {
                         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
                         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
                         { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out', active: true  },
-                        { icon: 'map',              label: 'Hospital Map',         path: '#' },
+                        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
                     ].map(({ icon, label, path, active }) => (
                         <div
                             key={label}
@@ -356,37 +357,7 @@ const KioskCheckInOut = () => {
                 <div className="ambient-blob-top" />
                 <div className="ambient-blob-bottom" />
 
-                <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
-                            <span className="material-symbols-outlined text-slate-600">arrow_back</span>
-                        </button>
-                        <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">MediAssist AI</h1>
-                        <div className="h-4 w-px bg-outline-variant mx-1" />
-                        <span className="text-slate-500 font-medium text-sm">{isCheckOutMode ? 'Quick Check-Out' : 'Check-In / Check-Out'}</span>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className="flex gap-4">
-                            <button onClick={() => window.print()} className="p-2.5 text-slate-400 hover:text-primary rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 font-bold text-xs uppercase">
-                                <span className="material-symbols-outlined text-xl">print</span>
-                                Print
-                            </button>
-                            <button onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }} className="p-2.5 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all flex items-center gap-2 font-bold text-xs uppercase">
-                                <span className="material-symbols-outlined text-xl">logout</span>
-                                Log Out
-                            </button>
-                        </div>
-                        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
-                            <div className="text-right">
-                                <p className="text-sm font-bold text-on-surface leading-none">{patientName}</p>
-                                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">{patient ? 'Patient' : 'Visitor'}</p>
-                            </div>
-                            <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">
-                                {patientName.charAt(0)}
-                            </div>
-                        </div>
-                    </div>
-                </header>
+                <KioskTopBar title={isCheckOutMode ? 'Quick Check-Out' : 'Check-In / Check-Out'} patientName={patientName} showNotifications={false} />
 
                 <div className="flex-1 overflow-hidden flex flex-col items-center justify-center px-8 py-4 z-10 gap-6">
                     {profiles ? (

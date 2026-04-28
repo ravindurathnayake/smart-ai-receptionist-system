@@ -15,7 +15,7 @@ class DoctorSession(db.Model):
     current_count = db.Column(db.Integer, default=0)
     session_number = db.Column(db.Integer, nullable=True) # e.g. 1, 2, 3
     room_number = db.Column(db.String(50), nullable=True)
-    status = db.Column(db.String(20), default="Active") # Active, Cancelled, Full
+    status = db.Column(db.String(20), default="NOT_STARTED") # NOT_STARTED, ACTIVE, PAUSED, ENDED, Cancelled
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

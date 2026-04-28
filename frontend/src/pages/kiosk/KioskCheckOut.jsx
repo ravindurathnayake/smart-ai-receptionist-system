@@ -184,7 +184,7 @@ const KioskCheckOut = () => {
                         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
                         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
                         { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out', active: true  },
-                        { icon: 'map',              label: 'Hospital Map',         path: '#' },
+                        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
                     ].map(({ icon, label, path, active }) => (
                         <div key={label} onClick={() => path !== '#' && navigate(path)} className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm cursor-pointer ${active ? 'nav-item-active' : 'text-primary hover:bg-slate-50'}`}>
                             <span className="material-symbols-outlined text-[22px]" style={active ? { fontVariationSettings: "'FILL' 1" } : {}}>{icon}</span>

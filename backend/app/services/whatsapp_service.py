@@ -1,7 +1,7 @@
 import os
 from twilio.rest import Client
 
-def send_whatsapp_notification(phone_number, patient_name, doctor_name, date, session_id):
+def send_whatsapp_notification(phone_number, patient_name, doctor_name, date, doctor_session_id):
     """
     Sends an appointment confirmation message via WhatsApp using Twilio.
     """
@@ -25,7 +25,7 @@ def send_whatsapp_notification(phone_number, patient_name, doctor_name, date, se
         f"Your appointment has been successfully scheduled.\n\n"
         f"👨‍⚕️ *Doctor:* {doctor_name}\n"
         f"📅 *Date:* {date}\n"
-        f"🆔 *Session ID:* #{session_id}\n\n"
+        f"🆔 *Session ID:* #{doctor_session_id}\n\n"
         f"📍 Please arrive 15 minutes early.\n"
         f"Thank you for choosing MediAssist AI!"
     )
@@ -38,7 +38,7 @@ def send_whatsapp_notification(phone_number, patient_name, doctor_name, date, se
         f"👨‍⚕️ *Doctor:* {doctor_name}\n"
         f"📅 *Date:* {date}\n"
         f"⏰ *Time:* Scheduled Session\n"
-        f"🎟 *Queue Number:* #{session_id}\n\n"
+        f"🎟 *Queue Number:* #{doctor_session_id}\n\n"
         f"📍 Please arrive 10 minutes early.\n\n"
         f"Thank you for choosing us 💙"
     )

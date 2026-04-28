@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
+import KioskTopBar from '../../components/kiosk/KioskTopBar';
 import './KioskQueueStatus.css';
 
 // ─── Journey Steps ────────────────────────────────────────────────────────────
@@ -58,9 +59,22 @@ const PrimaryQueueCard = ({ stats, patientQueue }) => (
                     </span>
                     <div className="mt-3 flex items-baseline gap-4">
                         <span className="font-headline text-7xl font-black text-primary leading-none">
-                            {stats.current_serving !== '---' ? stats.current_serving : '--'}
+                            {patientQueue?.is_serving ? patientQueue.token : 
+                             ((patientQueue?.session_status?.toUpperCase() === 'ACTIVE' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'ACTIVE') && stats.current_serving !== '---' ? stats.current_serving : '---')}
                         </span>
-                        <span className="text-on-surface-variant font-medium text-sm">Main Counter</span>
+                        <div className="flex flex-col">
+                            <span className="text-on-surface-variant font-medium text-sm">Main Counter</span>
+                            {(patientQueue?.session_status || stats.session_statuses?.[patientQueue?.doctor_session_id]) && 
+                             (patientQueue?.session_status?.toUpperCase() !== 'ACTIVE' && stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() !== 'ACTIVE') && (
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase w-max mt-1 ${
+                                    (patientQueue?.session_status?.toUpperCase() === 'PAUSED' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'PAUSED') ? 'bg-warning-container text-on-warning-container' : 
+                                    (patientQueue?.session_status?.toUpperCase() === 'ENDED' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'ENDED') ? 'bg-error-container text-on-error-container' : 
+                                    'bg-outline-variant/20 text-on-surface-variant'
+                                }`}>
+                                    {(patientQueue?.session_status || stats.session_statuses?.[patientQueue?.doctor_session_id])?.replace('_', ' ')}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="text-right">
@@ -77,11 +91,21 @@ const PrimaryQueueCard = ({ stats, patientQueue }) => (
                 </div>
                 <div>
                     <h3 className="text-2xl font-extrabold text-on-surface font-headline">
-                        {patientQueue?.status === 'In Queue' ? `~ ${patientQueue.estimated_wait} mins` : 
+                        {patientQueue?.is_serving ? 'Now Serving You' : 
+                         (patientQueue?.session_status?.toUpperCase() === 'NOT_STARTED' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'NOT_STARTED') ? 'Session Not Started' :
+                         (patientQueue?.session_status?.toUpperCase() === 'PAUSED' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'PAUSED') ? 'Session Paused' :
+                         (patientQueue?.session_status?.toUpperCase() === 'ENDED' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'ENDED') ? 'Session Ended' :
+                         patientQueue?.status === 'In Queue' ? `~ ${patientQueue.estimated_wait} mins` : 
                          patientQueue?.status === 'Scheduled' ? 'Check-in required' : 
                          stats.estimated_wait}
                     </h3>
-                    <p className="text-on-surface-variant text-sm">Estimated wait until your turn</p>
+                    <p className="text-on-surface-variant text-sm">
+                        {patientQueue?.is_serving ? 'Please proceed to the room' : 
+                         (patientQueue?.session_status?.toUpperCase() === 'NOT_STARTED' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'NOT_STARTED') ? 'Doctor session has not started yet.' :
+                         (patientQueue?.session_status?.toUpperCase() === 'PAUSED' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'PAUSED') ? 'Temporarily paused. Please wait.' :
+                         (patientQueue?.session_status?.toUpperCase() === 'ENDED' || stats.session_statuses?.[patientQueue?.doctor_session_id]?.toUpperCase() === 'ENDED') ? 'No further queue calls today.' :
+                         'Estimated wait until your turn'}
+                    </p>
                 </div>
                 <div className="ml-auto bg-secondary-container text-on-secondary-container px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm shrink-0">
                     <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -139,7 +163,14 @@ const AppointmentDetailsCard = ({ patientQueue, onCancel, onReschedule }) => (
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-2">
+                <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
+                    <p className="text-[9px] font-bold text-outline uppercase tracking-wider mb-1">Session</p>
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary text-sm">schedule</span>
+                        <span className="text-sm font-bold text-on-surface">{patientQueue?.session_name || '---'}</span>
+                    </div>
+                </div>
                 <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
                     <p className="text-[9px] font-bold text-outline uppercase tracking-wider mb-1">Room</p>
                     <div className="flex items-center gap-2">
@@ -150,7 +181,7 @@ const AppointmentDetailsCard = ({ patientQueue, onCancel, onReschedule }) => (
                 <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
                     <p className="text-[9px] font-bold text-outline uppercase tracking-wider mb-1">Time</p>
                     <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary text-sm">schedule</span>
+                        <span className="material-symbols-outlined text-primary text-sm">alarm</span>
                         <span className="text-sm font-bold text-on-surface">{patientQueue?.time || '--:--'}</span>
                     </div>
                 </div>
@@ -238,7 +269,8 @@ const KioskQueueStatus = () => {
     const [stats, setStats] = useState({
         current_serving: '---',
         total_waiting: 0,
-        estimated_wait: '0m'
+        estimated_wait: '0m',
+        session_statuses: {}
     });
 
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
@@ -249,9 +281,10 @@ const KioskQueueStatus = () => {
             const response = await apiService.getQueueStatus();
             if (response) {
                 setStats({
-                    current_serving: response.current_serving ? `#${response.current_serving.toString().padStart(2, '0')}` : '---',
+                    current_serving: response.current_serving || '---',
                     total_waiting: response.total_waiting,
-                    estimated_wait: `${response.estimated_wait_time} mins`
+                    estimated_wait: `${response.estimated_wait_time} mins`,
+                    session_statuses: response.session_statuses || {}
                 });
             }
             
@@ -336,7 +369,7 @@ const KioskQueueStatus = () => {
                     { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue', active: true  },
                     { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
                     { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
-                    { icon: 'map',              label: 'Hospital Map',         path: '#' },
+                    { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
                 ].map(({ icon, label, path, active }) => (
                     <div
                         key={label}
@@ -371,38 +404,7 @@ const KioskQueueStatus = () => {
             <div className="ambient-blob-top no-print" />
             <div className="ambient-blob-bottom no-print" />
 
-            {/* Top Bar */}
-            <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0 no-print">
-                <div className="flex items-center gap-3">
-                    <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}>
-                        <span className="material-symbols-outlined text-slate-600">arrow_back</span>
-                    </button>
-                    <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">MediAssist AI</h1>
-                    <div className="h-4 w-px bg-outline-variant mx-1" />
-                    <span className="text-slate-500 font-medium text-sm">Queue Status</span>
-                </div>
-                <div className="flex items-center gap-6">
-                    <div className="flex gap-4">
-                        <button onClick={() => window.print()} className="p-2.5 text-slate-400 hover:text-primary rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 font-bold text-xs uppercase">
-                            <span className="material-symbols-outlined text-xl">print</span>
-                            Print
-                        </button>
-                        <button onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }} className="p-2.5 text-slate-400 hover:text-red-600 rounded-xl hover:bg-red-50 transition-all flex items-center gap-2 font-bold text-xs uppercase">
-                            <span className="material-symbols-outlined text-xl">logout</span>
-                            Log Out
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
-                        <div className="text-right">
-                            <p className="text-sm font-bold text-on-surface leading-none">{patientName}</p>
-                            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
-                        </div>
-                        <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">
-                            {patientName.charAt(0)}
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <KioskTopBar title="Queue Status" patientName={patientName} />
 
             {/* Content area */}
             <div className="flex-1 overflow-hidden flex flex-col px-10 py-5 z-10 no-print">

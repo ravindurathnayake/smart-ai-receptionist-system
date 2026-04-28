@@ -46,14 +46,13 @@ def check_in_patient(patient_id):
             "message": "Already checked in."
         }
     
-    # Generate next queue number
-    last_q = Queue.query.filter(db.func.date(Queue.created_at) == today).order_by(Queue.queue_number.desc()).first()
+    # Generate next queue number for this specific session
+    last_q = Queue.query.filter_by(doctor_session_id=appointment.doctor_session_id).order_by(Queue.queue_number.desc()).first()
     next_num = (last_q.queue_number + 1) if last_q else 1
     
-    # SMART WAIT TIME: 10 mins per patient ahead
-    # Count how many are already WAITING or Active today
+    # SMART WAIT TIME: 10 mins per patient ahead IN THIS SESSION
     patients_ahead = Queue.query.filter(
-        db.func.date(Queue.created_at) == today,
+        Queue.doctor_session_id == appointment.doctor_session_id,
         Queue.status.in_(["WAITING", "Active"])
     ).count()
     estimated_wait = patients_ahead * 10 
@@ -61,6 +60,8 @@ def check_in_patient(patient_id):
     # Create queue record
     qe = Queue(
         appointment_id=appointment.id,
+        patient_id=patient_id,
+        doctor_session_id=appointment.doctor_session_id,
         queue_number=next_num,
         estimated_wait_time=estimated_wait,
         status="WAITING",
@@ -68,6 +69,7 @@ def check_in_patient(patient_id):
     )
     
     appointment.status = "Checked-In"
+    appointment.queue_number = next_num
     db.session.add(qe)
     db.session.commit()
 
@@ -84,10 +86,14 @@ def check_in_patient(patient_id):
             wa_sent = send_checkin_whatsapp(patient.phone_number, full_name, next_num, next_num * 5, doctor_full)
             notifications["whatsapp"] = "sent" if wa_sent else "failed"
     
+    session = appointment.session
+    session_num = session.session_number if session else 1
+    
     return {
         "success": True, 
         "queue_number": next_num, 
-        "estimated_wait_time": next_num * 5,
+        "estimated_wait_time": (next_num - 1) * 10,
+        "token": f"S{session_num}-{next_num:02d}",
         "doctor": doctor_full,
         "department": dept_name,
         "room": room,
@@ -213,18 +219,23 @@ def get_patient_queue_status(patient_id):
     if not queue_entry:
         return None
         
-    # Count people ahead
+    # Count people ahead in the same session
     people_ahead = Queue.query.filter(
         Queue.status == "WAITING",
-        Queue.queue_number < queue_entry.queue_number,
-        db.func.date(Queue.created_at) == today
+        Queue.doctor_session_id == queue_entry.doctor_session_id,
+        Queue.queue_number < queue_entry.queue_number
     ).count()
     
+    session = queue_entry.appointment.session
+    session_num = session.session_number if session else 1
+    token = f"S{session_num}-{queue_entry.queue_number:02d}"
+    
     return {
-        "token": f"TKN-{queue_entry.queue_number:03d}",
+        "token": token,
         "department": queue_entry.appointment.specialist.department if queue_entry.appointment.specialist else "General",
         "people_ahead": people_ahead,
-        "estimated_wait": people_ahead * 5
+        "estimated_wait": people_ahead * 10,
+        "session_name": f"Session {session_num}" if session else "Active Session"
     }
 
 def get_all_queues_status():
@@ -234,40 +245,95 @@ def get_all_queues_status():
     today = date.today()
     
     # Get all WAITING or Active queue entries for today
+    # Filter by appointment date and ensure we only get entries that have a session
     active_queues = Queue.query.join(Appointment).filter(
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status.in_(["WAITING", "Active"])
-    ).order_by(Queue.queue_number.asc()).all()
+        Queue.status.in_(["ACTIVE", "WAITING"])
+    ).order_by(Queue.status.desc(), Queue.queue_number.asc()).all()
     
     status_map = {}
     
     for qe in active_queues:
-        dept = qe.appointment.specialist.department or "General"
-        room = qe.appointment.session.room_number if qe.appointment.session else "TBA"
+        session = qe.appointment.session
+        if not session: continue
         
-        # We only care about the first (next) person in each department/room combo
-        key = f"{dept} - {room}"
-        if key not in status_map:
-            patient = qe.appointment.patient
-            patient_id_formatted = f"PAT-{patient.id:04d}" if patient else "N/A"
-            
-            status_map[key] = {
+        dept = qe.appointment.specialist.department or "General"
+        room = session.room_number or "TBA"
+        session_id = session.id
+        session_num = session.session_number if session.session_number is not None else 1
+        session_name = f"Session {session_num}"
+        
+        # Key by session_id to ensure absolute isolation
+        if session_id not in status_map:
+            status_map[session_id] = {
                 "department": dept,
                 "room": room,
-                "next_patient": patient_id_formatted,
-                "status": "NEXT" if qe.status == "WAITING" else "NOW SERVING"
+                "session": session_name,
+                "session_status": session.status,
+                "doctor": qe.appointment.specialist.name,
+                "token": "---", # Default to no one serving
+                "status": "NEXT"
             }
+        
+        # If we found an ACTIVE patient for this session, they take priority as "NOW SERVING"
+        if qe.status == "ACTIVE":
+            token = f"S{session_num}-{qe.queue_number:02d}"
+            status_map[session_id].update({
+                "token": token,
+                "status": "NOW SERVING"
+            })
+        # If no one is active yet, we can show the first WAITING patient as "NEXT"
+        elif status_map[session_id]["token"] == "---":
+             token = f"S{session_num}-{qe.queue_number:02d}"
+             status_map[session_id].update({
+                "token": token,
+                "status": "NEXT"
+            })
             
     return list(status_map.values())
+    
+def start_session(doctor_session_id):
+    """
+    Starts a doctor's session, moving it from NOT_STARTED to ACTIVE.
+    """
+    from app.models.doctor_session import DoctorSession
+    session = DoctorSession.query.get(doctor_session_id)
+    if not session:
+        return {"error": "Session not found."}
+        
+    session.status = "ACTIVE"
+    db.session.commit()
+    
+    # EMIT REAL-TIME UPDATE
+    socketio.emit('session_status_changed', {'doctor_session_id': doctor_session_id, 'status': 'ACTIVE'})
+    socketio.emit('queue_updated', {'type': 'session_start', 'doctor_session_id': doctor_session_id})
+    
+    return {"success": True, "message": "Session started.", "new_status": "ACTIVE"}
 
-def call_next_patient(session_id):
+def call_next_patient(doctor_session_id):
     """
     Completes the current active patient and calls the next one from the waiting list.
     """
+    from app.models.doctor_session import DoctorSession
+    session = DoctorSession.query.get(doctor_session_id)
+    
+    if not session:
+        return {"error": "Session not found."}
+        
+    # SESSION STATUS GUARDS
+    if session.status == "NOT_STARTED":
+        return {"error": "Session has not started yet."}
+    if session.status == "PAUSED":
+        return {"error": "Session is currently paused."}
+    if session.status == "ENDED":
+        return {"error": "Session has ended."}
+    if session.status == "Cancelled":
+        return {"error": "Session has been cancelled."}
+
     # 1. Complete the currently active patient for this session
     active_qe = Queue.query.join(Appointment).filter(
-        Appointment.session_id == session_id,
-        Queue.status == "Active"
+        Appointment.doctor_session_id == doctor_session_id,
+        Queue.status == "ACTIVE"
     ).first()
     
     if active_qe:
@@ -277,7 +343,7 @@ def call_next_patient(session_id):
     
     # 2. Call the next patient in WAITING
     next_qe = Queue.query.join(Appointment).filter(
-        Appointment.session_id == session_id,
+        Appointment.doctor_session_id == doctor_session_id,
         Queue.status == "WAITING"
     ).order_by(Queue.queue_number.asc()).first()
     
@@ -285,18 +351,21 @@ def call_next_patient(session_id):
         db.session.commit()
         return {"success": True, "message": "Queue cleared. No more patients waiting."}
     
-    next_qe.status = "Active"
+    next_qe.status = "ACTIVE"
     db.session.commit()
     
     # EMIT REAL-TIME UPDATE
+    session_num = next_qe.appointment.session.session_number if next_qe.appointment.session else 1
+    token = f"S{session_num}-{next_qe.queue_number:02d}"
+    
     socketio.emit('queue_updated', {
         'type': 'call_next', 
-        'session_id': session_id,
-        'token': f"TKN-{next_qe.queue_number:03d}",
+        'doctor_session_id': doctor_session_id,
+        'token': token,
         'patient_name': next_qe.appointment.patient.full_name,
         'room': next_qe.appointment.session.room_number if next_qe.appointment.session else "TBA"
     })
-    socketio.emit('session_status_changed', {'session_id': session_id, 'status': 'Active'})
+    socketio.emit('session_status_changed', {'doctor_session_id': doctor_session_id, 'status': 'ACTIVE'})
     
     return {
         "success": True, 
@@ -305,55 +374,57 @@ def call_next_patient(session_id):
         "patient_name": next_qe.appointment.patient.full_name
     }
 
-def toggle_session_pause(session_id):
+def toggle_session_pause(doctor_session_id):
     """
     Pauses or resumes a doctor's session.
     """
     from app.models.doctor_session import DoctorSession
-    session = DoctorSession.query.get(session_id)
+    session = DoctorSession.query.get(doctor_session_id)
     if not session:
         return {"error": "Session not found."}
     
-    if session.status == "Paused":
-        session.status = "Active"
+    if session.status and session.status.upper() == "PAUSED":
+        session.status = "ACTIVE"
         msg = "Session resumed."
-    else:
-        session.status = "Paused"
+    elif (session.status and session.status.upper() == "ACTIVE") or not session.status or session.status == "Active":
+        session.status = "PAUSED"
         msg = "Session paused."
+    else:
+        return {"error": f"Cannot pause/resume session in {session.status} state."}
         
     db.session.commit()
     
     # EMIT REAL-TIME UPDATE
-    socketio.emit('session_status_changed', {'session_id': session_id, 'status': session.status})
-    socketio.emit('queue_updated', {'type': 'session_toggle', 'session_id': session_id})
+    socketio.emit('session_status_changed', {'doctor_session_id': doctor_session_id, 'status': session.status})
+    socketio.emit('queue_updated', {'type': 'session_toggle', 'doctor_session_id': doctor_session_id})
 
     return {"success": True, "message": msg, "new_status": session.status}
 
-def end_session(session_id):
+def end_session(doctor_session_id):
     """
     Ends a session and cancels all remaining waiting patients.
     """
     from app.models.doctor_session import DoctorSession
-    session = DoctorSession.query.get(session_id)
+    session = DoctorSession.query.get(doctor_session_id)
     if not session:
         return {"error": "Session not found."}
         
     # Cancel all WAITING patients
     waiting_qes = Queue.query.join(Appointment).filter(
-        Appointment.session_id == session_id,
+        Appointment.doctor_session_id == doctor_session_id,
         Queue.status == "WAITING"
     ).all()
     
     for qe in waiting_qes:
-        qe.status = "CANCELLED"
-        qe.appointment.status = "Cancelled"
+        qe.status = "NEEDS_RESCHEDULE"
+        qe.appointment.status = "Needs Reschedule"
         
-    session.status = "Completed"
+    session.status = "ENDED"
     db.session.commit()
     
     # EMIT REAL-TIME UPDATE
-    socketio.emit('session_status_changed', {'session_id': session_id, 'status': 'Completed'})
-    socketio.emit('queue_updated', {'type': 'session_end', 'session_id': session_id})
+    socketio.emit('session_status_changed', {'doctor_session_id': doctor_session_id, 'status': 'ENDED'})
+    socketio.emit('queue_updated', {'type': 'session_end', 'doctor_session_id': doctor_session_id})
     
     return {"success": True, "message": f"Session ended. {len(waiting_qes)} waiting patients cancelled."}
 
@@ -383,8 +454,9 @@ def get_all_sessions_queues():
     from app.models.doctor_session import DoctorSession
     
     # Get all sessions for today
+    current_day = datetime.now().strftime("%A")
     sessions = DoctorSession.query.filter(
-        DoctorSession.day_of_week == datetime.now().strftime("%A"),
+        (DoctorSession.day_of_week == current_day) | (DoctorSession.session_date == today),
         DoctorSession.status != "Cancelled"
     ).all()
     
@@ -392,24 +464,25 @@ def get_all_sessions_queues():
     for session in sessions:
         # Get active patient
         active_qe = Queue.query.join(Appointment).filter(
-            Appointment.session_id == session.id,
+            Appointment.doctor_session_id == session.id,
             db.func.date(Appointment.appointment_date) == today,
-            Queue.status == "Active"
+            Queue.status == "ACTIVE"
         ).first()
         
         # Get waiting list
         waiting_qes = Queue.query.join(Appointment).filter(
-            Appointment.session_id == session.id,
+            Appointment.doctor_session_id == session.id,
             db.func.date(Appointment.appointment_date) == today,
             Queue.status == "WAITING"
         ).order_by(Queue.queue_number.asc()).all()
         
         waiting_list = []
+        session_num = session.session_number if session.session_number is not None else 1
         for i, qe in enumerate(waiting_qes):
             smart_wait = (i + 1) * 10 # 10 mins per person ahead
             waiting_list.append({
                 "id": qe.id,
-                "token": f"TKN-{qe.queue_number:03d}",
+                "token": f"S{session_num}-{qe.queue_number:02d}",
                 "patient": qe.appointment.patient.full_name if qe.appointment.patient else "Unknown",
                 "patient_id": qe.appointment.patient_id,
                 "waitTime": f"{smart_wait}m",
@@ -418,13 +491,14 @@ def get_all_sessions_queues():
             
         results.append({
             "session_id": session.id,
+            "session_number": session_num,
             "doctor": session.specialist.name if session.specialist else "N/A",
             "department": session.specialist.department if session.specialist else "N/A",
             "room": session.room_number or "N/A",
             "status": session.status,
             "current_patient": {
                 "id": active_qe.id,
-                "token": f"TKN-{active_qe.queue_number:03d}",
+                "token": f"S{session_num}-{active_qe.queue_number:02d}",
                 "name": active_qe.appointment.patient.full_name if active_qe.appointment and active_qe.appointment.patient else "Unknown"
             } if active_qe else None,
             "waiting_count": len(waiting_list),

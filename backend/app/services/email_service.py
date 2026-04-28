@@ -65,7 +65,7 @@ def send_appointment_confirmation(patient_email, patient_name, appointment_detai
                     </div>
                     <div class="info-item">
                         <div class="info-label">Session ID</div>
-                        <div class="info-value">#{{ session_id }}</div>
+                        <div class="info-value">#{{ doctor_session_id }}</div>
                     </div>
                 </div>
 
@@ -107,7 +107,7 @@ def send_appointment_confirmation(patient_email, patient_name, appointment_detai
         doctor_name=doctor_details['name'],
         specialty=doctor_details['specialty'],
         date=appointment_details['appointment_date'],
-        session_id=appointment_details['session_id'],
+        doctor_session_id=appointment_details['doctor_session_id'],
         amount=doctor_details['consultation_fee']
     )
     

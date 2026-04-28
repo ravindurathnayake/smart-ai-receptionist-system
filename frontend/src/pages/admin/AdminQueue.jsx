@@ -65,6 +65,15 @@ const AdminQueue = () => {
     }
   };
 
+  const handleStartSession = async (sessionId) => {
+    try {
+      await apiService.startSession(sessionId);
+      fetchQueueData();
+    } catch (err) {
+      alert("Error starting session");
+    }
+  };
+
   const handleTogglePause = async (sessionId) => {
     try {
       await apiService.toggleSessionPause(sessionId);
@@ -168,16 +177,23 @@ const AdminQueue = () => {
                      <p className="text-xs font-bold text-primary uppercase tracking-tighter">{session.department}</p>
                      <h4 className="font-bold text-on-surface">{session.doctor}</h4>
                    </div>
-                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                      session.status === 'Active' ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                      session.status?.toUpperCase() === 'ACTIVE' ? 'bg-success/10 text-success' : 
+                      session.status?.toUpperCase() === 'PAUSED' ? 'bg-warning/10 text-warning' :
+                      session.status?.toUpperCase() === 'ENDED' || session.status?.toUpperCase() === 'COMPLETED' ? 'bg-error/10 text-error' :
+                      'bg-outline-variant text-outline'
                    }`}>
-                     {session.status}
+                     {session.status?.replace('_', ' ')}
                    </span>
                  </div>
                  <div className="flex items-center justify-between mt-4">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-rounded text-sm text-on-surface-variant">groups</span>
                       <span className="text-xs font-bold text-on-surface-variant">{session.waiting_count} Waiting</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-rounded text-sm text-primary">schedule</span>
+                      <span className="text-xs font-bold text-primary">Session {session.session_number}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-rounded text-sm text-on-surface-variant">meeting_room</span>
@@ -210,39 +226,63 @@ const AdminQueue = () => {
                           </>
                         ) : (
                           <>
-                            <h3 className="text-4xl font-black text-on-surface-variant/30 font-display">No Active Patient</h3>
-                            <p className="text-on-surface-variant font-medium">Call the next patient from the list below.</p>
+                            <h3 className="text-4xl font-black text-on-surface-variant/30 font-display">
+                               {activeSession.status?.toUpperCase() === 'NOT_STARTED' ? 'Session Not Started' :
+                                activeSession.status?.toUpperCase() === 'PAUSED' ? 'Session Paused' :
+                                (activeSession.status?.toUpperCase() === 'ENDED' || activeSession.status?.toUpperCase() === 'COMPLETED') ? 'Session Ended' :
+                                'No Active Patient'}
+                            </h3>
+                            <p className="text-on-surface-variant font-medium">
+                               {activeSession.status?.toUpperCase() === 'NOT_STARTED' ? 'Please start the session to begin calling patients.' :
+                                activeSession.status?.toUpperCase() === 'PAUSED' ? 'Queue calling is temporarily paused.' :
+                                (activeSession.status?.toUpperCase() === 'ENDED' || activeSession.status?.toUpperCase() === 'COMPLETED') ? 'No further queue calls are allowed.' :
+                                'Click Call Next Patient to begin.'}
+                            </p>
                           </>
                         )}
                       </div>
                       
                       <div className="flex flex-col gap-3">
-                        <button 
-                          onClick={() => handleCallNext(activeSession.session_id)}
-                          disabled={activeSession.waiting_count === 0 && activeSession.current_patient}
-                          className="bg-primary text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
-                        >
-                          <span className="material-symbols-rounded">campaign</span>
-                          Call Next Patient
-                        </button>
-                        <div className="flex gap-2">
+                        {activeSession.status?.toUpperCase() === 'NOT_STARTED' ? (
                            <button 
-                            onClick={() => handleTogglePause(activeSession.session_id)}
-                            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-                               activeSession.status === 'Paused' 
-                               ? 'bg-success/5 border-success text-success' 
-                               : 'bg-white border-outline-variant/30 text-on-surface hover:bg-surface-container'
-                            }`}
+                             onClick={() => handleStartSession(activeSession.session_id)}
+                             className="bg-primary text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                            >
-                             {activeSession.status === 'Paused' ? 'Resume Queue' : 'Pause Queue'}
+                             <span className="material-symbols-rounded">play_circle</span>
+                             Start Session
                            </button>
-                           <button 
-                             onClick={() => handleEndSession(activeSession.session_id)}
-                             className="flex-1 bg-white border-2 border-outline-variant/30 text-error py-3 rounded-xl font-bold hover:bg-error/5 transition-all"
-                           >
-                             End Session
-                           </button>
-                        </div>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => handleCallNext(activeSession.session_id)}
+                              disabled={activeSession.waiting_count === 0 && !activeSession.current_patient || activeSession.status?.toUpperCase() !== 'ACTIVE'}
+                              className="bg-primary text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                            >
+                              <span className="material-symbols-rounded">campaign</span>
+                              Call Next Patient
+                            </button>
+                            <div className="flex gap-2">
+                               <button 
+                                onClick={() => handleTogglePause(activeSession.session_id)}
+                                disabled={activeSession.status?.toUpperCase() === 'ENDED' || activeSession.status?.toUpperCase() === 'COMPLETED'}
+                                className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
+                                   activeSession.status?.toUpperCase() === 'PAUSED' 
+                                   ? 'bg-success/5 border-success text-success' 
+                                   : 'bg-white border-outline-variant/30 text-on-surface hover:bg-surface-container'
+                                }`}
+                               >
+                                 {activeSession.status?.toUpperCase() === 'PAUSED' ? 'Resume Queue' : 'Pause Queue'}
+                               </button>
+                               <button 
+                                 onClick={() => handleEndSession(activeSession.session_id)}
+                                 disabled={activeSession.status?.toUpperCase() === 'ENDED' || activeSession.status?.toUpperCase() === 'COMPLETED'}
+                                 className="flex-1 bg-white border-2 border-outline-variant/30 text-error py-3 rounded-xl font-bold hover:bg-error/5 transition-all disabled:opacity-30"
+                               >
+                                 End Session
+                               </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                    </div>
                 </div>
