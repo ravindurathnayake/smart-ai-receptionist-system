@@ -122,23 +122,16 @@ const AdminAppointments = () => {
     // Apply Sorting
     result.sort((a, b) => {
       if (sortBy === 'Recent First') {
-        // Sort by Date (Descending) then Time (Descending)
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        if (dateB - dateA !== 0) return dateB - dateA;
-        return (b.time || "").localeCompare(a.time || "");
+        // Sort by raw_id (Descending) which represents creation order
+        return b.raw_id - a.raw_id;
       } else if (sortBy === 'Time Ascending') {
-        // Sort by Date (Ascending) then Time (Ascending)
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        if (dateA - dateB !== 0) return dateA - dateB;
-        return (a.time || "").localeCompare(b.time || "");
+        const dateA = new Date(a.date + ' ' + a.time);
+        const dateB = new Date(b.date + ' ' + b.time);
+        return dateA - dateB;
       } else if (sortBy === 'Time Descending') {
-        // Sort by Date (Descending) then Time (Descending)
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        if (dateB - dateA !== 0) return dateB - dateA;
-        return (b.time || "").localeCompare(a.time || "");
+        const dateA = new Date(a.date + ' ' + a.time);
+        const dateB = new Date(b.date + ' ' + b.time);
+        return dateB - dateA;
       } else if (sortBy === 'Patient Name') {
         return (a.patient || "").toLowerCase().localeCompare((b.patient || "").toLowerCase());
       }

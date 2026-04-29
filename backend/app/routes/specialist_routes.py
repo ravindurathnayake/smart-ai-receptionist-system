@@ -128,8 +128,9 @@ def add_specialist():
                 room_number=sess.get("room_number")
             )
             db.session.add(new_sess)
-        
         db.session.commit()
+        from ..extensions import socketio
+        socketio.emit('specialist_updated', {'specialist_id': new_s.id}, namespace='/')
         return success_response("Specialist added successfully", {"id": new_s.id}, 201)
     except Exception as e:
         db.session.rollback()
@@ -196,8 +197,9 @@ def update_specialist(specialist_id):
                     room_number=sess.get("room_number")
                 )
                 db.session.add(new_sess)
-        
         db.session.commit()
+        from ..extensions import socketio
+        socketio.emit('specialist_updated', {'specialist_id': specialist_id}, namespace='/')
         return success_response("Specialist updated successfully")
     except Exception as e:
         import traceback

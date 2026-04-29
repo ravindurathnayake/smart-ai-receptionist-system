@@ -20,7 +20,7 @@ const generateDates = () => {
             dayName: days[d.getDay()],
             date: d.getDate(),
             month: months[d.getMonth()],
-            iso: d.toISOString().slice(0, 10),
+            iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
             isWeekend: d.getDay() === 0 || d.getDay() === 6,
             isToday: i === 0,
         };
@@ -987,21 +987,25 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                                         {groupedSessions[period].map((sess, idx) => {
                                             const slotId = `${sess.day_of_week}-${sess.start_time}`;
                                             const isSelected = selectedSlot && `${selectedSlot.day_of_week}-${selectedSlot.start_time}` === slotId;
+                                            const isFull = (sess.current_bookings || 0) >= sess.max_patients;
                                             return (
                                                 <button
                                                     key={idx}
-                                                    onClick={() => onSlotSelect(sess)}
+                                                    onClick={() => !isFull && onSlotSelect(sess)}
+                                                    disabled={isFull}
                                                     className={`time-slot group glass-panel p-4 rounded-[1.5rem] border text-left transition-all ${isSelected
                                                             ? 'selected border-primary bg-primary/5 shadow-lg shadow-primary/5'
-                                                            : 'border-slate-100 hover:border-primary/30 hover:bg-slate-50'
+                                                            : isFull
+                                                                ? 'border-red-100 bg-red-50/30 cursor-not-allowed opacity-75'
+                                                                : 'border-slate-100 hover:border-primary/30 hover:bg-slate-50'
                                                         }`}
                                                 >
                                                     <div className="flex justify-between items-start mb-3">
-                                                        <span className={`text-base font-black ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                                                        <span className={`text-base font-black ${isSelected ? 'text-primary' : isFull ? 'text-red-500' : 'text-on-surface'}`}>
                                                             {sess.start_time}
                                                         </span>
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isSelected ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'}`}>
-                                                            {sess.session_number ? `Session ${sess.session_number} • ` : ''}{sess.room_number}
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isSelected ? 'bg-primary/10 text-primary' : isFull ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                            {isFull ? 'FULL' : (sess.session_number ? `Session ${sess.session_number} • ` : '') + sess.room_number}
                                                         </span>
                                                     </div>
 

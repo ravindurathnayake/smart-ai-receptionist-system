@@ -159,7 +159,8 @@ const AdminDoctors = () => {
   };
 
   const addSessionRow = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     setFormData({
       ...formData,
       sessions: [...formData.sessions, {
@@ -649,7 +650,7 @@ const AdminDoctors = () => {
                                     type="number"
                                     className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
                                     value={session.max_patients}
-                                    onChange={(e) => handleSessionChange(idx, 'max_patients', e.target.value)}
+                                    onChange={(e) => handleSessionChange(idx, 'max_patients', parseInt(e.target.value, 10) || 0)}
                                   />
                                 </div>
                               </div>
