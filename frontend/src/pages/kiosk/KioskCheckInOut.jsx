@@ -82,6 +82,7 @@ const KioskCheckInOut = () => {
     const [profiles, setProfiles] = useState(null);
     const [checkInData, setCheckInData] = useState(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [noAppointment, setNoAppointment] = useState(false);
     const webcamRef = React.useRef(null);
 
     useEffect(() => {
@@ -93,13 +94,13 @@ const KioskCheckInOut = () => {
 
     useEffect(() => {
         let interval = null;
-        if (scanning && !isProcessing && !showSuccessModal && !profiles) {
+        if (scanning && !isProcessing && !showSuccessModal && !profiles && !noAppointment) {
             interval = setInterval(() => {
                 captureAndRecognize();
             }, 3000); // Try every 3 seconds
         }
         return () => clearInterval(interval);
-    }, [scanning, isProcessing, showSuccessModal, profiles]);
+    }, [scanning, isProcessing, showSuccessModal, profiles, noAppointment]);
 
     const saveSession = (id, name, nic) => {
         localStorage.setItem('activePatient', JSON.stringify({
@@ -125,26 +126,38 @@ const KioskCheckInOut = () => {
                 ? await apiService.loginPatientWithFace(imageSrc)
                 : await apiService.faceCheckIn(imageSrc);
             
-            const data = response.data || response; // loginPatientWithFace returns success_response wrapper
+            // Normalize data: login-face uses success_response (data.data), 
+            // while face-check-in returns it directly.
+            let payload = response.data || response;
+            if (payload.success === true && payload.data) {
+                payload = payload.data;
+            }
 
-            if (data.profiles) {
+            if (payload.profiles) {
                 setScanning(false);
-                setProfiles(data.profiles);
-            } else if (response.success || (response.status === 'success')) {
+                setProfiles(payload.profiles);
+            } else if (payload.success || payload.id || payload.patient_id) {
                 setScanning(false);
-                const pId = data.id || data.patient_id;
-                const pName = data.name || data.patient_name;
-                saveSession(pId, pName, data.nic || null);
+                const pId = payload.id || payload.patient_id;
+                const pName = payload.name || payload.patient_name || payload.full_name;
+                saveSession(pId, pName, payload.nic || null);
                 
                 if (isCheckOutMode) {
                     navigate('/checkout');
                 } else {
-                    setCheckInData(data);
+                    setCheckInData(payload);
                     setShowSuccessModal(true);
                 }
+            } else if (payload.error && payload.error.includes("No appointment found")) {
+                setScanning(false);
+                setNoAppointment(true);
             }
         } catch (err) {
             console.log('Face not recognized yet...');
+            if (err.error && err.error.includes("No appointment found")) {
+                setScanning(false);
+                setNoAppointment(true);
+            }
         } finally {
             setIsProcessing(false);
         }
@@ -152,6 +165,7 @@ const KioskCheckInOut = () => {
 
     const handleSelectProfile = async (profile) => {
         setIsProcessing(true);
+        setNoAppointment(false);
         try {
             if (isCheckOutMode) {
                 saveSession(profile.id, profile.name, profile.nic);
@@ -163,10 +177,18 @@ const KioskCheckInOut = () => {
                     setCheckInData(response);
                     setShowSuccessModal(true);
                     setProfiles(null);
+                } else if (response.error && response.error.includes("No appointment found")) {
+                    setNoAppointment(true);
+                    setProfiles(null);
                 }
             }
         } catch (err) {
-            alert(err.error || 'Selection failed');
+            if (err.error && err.error.includes("No appointment found")) {
+                setNoAppointment(true);
+                setProfiles(null);
+            } else {
+                alert(err.error || 'Selection failed');
+            }
         } finally {
             setIsProcessing(false);
         }
@@ -305,6 +327,46 @@ const KioskCheckInOut = () => {
                                         {new Date().toLocaleString()}
                                     </p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* No Appointment Modal */}
+            {noAppointment && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+                    <div className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl border border-white animate-scale-up overflow-hidden">
+                        <div className="bg-warning-container p-10 text-on-warning-container text-center">
+                            <div className="w-20 h-20 bg-warning text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg animate-pulse">
+                                <span className="material-symbols-outlined text-5xl">event_busy</span>
+                            </div>
+                            <h2 className="text-3xl font-black font-headline">No Appointment Found</h2>
+                            <p className="text-on-warning-container/80 font-medium mt-2">We recognized you, but you don't have a scheduled appointment for today.</p>
+                        </div>
+
+                        <div className="p-10 space-y-6">
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    onClick={() => { setNoAppointment(false); setScanning(true); }}
+                                    className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                >
+                                    <span className="material-symbols-outlined">refresh</span>
+                                    Try Scanning Again
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/doctors')}
+                                    className="w-full py-4 bg-white text-primary border-2 border-primary rounded-2xl font-bold text-base hover:bg-primary/5 transition-all flex items-center justify-center gap-3"
+                                >
+                                    <span className="material-symbols-outlined">calendar_add_on</span>
+                                    Book New Appointment
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/')}
+                                    className="w-full py-3 text-slate-400 font-bold text-xs hover:text-primary transition-colors"
+                                >
+                                    Back to Home Screen
+                                </button>
                             </div>
                         </div>
                     </div>

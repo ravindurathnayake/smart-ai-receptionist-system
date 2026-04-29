@@ -112,6 +112,12 @@ const PatientDashboard = () => {
         const savedPatient = localStorage.getItem('activePatient');
         if (!savedPatient) return;
         const parsedPatient = JSON.parse(savedPatient);
+        if (!parsedPatient.id) {
+            console.error("Patient ID is missing in session");
+            navigate('/patient-login');
+            return;
+        }
+
         try {
             const historyData = await apiService.getPatientHistory(parsedPatient.id);
             setHistory(historyData?.appointments || []);
@@ -146,6 +152,12 @@ const PatientDashboard = () => {
         }
         
         const parsedPatient = JSON.parse(savedPatient);
+        if (!parsedPatient.id) {
+            console.error("Invalid session data");
+            localStorage.removeItem('activePatient');
+            navigate('/patient-login');
+            return;
+        }
         parsedPatient.full_name = parsedPatient.full_name || parsedPatient.name;
         setPatient(parsedPatient);
 
@@ -284,7 +296,7 @@ const PatientDashboard = () => {
             <SideNav />
 
             <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
-                <KioskTopBar title="Personal Dashboard" patientName={patient.full_name} />
+                <KioskTopBar title="Personal Dashboard" patientName={patient?.full_name} />
 
                 <div className="ambient-blob-top" />
                 <div className="ambient-blob-bottom" />
@@ -298,13 +310,13 @@ const PatientDashboard = () => {
                                 
                                 <div className="relative z-10 flex items-start gap-8">
                                     <div className="w-24 h-24 rounded-3xl profile-gradient flex items-center justify-center text-white text-4xl font-black shadow-xl border-4 border-white">
-                                        {patient.full_name.charAt(0)}
+                                        {(patient?.full_name || 'P').charAt(0)}
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <h2 className="text-3xl font-black text-on-surface font-headline tracking-tight">{patient.full_name}</h2>
-                                                <p className="text-slate-500 font-bold mt-1">Patient ID: <span className="text-primary">PAT-{patient.id.toString().padStart(4, '0')}</span></p>
+                                                <h2 className="text-3xl font-black text-on-surface font-headline tracking-tight">{patient?.full_name || 'Patient'}</h2>
+                                                <p className="text-slate-500 font-bold mt-1">Patient ID: <span className="text-primary">PAT-{patient?.id ? patient.id.toString().padStart(4, '0') : '----'}</span></p>
                                             </div>
                                             <button 
                                                 onClick={handleEditProfile}

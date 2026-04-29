@@ -4,6 +4,7 @@ import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
 import KioskTopBar from '../../components/kiosk/KioskTopBar';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import './KioskQueueStatus.css';
 
 // ─── Journey Steps ────────────────────────────────────────────────────────────
@@ -287,6 +288,8 @@ const KioskQueueStatus = () => {
     const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
     const [selectedNewSessionId, setSelectedNewSessionId] = useState(null);
     const [newDate, setNewDate] = useState('');
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [apptToCancel, setApptToCancel] = useState(null);
 
     const fetchQueue = async (pData) => {
         try {
@@ -350,16 +353,21 @@ const KioskQueueStatus = () => {
         };
     }, [navigate]);
 
-    const handleCancelAppointment = async (apptId) => {
-        if (window.confirm("Are you sure you want to cancel this appointment?")) {
-            try {
-                await apiService.cancelAppointment(apptId);
-                alert("Appointment cancelled successfully.");
-                fetchQueue(patient);
-            } catch (err) {
-                console.error("Cancel failed:", err);
-                alert("Failed to cancel appointment.");
-            }
+    const handleCancelAppointment = (apptId) => {
+        setApptToCancel(apptId);
+        setShowCancelConfirm(true);
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!apptToCancel) return;
+        try {
+            await apiService.cancelAppointment(apptToCancel);
+            setShowCancelConfirm(false);
+            setApptToCancel(null);
+            fetchQueue(patient);
+        } catch (err) {
+            console.error("Cancel failed:", err);
+            alert("Failed to cancel appointment.");
         }
     };
 
@@ -733,6 +741,17 @@ const KioskQueueStatus = () => {
             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
             <span>Ask MediAssist AI</span>
         </button>
+
+        <ConfirmModal 
+            isOpen={showCancelConfirm}
+            title="Cancel Appointment?"
+            message="Are you sure you want to cancel your appointment? This action cannot be undone."
+            confirmText="Yes, Cancel"
+            cancelText="No, Keep It"
+            onConfirm={handleConfirmCancel}
+            onCancel={() => setShowCancelConfirm(false)}
+            type="warning"
+        />
     </div>
     );
 };

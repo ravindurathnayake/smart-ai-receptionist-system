@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
 import { useAdminSearch } from '../../context/AdminSearchContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import './AdminDoctors.css';
 
 const AdminDoctors = () => {
@@ -14,6 +15,10 @@ const AdminDoctors = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
+  const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const [doctorToDelete, setDoctorToDelete] = useState(null);
   const [formData, setFormData] = useState({
     title: 'Dr.',
     name: '',
@@ -199,15 +204,45 @@ const AdminDoctors = () => {
     try {
       if (action === 'start') {
         await apiService.startSession(sessionId);
+        fetchData(true);
       } else if (action === 'end') {
-        if (window.confirm('Mark doctor as left and end this session?')) {
-          await apiService.endSession(sessionId);
-        }
+        setSelectedSessionId(sessionId);
+        setShowEndSessionConfirm(true);
       }
-      fetchData(true);
     } catch (err) {
       console.error('Failed to update session status:', err);
       alert('Action failed. Please try again.');
+    }
+  };
+
+  const handleConfirmEndSession = async () => {
+    if (!selectedSessionId) return;
+    try {
+      await apiService.endSession(selectedSessionId);
+      setShowEndSessionConfirm(false);
+      setSelectedSessionId(null);
+      fetchData(true);
+    } catch (err) {
+      console.error('Failed to end session:', err);
+      alert('Failed to end session.');
+    }
+  };
+
+  const handleDeleteClick = (doctorId) => {
+    setDoctorToDelete(doctorId);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!doctorToDelete) return;
+    try {
+      await apiService.deleteSpecialist(doctorToDelete);
+      setShowDeleteConfirm(false);
+      setDoctorToDelete(null);
+      fetchData();
+    } catch (err) {
+      console.error('Failed to delete specialist:', err);
+      alert('Failed to delete specialist record.');
     }
   };
 
@@ -358,7 +393,7 @@ const AdminDoctors = () => {
                         <span className="material-symbols-rounded text-xl">tune</span>
                       </button>
                       <button
-                        onClick={() => handleDelete(doc.id)}
+                        onClick={() => handleDeleteClick(doc.id)}
                         className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:text-error hover:bg-error/10 transition-all"
                         title="Delete Doctor"
                       >
@@ -703,6 +738,28 @@ const AdminDoctors = () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal 
+        isOpen={showEndSessionConfirm}
+        title="End Medical Session?"
+        message="Are you sure you want to mark this doctor as left and end the current session? This will affect all active patient queues for this room."
+        confirmText="End Session Now"
+        cancelText="Keep Session Active"
+        onConfirm={handleConfirmEndSession}
+        onCancel={() => setShowEndSessionConfirm(false)}
+        type="warning"
+      />
+
+      <ConfirmModal 
+        isOpen={showDeleteConfirm}
+        title="Remove Specialist?"
+        message="Are you sure you want to permanently remove this specialist from the directory? This will delete all their assigned sessions and records."
+        confirmText="Delete Permanently"
+        cancelText="Keep Directory"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        type="danger"
+      />
     </div>
   );
 };

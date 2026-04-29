@@ -50,6 +50,7 @@ const KioskManualCheckIn = () => {
     const [submitted, setSubmitted] = useState(false);
     const [bookingData, setBookingData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [noAppointment, setNoAppointment] = useState(false);
 
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
@@ -83,14 +84,15 @@ const KioskManualCheckIn = () => {
         if (!isValid) return;
 
         setLoading(true);
+        setNoAppointment(false);
         try {
             if (isCheckOutMode) {
                 const identifier = form.nic || form.phone;
                 // Use loginByNic which returns profiles if linked
                 const response = await apiService.loginByNic(identifier);
                 
-                if (response.status === 'success' || response.data) {
-                    const data = response.data || response;
+                if (response.success === true && response.data) {
+                    const data = response.data;
                     if (data.length > 1) {
                         setProfiles(data);
                     } else if (data.length === 1) {
@@ -112,11 +114,17 @@ const KioskManualCheckIn = () => {
                     saveSession(response.patient_id, response.patient_name, form.nic);
                     setBookingData(response);
                     setSubmitted(true);
+                } else if (response.error && response.error.includes("No appointment found")) {
+                    setNoAppointment(true);
                 }
             }
         } catch (err) {
             console.error('Identification error:', err);
-            alert(err.error || 'Identification failed. Please try again.');
+            if (err.error && err.error.includes("No appointment found")) {
+                setNoAppointment(true);
+            } else {
+                alert(err.error || 'Identification failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -124,6 +132,7 @@ const KioskManualCheckIn = () => {
 
     const handleSelectProfile = async (profile) => {
         setLoading(true);
+        setNoAppointment(false);
         try {
             if (isCheckOutMode) {
                 saveSession(profile.id, profile.name || profile.full_name, profile.nic);
@@ -135,10 +144,18 @@ const KioskManualCheckIn = () => {
                     setBookingData(response);
                     setSubmitted(true);
                     setProfiles(null);
+                } else if (response.error && response.error.includes("No appointment found")) {
+                    setNoAppointment(true);
+                    setProfiles(null);
                 }
             }
         } catch (err) {
-            alert(err.error || 'Selection failed');
+            if (err.error && err.error.includes("No appointment found")) {
+                setNoAppointment(true);
+                setProfiles(null);
+            } else {
+                alert(err.error || 'Selection failed');
+            }
         } finally {
             setLoading(false);
         }
@@ -356,6 +373,50 @@ const KioskManualCheckIn = () => {
                                         <p className="text-[7px] font-black uppercase mt-3 tracking-widest">
                                             {new Date().toLocaleString()}
                                         </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : noAppointment ? (
+                            <div className="animate-scale-up w-full max-w-xl mx-auto bg-white rounded-[3rem] shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
+                                <div className="bg-warning-container p-10 text-on-warning-container text-center">
+                                    <div className="w-20 h-20 bg-warning text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg animate-pulse">
+                                        <span className="material-symbols-outlined text-5xl">event_busy</span>
+                                    </div>
+                                    <h2 className="text-3xl font-black font-headline">No Appointment Found</h2>
+                                    <p className="text-on-warning-container/80 font-medium mt-2">We couldn't find a scheduled appointment for you today.</p>
+                                </div>
+
+                                <div className="p-10 space-y-6">
+                                    <div className="p-6 bg-surface-container rounded-3xl border border-outline-variant/30">
+                                        <h4 className="font-bold text-on-surface mb-2">Possible Reasons:</h4>
+                                        <ul className="text-sm text-on-surface-variant space-y-2 list-disc ml-5 font-medium">
+                                            <li>The appointment is scheduled for another day.</li>
+                                            <li>The NIC or Phone Number entered was incorrect.</li>
+                                            <li>The appointment has already been completed or cancelled.</li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
+                                        <button 
+                                            onClick={() => setNoAppointment(false)}
+                                            className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                        >
+                                            <span className="material-symbols-outlined">refresh</span>
+                                            Try Again
+                                        </button>
+                                        <button 
+                                            onClick={() => navigate('/doctors')}
+                                            className="w-full py-4 bg-white text-primary border-2 border-primary rounded-2xl font-bold text-base hover:bg-primary/5 transition-all flex items-center justify-center gap-3"
+                                        >
+                                            <span className="material-symbols-outlined">calendar_add_on</span>
+                                            Book New Appointment
+                                        </button>
+                                        <button 
+                                            onClick={() => navigate('/')}
+                                            className="w-full py-3 text-slate-400 font-bold text-xs hover:text-primary transition-colors"
+                                        >
+                                            Back to Home Screen
+                                        </button>
                                     </div>
                                 </div>
                             </div>

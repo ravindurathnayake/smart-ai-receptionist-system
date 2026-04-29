@@ -54,7 +54,10 @@ export default {
         "on-surface": "#191c1d",
         "on-error-container": "#93000a",
         "surface-tint": "#005db6",
-        "surface-bright": "#f8f9fa"
+        "surface-bright": "#f8f9fa",
+        "warning": "#e67e22",
+        "warning-container": "#fdf2e9",
+        "on-warning-container": "#6e3e00"
       },
       borderRadius: {
         "DEFAULT": "0.25rem",

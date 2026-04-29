@@ -29,8 +29,19 @@ const AdminDashboard = () => {
       window.kioskTimeout = setTimeout(() => setKioskStatus('Offline'), 10000);
     });
 
+    // NEW NOTIFICATION LISTENER
+    socketService.on('new_notification', (data) => {
+      console.log("Real-time notification received:", data);
+      setNotifications(prev => {
+        // Avoid duplicates if any
+        if (prev.find(n => n.id === data.id)) return prev;
+        return [data, ...prev];
+      });
+    });
+
     return () => {
       socketService.off('kiosk_heartbeat');
+      socketService.off('new_notification');
     };
   }, []);
 

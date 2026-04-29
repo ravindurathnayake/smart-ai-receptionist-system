@@ -5,6 +5,9 @@ import './KioskHome.css';
 import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
 
+import AvatarImage from '../../assets/ai_receptionist_avatar.png';
+import Spline from '@splinetool/react-spline';
+
 const translations = {
   en: {
     welcome: "Ayubowan, Welcome",
@@ -354,8 +357,11 @@ const KioskHome = () => {
         setTimeout(() => setEmergencyNotification(null), 5000);
         break;
       case 'location':
-        setEmergencyNotification("📍 ER Location: Ground Floor, North Wing. Follow the red floor markers.");
-        setTimeout(() => setEmergencyNotification(null), 8000);
+        setEmergencyNotification("📍 Redirecting to Hospital Map... ER is highlighted on the Ground Floor.");
+        setTimeout(() => {
+            setEmergencyNotification(null);
+            navigate('/hospital-map?destination=emergency');
+        }, 2000);
         break;
       case 'staff':
         setEmergencyNotification("🧑‍⚕️ Staff alerted! A medical assistant will be with you shortly.");
@@ -450,6 +456,7 @@ const KioskHome = () => {
       <main className="flex-grow flex flex-col items-center justify-center relative px-8 gap-4 pt-2 pb-8 overflow-hidden h-full">
         {/* Background Ambient Element */}
         <div className="absolute inset-0 ai-pulse-bg -z-10"></div>
+        <div className="cyber-grid"></div>
 
         {/* Emergency Assistance Button - Top Right Positioning */}
         <div className="absolute top-4 right-8 z-20">
@@ -468,8 +475,12 @@ const KioskHome = () => {
           <div className="relative group cursor-pointer" onClick={() => setShowChat(!showChat)}>
             <div className="absolute -inset-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700"></div>
             <div className="floating-bot relative">
-              <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-white p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] glow-effect flex items-center justify-center">
-                <img alt="Friendly AI Robot Avatar" className="w-full h-full object-contain p-4" src="https://lh3.googleusercontent.com/aida-public/ALi89A_mQj6_2XU5PzR_8Vw1m_e_5YhY4G0z9fF6hC1S9E_Wq4Yh6x_L_N0H5M6f2Y7-r4k6l9O9r_z-x4l5_x8X9k0=s512" />
+              <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-white shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] glow-effect flex items-center justify-center overflow-hidden border-4 border-white relative">
+                <img 
+                  alt="Friendly AI Robot Avatar" 
+                  className="w-full h-full object-cover rounded-full" 
+                  src={AvatarImage} 
+                />
               </div>
               <div className="absolute -bottom-2 right-1/2 translate-x-1/2 glass-panel border border-primary/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
                 <div className="w-2.5 h-2.5 bg-secondary rounded-full animate-pulse"></div>
@@ -551,7 +562,7 @@ const KioskHome = () => {
               </div>
               <button 
                 onClick={() => navigate('/assistant')}
-                className="bg-primary text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all flex-shrink-0"
+                className="bg-primary text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all flex-shrink-0 relative mic-ripple"
               >
                 <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
               </button>
@@ -574,7 +585,7 @@ const KioskHome = () => {
             {/* Personal Dashboard */}
             <button 
               onClick={() => navigate(patient ? '/patient-dashboard' : '/patient-login')}
-              className={`group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden ${patient ? 'ring-2 ring-primary/20 bg-primary/5' : ''}`}
+              className={`group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in ${patient ? 'ring-2 ring-primary/20 bg-primary/5' : ''}`}
             >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">account_circle</span>
@@ -597,7 +608,7 @@ const KioskHome = () => {
             {/* Check-in */}
             <button 
               onClick={() => navigate('/checkin-out')}
-              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
+              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in [animation-delay:0.1s]"
             >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">check_circle</span>
@@ -618,7 +629,7 @@ const KioskHome = () => {
             {/* New Patient */}
             <button 
               onClick={() => navigate('/register/step1')}
-              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
+              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in [animation-delay:0.2s]"
             >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">person_add</span>
@@ -639,7 +650,7 @@ const KioskHome = () => {
             {/* Find Doctor */}
             <button 
               onClick={() => navigate('/doctors')}
-              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
+              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in [animation-delay:0.3s]"
             >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">medical_information</span>
@@ -660,7 +671,7 @@ const KioskHome = () => {
             {/* Hospital Map */}
             <button 
               onClick={() => navigate('/hospital-map')}
-              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden"
+              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in [animation-delay:0.4s]"
             >
               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="material-symbols-outlined text-8xl">map</span>
@@ -683,7 +694,8 @@ const KioskHome = () => {
 
       {/* Bottom Queue Ticker */}
       <footer className="bg-white/90 backdrop-blur-lg h-16 flex items-center overflow-hidden border-t border-outline-variant/10 relative z-50 shrink-0 cursor-pointer" onClick={() => navigate('/queue')}>
-        <div className="px-10 h-full flex items-center bg-primary text-white font-headline font-bold text-lg whitespace-nowrap shadow-[10px_0_30px_rgba(0,0,0,0.1)] relative z-10">
+        <div className="px-10 h-full flex items-center bg-primary text-white font-headline font-bold text-lg whitespace-nowrap shadow-[10px_0_30px_rgba(0,0,0,0.1)] relative z-10 gap-3">
+          <div className="live-dot"></div>
           {translations[language].liveQueue}
         </div>
         <div className="flex-grow scrolling-ticker h-full flex items-center relative overflow-hidden">

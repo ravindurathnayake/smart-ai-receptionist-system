@@ -3,6 +3,7 @@ import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
 import { voiceService } from '../../services/voiceService';
 import { useAdminSearch } from '../../context/AdminSearchContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import './AdminQueue.css';
 
 const AdminQueue = () => {
@@ -14,6 +15,8 @@ const AdminQueue = () => {
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(voiceService.isVoiceEnabled);
   const [voiceLang, setVoiceLang] = useState(voiceService.language);
+  const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+  const [sessionToEnd, setSessionToEnd] = useState(null);
 
   const fetchQueueData = useCallback(async () => {
     try {
@@ -104,14 +107,21 @@ const AdminQueue = () => {
     }
   };
 
-  const handleEndSession = async (sessionId) => {
-    if (window.confirm("Are you sure you want to end this session? All remaining waiting patients will be cancelled.")) {
-      try {
-        await apiService.endSession(sessionId);
-        fetchQueueData();
-      } catch (err) {
-        alert("Error ending session");
-      }
+  const handleEndSession = (sessionId) => {
+    setSessionToEnd(sessionId);
+    setShowEndSessionConfirm(true);
+  };
+
+  const handleConfirmEndSession = async () => {
+    if (!sessionToEnd) return;
+    try {
+      await apiService.endSession(sessionToEnd);
+      setShowEndSessionConfirm(false);
+      setSessionToEnd(null);
+      fetchQueueData();
+    } catch (err) {
+      console.error('Error ending session:', err);
+      alert("Error ending session");
     }
   };
 
@@ -384,6 +394,17 @@ const AdminQueue = () => {
            )}
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={showEndSessionConfirm}
+        title="End Medical Session?"
+        message="Are you sure you want to end this session? All remaining waiting patients will be removed from the queue."
+        confirmText="End Session"
+        cancelText="Continue Serving"
+        onConfirm={handleConfirmEndSession}
+        onCancel={() => setShowEndSessionConfirm(false)}
+        type="warning"
+      />
     </div>
   );
 };

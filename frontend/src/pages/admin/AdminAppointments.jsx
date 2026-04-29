@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
 import { useAdminSearch } from '../../context/AdminSearchContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import './AdminAppointments.css';
 
 const AdminAppointments = () => {
@@ -12,6 +13,8 @@ const AdminAppointments = () => {
   const [selectedApt, setSelectedApt] = useState(null);
   const [isUnregistered, setIsUnregistered] = useState(false);
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [aptToCancel, setAptToCancel] = useState(null);
   
   // New Appointment Form State
   const [newAptForm, setNewAptForm] = useState({
@@ -126,15 +129,21 @@ const AdminAppointments = () => {
     });
   }, [appointments, activeFilter, searchQuery, sortBy]);
 
-  const handleCancel = async (aptId) => {
-    if (window.confirm("Are you sure you want to cancel this appointment?")) {
-      try {
-        await apiService.cancelAppointment(aptId);
-        fetchAppointments();
-      } catch (err) {
-        console.error("Cancel failed:", err);
-        alert("Failed to cancel appointment.");
-      }
+  const handleCancelClick = (aptId) => {
+    setAptToCancel(aptId);
+    setShowCancelConfirm(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!aptToCancel) return;
+    try {
+      await apiService.cancelAppointment(aptToCancel);
+      setShowCancelConfirm(false);
+      setAptToCancel(null);
+      fetchAppointments();
+    } catch (err) {
+      console.error("Cancel failed:", err);
+      alert("Failed to cancel appointment.");
     }
   };
 
@@ -374,7 +383,7 @@ const AdminAppointments = () => {
                           <span className="material-symbols-rounded text-xl">calendar_clock</span>
                         </button>
                         <button 
-                          onClick={() => handleCancel(apt.raw_id)}
+                          onClick={() => handleCancelClick(apt.raw_id)}
                           className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all" title="Cancel">
                           <span className="material-symbols-rounded text-xl">cancel</span>
                         </button>
@@ -674,6 +683,17 @@ const AdminAppointments = () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal 
+        isOpen={showCancelConfirm}
+        title="Cancel Appointment?"
+        message="Are you sure you want to cancel this appointment? This slot will be made available for other patients."
+        confirmText="Yes, Cancel It"
+        cancelText="No, Keep It"
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setShowCancelConfirm(false)}
+        type="warning"
+      />
     </div>
   );
 };

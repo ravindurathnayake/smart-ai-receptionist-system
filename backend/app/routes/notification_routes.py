@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from ..models.notification import Notification
-from ..extensions import db
+from ..extensions import db, socketio
 from ..utils.response import success_response, error_response
 
 notification_bp = Blueprint("notification_bp", __name__)
@@ -17,6 +17,10 @@ def create_notification():
         )
         db.session.add(new_notification)
         db.session.commit()
+        
+        # Emit real-time notification to all connected clients (Admin Dashboard)
+        socketio.emit('new_notification', new_notification.to_dict())
+        
         return success_response("Notification created", new_notification.to_dict())
     except Exception as e:
         return error_response(str(e), 500)

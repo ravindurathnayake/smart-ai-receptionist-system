@@ -66,31 +66,40 @@ const KioskPatientLogin = () => {
                 // Stop scanning
                 if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
                 
-                const recognizedPatient = response.data;
-                const searchNic = recognizedPatient.nic || recognizedPatient.guardian_nic;
+                const data = response.data;
 
-                if (searchNic) {
-                    // Fetch family profiles using the NIC associated with this face
-                    try {
-                        const familyResponse = await apiService.loginByNic(searchNic);
-                        if (familyResponse.success && familyResponse.data.length > 1) {
-                            setNic(searchNic);
-                            setProfiles(familyResponse.data);
-                            setShowProfileSelector(true);
-                        } else {
-                            // Only one profile or fallback
+                if (data.profiles) {
+                    // Guardian recognized with linked profiles
+                    setProfiles(data.profiles);
+                    setShowProfileSelector(true);
+                } else {
+                    // Single patient recognized
+                    const recognizedPatient = data;
+                    const searchNic = recognizedPatient.nic || recognizedPatient.guardian_nic;
+
+                    if (searchNic) {
+                        // Fetch family profiles using the NIC associated with this face
+                        try {
+                            const familyResponse = await apiService.loginByNic(searchNic);
+                            if (familyResponse.success && familyResponse.data.length > 1) {
+                                setNic(searchNic);
+                                setProfiles(familyResponse.data);
+                                setShowProfileSelector(true);
+                            } else {
+                                // Only one profile or fallback
+                                localStorage.setItem('activePatient', JSON.stringify(recognizedPatient));
+                                navigate('/patient-dashboard');
+                            }
+                        } catch (e) {
+                            // Fallback to recognized patient if family fetch fails
                             localStorage.setItem('activePatient', JSON.stringify(recognizedPatient));
                             navigate('/patient-dashboard');
                         }
-                    } catch (e) {
-                        // Fallback to recognized patient if family fetch fails
+                    } else {
+                        // No NIC (unlikely for adults), just login
                         localStorage.setItem('activePatient', JSON.stringify(recognizedPatient));
                         navigate('/patient-dashboard');
                     }
-                } else {
-                    // No NIC (unlikely for adults), just login
-                    localStorage.setItem('activePatient', JSON.stringify(recognizedPatient));
-                    navigate('/patient-dashboard');
                 }
             }
         } catch (err) {
@@ -264,7 +273,7 @@ const KioskPatientLogin = () => {
                                             </div>
                                             
                                             <div className="mb-4">
-                                                <h3 className="text-xl font-black text-on-surface leading-tight font-headline group-hover:text-primary transition-colors">{profile.full_name}</h3>
+                                                <h3 className="text-xl font-black text-on-surface leading-tight font-headline group-hover:text-primary transition-colors">{profile.full_name || profile.name}</h3>
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
                                                     {profile.nic === nic ? 'Primary Account' : `Family • ${profile.age} Yrs`}
                                                 </p>

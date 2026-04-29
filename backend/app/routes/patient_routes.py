@@ -166,6 +166,7 @@ def nic_login(nic):
         
         result = []
         for p in patients:
+            is_guardian = p.nic == nic
             result.append({
                 "id": p.id,
                 "formatted_id": f"PAT-{p.id:04d}",
@@ -179,6 +180,8 @@ def nic_login(nic):
                 "nic": p.nic,
                 "address": p.address,
                 "blood_type": p.blood_type,
+                "role": "Primary" if is_guardian else "Family Member",
+                "image": p.profile_image,
                 "guardian_name": p.guardian_name,
                 "guardian_nic": p.guardian_nic,
                 "guardian_phone": p.guardian_phone,
@@ -244,6 +247,35 @@ def login_face():
         if not patient:
             return error_response("Face not recognized. Please use NIC login or register.", 404)
             
+        # Check for linked profiles (children)
+        linked = Patient.query.filter(
+            (Patient.guardian_id == patient.id) | 
+            (Patient.guardian_nic == patient.nic) |
+            (Patient.guardian_phone == patient.phone_number)
+        ).all()
+
+        if linked:
+            profiles = [{
+                "id": patient.id,
+                "name": patient.full_name,
+                "full_name": patient.full_name,
+                "age": patient.age,
+                "nic": patient.nic,
+                "role": "Primary",
+                "image": patient.profile_image
+            }]
+            for child in linked:
+                profiles.append({
+                    "id": child.id,
+                    "name": child.full_name,
+                    "full_name": child.full_name,
+                    "age": child.age,
+                    "nic": child.nic,
+                    "role": "Family Member",
+                    "image": child.profile_image
+                })
+            return success_response("Guardian recognized", {"profiles": profiles})
+
         return success_response("Login successful", {
             "id": patient.id,
             "formatted_id": f"PAT-{patient.id:04d}",

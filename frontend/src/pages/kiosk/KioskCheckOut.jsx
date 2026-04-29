@@ -128,6 +128,8 @@ const KioskCheckOut = () => {
     const [patient, setPatient] = useState(null);
     const [countdown, setCountdown] = useState(45);
     const [finished, setFinished] = useState(false);
+    const [noCheckIn, setNoCheckIn] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
@@ -143,10 +145,19 @@ const KioskCheckOut = () => {
 
     const handleCheckOut = async (patientId) => {
         try {
-            await queueService.checkOut(patientId);
-            console.log('Check-Out Successful');
+            const response = await queueService.checkOut(patientId);
+            if (response.error && response.error.includes("No active check-in")) {
+                setNoCheckIn(true);
+                setErrorMsg(response.error);
+            } else {
+                console.log('Check-Out Successful');
+            }
         } catch (err) {
             console.error('Check-Out Failed:', err);
+            if (err.error && err.error.includes("No active check-in")) {
+                setNoCheckIn(true);
+                setErrorMsg(err.error);
+            }
         }
     };
 
@@ -224,7 +235,41 @@ const KioskCheckOut = () => {
                 </header>
 
                 <div className="flex-1 overflow-hidden flex flex-col px-8 py-4 min-h-0">
-                    {!finished ? (
+                    {noCheckIn ? (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-8 animate-scale-up">
+                            <div className="w-32 h-32 rounded-full bg-warning-container flex items-center justify-center relative">
+                                <div className="absolute inset-0 rounded-full animate-ping bg-warning/20" />
+                                <span className="material-symbols-outlined text-warning text-6xl z-10">running_with_errors</span>
+                            </div>
+                            <div className="text-center space-y-3 max-w-md">
+                                <h2 className="font-headline text-4xl font-black text-on-surface tracking-tight">No Active Check-In</h2>
+                                <p className="text-on-surface-variant text-lg font-medium leading-relaxed">
+                                    We couldn't find an active check-in record for <span className="text-primary font-bold">{patientName}</span> today.
+                                </p>
+                                <div className="p-5 bg-surface-container rounded-2xl border border-outline-variant/30 text-left mt-6">
+                                    <p className="text-sm text-on-surface-variant flex gap-3">
+                                        <span className="material-symbols-outlined text-primary text-xl">info</span>
+                                        You must check in first before you can check out. If you believe this is an error, please see a receptionist.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-3 w-full max-w-xs">
+                                <button 
+                                    onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }}
+                                    className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                >
+                                    <span className="material-symbols-outlined">home</span>
+                                    Back to Home
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/checkin-out')}
+                                    className="w-full py-3 text-slate-400 font-bold text-xs hover:text-primary transition-colors"
+                                >
+                                    Try Different Identity
+                                </button>
+                            </div>
+                        </div>
+                    ) : !finished ? (
                         <>
                             <div className="flex items-center gap-5 mb-4 shrink-0">
                                 <div className="relative w-16 h-16 rounded-full bg-secondary-container/30 flex items-center justify-center shrink-0">

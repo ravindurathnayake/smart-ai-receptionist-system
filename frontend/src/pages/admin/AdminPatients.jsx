@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
 import { useAdminSearch } from '../../context/AdminSearchContext';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import './AdminPatients.css';
 
 const AdminPatients = () => {
@@ -14,6 +15,8 @@ const AdminPatients = () => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showApptModal, setShowApptModal] = useState(false);
   const [showMedicalModal, setShowMedicalModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [patientToDelete, setPatientToDelete] = useState(null);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -57,15 +60,21 @@ const AdminPatients = () => {
     }
   };
 
-  const handleDelete = async (patient) => {
-    if (window.confirm(`Are you sure you want to permanently delete records for ${patient.name}?\nThis will also remove their appointment history.`)) {
-      try {
-        await apiService.deletePatient(patient.id);
-        setPatients(patients.filter(p => p.id !== patient.id));
-      } catch (err) {
-        console.error("Delete failed:", err);
-        alert("Failed to delete patient record.");
-      }
+  const handleDeleteClick = (patient) => {
+    setPatientToDelete(patient);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!patientToDelete) return;
+    try {
+      await apiService.deletePatient(patientToDelete.id);
+      setPatients(patients.filter(p => p.id !== patientToDelete.id));
+      setShowDeleteConfirm(false);
+      setPatientToDelete(null);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete patient record.");
     }
   };
 
@@ -199,7 +208,7 @@ const AdminPatients = () => {
                     <span className="material-symbols-rounded">calendar_add_on</span>
                     BOOK APPOINTMENT
                   </button>
-                  <button onClick={() => handleDelete(patient)} className="btn-delete" title="Delete Patient Record">
+                  <button onClick={() => handleDeleteClick(patient)} className="btn-delete" title="Delete Patient Record">
                     <span className="material-symbols-rounded">delete</span>
                   </button>
                 </div>
@@ -253,6 +262,17 @@ const AdminPatients = () => {
           onSuccess={() => setShowMedicalModal(false)}
         />
       )}
+
+      <ConfirmModal 
+        isOpen={showDeleteConfirm}
+        title="Delete Patient Record?"
+        message={`Are you sure you want to permanently delete records for ${patientToDelete?.name}? This action cannot be undone and will remove all medical history.`}
+        confirmText="Delete Permanently"
+        cancelText="Keep Record"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        type="danger"
+      />
     </div>
   );
 };
