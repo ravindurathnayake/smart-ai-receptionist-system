@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -17,6 +18,32 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'rescheduled', 'cancelled'
   const [selectedItem, setSelectedItem] = useState(null); // For details modal
+  const [kioskStatus, setKioskStatus] = useState('Offline');
+
+  useEffect(() => {
+    // KIOSK HEARTBEAT LISTENER
+    socketService.on('kiosk_heartbeat', (data) => {
+      setKioskStatus('Online');
+      // Set a timeout to mark it offline if no heartbeat for 10 seconds
+      clearTimeout(window.kioskTimeout);
+      window.kioskTimeout = setTimeout(() => setKioskStatus('Offline'), 10000);
+    });
+
+    // NEW NOTIFICATION LISTENER
+    socketService.on('new_notification', (data) => {
+      console.log("Real-time notification received:", data);
+      setNotifications(prev => {
+        // Avoid duplicates if any
+        if (prev.find(n => n.id === data.id)) return prev;
+        return [data, ...prev];
+      });
+    });
+
+    return () => {
+      socketService.off('kiosk_heartbeat');
+      socketService.off('new_notification');
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,7 +84,7 @@ const AdminDashboard = () => {
             name: d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`,
             specialty: d.specialization || d.department,
             status: d.availability_status || 'Available',
-            room: 'Room 04',
+            room: 'Room 04', 
             fee: d.consultation_fee
           })));
         }
@@ -90,9 +117,18 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard-wrapper admin-page-transition">
       {/* Page Title */}
-      <div>
-        <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Hospital Overview</h2>
-        <p className="text-sm text-on-surface-variant mt-1 font-medium">Real-time status of MediAssist AI Facility.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Hospital Overview</h2>
+          <p className="text-sm text-on-surface-variant mt-1 font-medium">Real-time status of MediAssist AI Facility.</p>
+        </div>
+        <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-outline-variant/30 shadow-sm">
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-black uppercase tracking-widest text-outline">Kiosk Status</span>
+            <span className={`text-xs font-bold ${kioskStatus === 'Online' ? 'text-secondary' : 'text-error'}`}>{kioskStatus}</span>
+          </div>
+          <div className={`w-3 h-3 rounded-full ${kioskStatus === 'Online' ? 'bg-secondary animate-pulse' : 'bg-error shadow-[0_0_10px_rgba(255,0,0,0.5)]'}`}></div>
+        </div>
       </div>
 
       {/* Emergency Alerts Section */}
@@ -124,7 +160,7 @@ const AdminDashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <button
+                  <button 
                     onClick={() => handleMarkRead(n.id)}
                     className="px-8 py-3 bg-error text-white rounded-xl font-bold text-xs hover:bg-error/90 transition-all opacity-0 group-hover:opacity-100 shadow-lg active:scale-95"
                   >
@@ -162,19 +198,19 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold font-display">Upcoming Appointments & Activity</h3>
               <div className="flex bg-surface-container/50 p-1 rounded-xl">
-                <button
+                <button 
                   onClick={() => setActiveTab('upcoming')}
                   className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'upcoming' ? 'bg-white shadow-sm text-primary' : 'text-on-surface-variant hover:text-primary'}`}
                 >
                   Upcoming
                 </button>
-                <button
+                <button 
                   onClick={() => setActiveTab('rescheduled')}
                   className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'rescheduled' ? 'bg-white shadow-sm text-primary' : 'text-on-surface-variant hover:text-primary'}`}
                 >
                   Rescheduled
                 </button>
-                <button
+                <button 
                   onClick={() => setActiveTab('cancelled')}
                   className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'cancelled' ? 'bg-white shadow-sm text-primary' : 'text-on-surface-variant hover:text-primary'}`}
                 >
@@ -194,45 +230,46 @@ const AdminDashboard = () => {
                   return false;
                 })
                 .map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="queue-item group cursor-pointer hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all"
-                    onClick={() => setSelectedItem(item)}
-                  >
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all ${activeTab === 'upcoming' ? 'bg-primary/10 text-primary' :
-                        activeTab === 'rescheduled' ? 'bg-warning/10 text-warning' :
-                          'bg-error/10 text-error'
-                      }`}>
-                      <span className="material-symbols-rounded">
-                        {activeTab === 'upcoming' ? 'event' : activeTab === 'rescheduled' ? 'event_repeat' : 'event_busy'}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-on-surface text-lg">{item.patient}</h4>
-                      <div className="flex items-center gap-2 text-on-surface-variant text-xs mt-1">
-                        <span className="material-symbols-rounded text-sm italic">medical_information</span>
-                        <span className="font-semibold">{item.dr}</span>
-                        <span className="opacity-30">•</span>
-                        <span className="font-medium text-outline">{item.status}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-black text-on-surface">{item.time}</p>
-                      <p className="text-[10px] font-bold text-outline-variant uppercase tracking-widest">{item.date}</p>
+                <div 
+                  key={idx} 
+                  className="queue-item group cursor-pointer hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all"
+                  onClick={() => setSelectedItem(item)}
+                >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all ${
+                    activeTab === 'upcoming' ? 'bg-primary/10 text-primary' : 
+                    activeTab === 'rescheduled' ? 'bg-warning/10 text-warning' : 
+                    'bg-error/10 text-error'
+                  }`}>
+                    <span className="material-symbols-rounded">
+                      {activeTab === 'upcoming' ? 'event' : activeTab === 'rescheduled' ? 'event_repeat' : 'event_busy'}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-on-surface text-lg">{item.patient}</h4>
+                    <div className="flex items-center gap-2 text-on-surface-variant text-xs mt-1">
+                      <span className="material-symbols-rounded text-sm italic">medical_information</span>
+                      <span className="font-semibold">{item.dr}</span>
+                      <span className="opacity-30">•</span>
+                      <span className="font-medium text-outline">{item.status}</span>
                     </div>
                   </div>
-                ))}
+                  <div className="text-right">
+                    <p className="text-sm font-black text-on-surface">{item.time}</p>
+                    <p className="text-[10px] font-bold text-outline-variant uppercase tracking-widest">{item.date}</p>
+                  </div>
+                </div>
+              ))}
               {appointments.filter(apt => {
-                if (activeTab === 'upcoming') return apt.status === 'Booked' || apt.status === 'Confirmed' || apt.status === 'Checked-In';
-                if (activeTab === 'rescheduled') return apt.status === 'Rescheduled';
-                if (activeTab === 'cancelled') return apt.status === 'Cancelled';
-                return false;
-              }).length === 0 && (
-                  <div className="py-20 text-center opacity-40">
-                    <span className="material-symbols-rounded text-4xl mb-2">inventory_2</span>
-                    <p className="text-xs font-black uppercase tracking-widest">No activity found</p>
-                  </div>
-                )}
+                  if (activeTab === 'upcoming') return apt.status === 'Booked' || apt.status === 'Confirmed' || apt.status === 'Checked-In';
+                  if (activeTab === 'rescheduled') return apt.status === 'Rescheduled';
+                  if (activeTab === 'cancelled') return apt.status === 'Cancelled';
+                  return false;
+                }).length === 0 && (
+                <div className="py-20 text-center opacity-40">
+                  <span className="material-symbols-rounded text-4xl mb-2">inventory_2</span>
+                  <p className="text-xs font-black uppercase tracking-widest">No activity found</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -273,8 +310,9 @@ const AdminDashboard = () => {
                     <p className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider mt-1.5">{doc.specialty}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-[10px] font-black uppercase tracking-widest ${doc.status === 'Available' ? 'text-secondary' : 'text-outline'
-                      }`}>{doc.status}</p>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${
+                      doc.status === 'Available' ? 'text-secondary' : 'text-outline'
+                    }`}>{doc.status}</p>
                     <p className="text-[10px] text-outline-variant font-bold mt-1">Rs. {doc.fee || '0'}</p>
                   </div>
                 </div>
@@ -297,7 +335,7 @@ const AdminDashboard = () => {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-
+            
             <div className="p-8 space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
@@ -319,9 +357,10 @@ const AdminDashboard = () => {
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-outline">Status</label>
                   <div className="flex">
-                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${selectedItem.status === 'Booked' || selectedItem.status === 'Checked-In' ? 'bg-primary/10 text-primary' :
-                        selectedItem.status === 'Rescheduled' ? 'bg-warning/10 text-warning' : 'bg-error/10 text-error'
-                      }`}>
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
+                      selectedItem.status === 'Booked' || selectedItem.status === 'Checked-In' ? 'bg-primary/10 text-primary' : 
+                      selectedItem.status === 'Rescheduled' ? 'bg-warning/10 text-warning' : 'bg-error/10 text-error'
+                    }`}>
                       {selectedItem.status}
                     </span>
                   </div>
@@ -336,14 +375,14 @@ const AdminDashboard = () => {
               </div>
 
               <div className="flex gap-4">
-                <button
+                <button 
                   onClick={() => setSelectedItem(null)}
                   className="flex-1 py-4 bg-surface-container rounded-2xl font-bold text-on-surface-variant hover:bg-slate-200 transition-all"
                 >
                   Close
                 </button>
                 {selectedItem.status !== 'Cancelled' && (
-                  <button
+                  <button 
                     className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
                   >
                     Manage Appointment
