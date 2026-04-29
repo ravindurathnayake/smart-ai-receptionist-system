@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
-import { socketService } from '../../services/socketService';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, AreaChart, Area, PieChart, Pie, Cell 
@@ -25,18 +24,7 @@ const HospitalAnalytics = () => {
         setLoading(false);
       }
     };
-    
     fetchAnalytics();
-
-    // LIVE UPDATE LISTENER
-    socketService.on('stats_updated', () => {
-      console.log("Live stats update received, refreshing dashboard...");
-      fetchAnalytics();
-    });
-
-    return () => {
-      socketService.off('stats_updated');
-    };
   }, []);
 
   if (loading) {

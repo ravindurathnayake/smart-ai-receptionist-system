@@ -187,16 +187,7 @@ const KioskHome = () => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
-    // KIOSK HEARTBEAT (For Admin Monitoring)
-    const heartbeat = setInterval(() => {
-      socketService.emit('kiosk_heartbeat', { kiosk_id: 'Main Kiosk #1' });
-    }, 5000);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(heartbeat);
-    };
+    return () => clearInterval(timer);
   }, []);
 
   // --- CHAT LOGIC ---
@@ -251,79 +242,47 @@ const KioskHome = () => {
     const text = messageOverride || inputValue;
     if (!text.trim()) return;
 
-    // Add user message immediately
-    setChatHistory(prev => [...prev, { role: 'user', text }]);
+    const newChat = [...chatHistory, { role: 'user', text }];
+    setChatHistory(newChat);
     setInputValue('');
     setIsTyping(true);
     setShowChat(true);
 
-    if (isEmergencyMode) {
-      const lowerText = text.toLowerCase();
-      const emergencyKeywords = ['chest pain', 'bleeding', 'unconscious', 'heart attack', 'choking', 'stroke'];
-      
-      if (emergencyKeywords.some(k => lowerText.includes(k))) {
-          setChatHistory(prev => [...prev, { 
-              role: 'bot', 
-              text: "⚠️ Please go to the Emergency Room immediately! 📍 Ground Floor - Emergency Unit. 🚑 Medical staff has been notified of your situation.",
-              actions: [
-                  { label: 'View ER Route', type: 'navigate', payload: '/hospital-map' },
-                  { label: 'Exit Emergency Mode', type: 'message', payload: 'Thank you, I am okay now.' }
-              ]
-          }]);
-          setIsTyping(false);
-          return;
-      } else if (lowerText.includes('thank you') || lowerText.includes('okay now')) {
-          setIsEmergencyMode(false);
-          setChatHistory(prev => [...prev, { role: 'bot', text: "I'm glad to hear that. Switching back to normal assistance. How else can I help?" }]);
-          setIsTyping(false);
-          return;
-      }
+    try {
+        if (isEmergencyMode) {
+            const lowerText = text.toLowerCase();
+            const emergencyKeywords = ['chest pain', 'bleeding', 'unconscious', 'heart attack', 'choking', 'stroke'];
+            
+            if (emergencyKeywords.some(k => lowerText.includes(k))) {
+                setChatHistory(prev => [...prev, { 
+                    role: 'bot', 
+                    text: "⚠️ Please go to the Emergency Room immediately! 📍 Ground Floor - Emergency Unit. 🚑 Medical staff has been notified of your situation.",
+                    actions: [
+                        { label: 'View ER Route', type: 'navigate', payload: '/hospital-map' },
+                        { label: 'Exit Emergency Mode', type: 'message', payload: 'Thank you, I am okay now.' }
+                    ]
+                }]);
+                return;
+            } else if (lowerText.includes('thank you') || lowerText.includes('okay now')) {
+                setIsEmergencyMode(false);
+                setChatHistory(prev => [...prev, { role: 'bot', text: "I'm glad to hear that. Switching back to normal assistance. How else can I help?" }]);
+                return;
+            }
+        }
+
+        const response = await apiService.chatAI(text, null); // Anonymous visitor
+        
+        setChatHistory(prev => [...prev, { 
+            role: 'bot', 
+            text: response.reply,
+            actions: response.actions || []
+        }]);
+    } catch (error) {
+        console.error("Chat error:", error);
+        setChatHistory(prev => [...prev, { role: 'bot', text: "I'm having trouble connecting to my brain right now. Please try again later." }]);
+    } finally {
+        setIsTyping(false);
     }
-
-    // STREAMING SOCKET FLOW
-    socketService.emit('message_sent', { 
-      message: text, 
-      patient_id: patient ? patient.id : null 
-    });
-
-    // We prepare a temporary bot message to update with chunks
-    let currentActions = [];
-    
-    const onChatStart = (data) => {
-      currentActions = data.actions || [];
-      setChatHistory(prev => [...prev, { role: 'bot', text: '', actions: [] }]);
-      setIsTyping(false);
-    };
-
-    const onChatChunk = (data) => {
-      setChatHistory(prev => {
-        const history = [...prev];
-        const lastMsg = history[history.length - 1];
-        if (lastMsg && lastMsg.role === 'bot') {
-          lastMsg.text = data.text;
-        }
-        return history;
-      });
-    };
-
-    const onChatEnd = () => {
-      setChatHistory(prev => {
-        const history = [...prev];
-        const lastMsg = history[history.length - 1];
-        if (lastMsg && lastMsg.role === 'bot') {
-          lastMsg.actions = currentActions;
-        }
-        return history;
-      });
-      // Clean up listeners for this specific interaction
-      socketService.off('chat_start', onChatStart);
-      socketService.off('chat_chunk', onChatChunk);
-      socketService.off('chat_end', onChatEnd);
-    };
-
-    socketService.on('chat_start', onChatStart);
-    socketService.on('chat_chunk', onChatChunk);
-    socketService.on('chat_end', onChatEnd);
   };
 
   const patientName = patient ? (patient.full_name || patient.name || 'Patient') : null;

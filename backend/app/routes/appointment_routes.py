@@ -19,7 +19,7 @@ from app.utils.response import success_response, error_response
 from app.services.email_service import send_appointment_confirmation
 from app.services.whatsapp_service import send_whatsapp_notification
 from app.models import Patient, Payment, Appointment, Specialist
-from app.extensions import db, socketio
+from app.extensions import db
 
 appointment_bp = Blueprint("appointment_bp", __name__)
 
@@ -260,10 +260,6 @@ def confirm_payment_route():
             print(f"Non-critical Error: Notification failed: {str(notify_err)}")
 
         db.session.commit()
-        
-        # EMIT REAL-TIME STATS UPDATE
-        socketio.emit('stats_updated', {'type': 'payment', 'amount': amount})
-        
         return success_response("Payment confirmed and receipt sent", {"payment_id": payment.id})
 
     except Exception as e:

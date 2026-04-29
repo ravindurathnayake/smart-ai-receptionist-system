@@ -188,7 +188,6 @@ def check_out_patient(patient_id):
     
     # EMIT REAL-TIME UPDATE
     socketio.emit('queue_updated', {'type': 'check_out', 'patient_id': patient_id})
-    socketio.emit('stats_updated', {'type': 'check_out', 'patient_id': patient_id})
     if queue_entry.appointment and queue_entry.appointment.specialist_id:
         socketio.emit('specialist_updated', {'specialist_id': queue_entry.appointment.specialist_id})
     
