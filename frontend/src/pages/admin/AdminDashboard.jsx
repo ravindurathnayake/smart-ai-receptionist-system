@@ -33,73 +33,95 @@ const AdminDashboard = () => {
     socketService.on('new_notification', (data) => {
       console.log("Real-time notification received:", data);
       setNotifications(prev => {
-        // Avoid duplicates if any
         if (prev.find(n => n.id === data.id)) return prev;
         return [data, ...prev];
       });
     });
 
+    // REFRESH DATA ON EVENTS
+    const handleRefresh = () => {
+      console.log("Real-time data update event received. Refreshing dashboard...");
+      fetchData();
+    };
+
+    socketService.on('appointment_created', handleRefresh);
+    socketService.on('appointment_booked', handleRefresh);
+    socketService.on('appointment_updated', handleRefresh);
+    socketService.on('appointment_rescheduled', handleRefresh);
+    socketService.on('queue_updated', handleRefresh);
+    socketService.on('stats_updated', handleRefresh);
+    socketService.on('patient_created', handleRefresh);
+
     return () => {
       socketService.off('kiosk_heartbeat');
       socketService.off('new_notification');
+      socketService.off('appointment_created', handleRefresh);
+      socketService.off('appointment_booked', handleRefresh);
+      socketService.off('appointment_updated', handleRefresh);
+      socketService.off('appointment_rescheduled', handleRefresh);
+      socketService.off('queue_updated', handleRefresh);
+      socketService.off('stats_updated', handleRefresh);
+      socketService.off('patient_created', handleRefresh);
     };
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const queueResponse = await apiService.getQueueStatus();
-        const specialistsResponse = await apiService.getSpecialists();
-        const statsResponse = await apiService.getAdminStats();
+  const fetchData = async () => {
+    try {
+      const [queueResponse, specialistsResponse, statsResponse, appointmentsResponse, notificationsResponse] = await Promise.all([
+        apiService.getQueueStatus(),
+        apiService.getSpecialists(),
+        apiService.getAdminStats(),
+        apiService.getAllAppointments(),
+        apiService.getNotifications()
+      ]);
 
-        if (statsResponse) {
-          const nextToken = queueResponse?.current_serving ? `#${queueResponse.current_serving.toString().padStart(2, '0')}` : '---';
-          setStats([
-            { label: 'Total Patients', value: statsResponse.patients.total.toString(), subValue: `+${statsResponse.patients.new_today} today`, icon: 'person', color: 'primary' },
-            { label: 'Active Queue', value: statsResponse.queue.active.toString(), subValue: `Next: ${nextToken}`, icon: 'queue', color: 'secondary' },
-            { label: 'Appointments', value: statsResponse.appointments.total.toString(), subValue: `${statsResponse.appointments.today} today`, icon: 'calendar_today', color: 'tertiary' },
-            { label: 'Revenue Today', value: `Rs. ${statsResponse.revenue.today.toLocaleString()}`, subValue: 'Real-time', icon: 'payments', color: 'success' },
-          ]);
-        }
-
-        if (queueResponse) {
-          setQueueItems(queueResponse.queue.map(item => ({
-            id: item.id,
-            token: item.token, // This is now formatted 'A-01' from backend
-            patient: item.patient,
-            doctor: `${item.doctor} (${item.room || 'Room 04'})`,
-            type: item.status,
-            wait: item.waitTime
-          })));
-        }
-
-        const appointmentsResponse = await apiService.getAllAppointments();
-        if (appointmentsResponse) {
-          setAppointments(appointmentsResponse);
-        }
-
-        if (specialistsResponse) {
-          setDoctors(specialistsResponse.map(d => ({
-            id: d.id,
-            name: d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`,
-            specialty: d.specialization || d.department,
-            status: d.availability_status || 'Available',
-            room: 'Room 04', 
-            fee: d.consultation_fee
-          })));
-        }
-
-        const notificationsResponse = await apiService.getNotifications();
-        if (notificationsResponse) {
-          setNotifications(notificationsResponse);
-        }
-      } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
-      } finally {
-        setLoading(false);
+      if (statsResponse) {
+        const nextToken = queueResponse?.current_serving ? `#${queueResponse.current_serving.toString().padStart(2, '0')}` : '---';
+        setStats([
+          { label: 'Total Patients', value: statsResponse.patients.total.toString(), subValue: `+${statsResponse.patients.new_today} today`, icon: 'person', color: 'primary' },
+          { label: 'Active Queue', value: statsResponse.queue.active.toString(), subValue: `Next: ${nextToken}`, icon: 'queue', color: 'secondary' },
+          { label: 'Appointments', value: statsResponse.appointments.total.toString(), subValue: `${statsResponse.appointments.today} today`, icon: 'calendar_today', color: 'tertiary' },
+          { label: 'Revenue Today', value: `Rs. ${statsResponse.revenue.today.toLocaleString()}`, subValue: 'Real-time', icon: 'payments', color: 'success' },
+        ]);
       }
-    };
 
+      if (queueResponse) {
+        setQueueItems(queueResponse.queue.map(item => ({
+          id: item.id,
+          token: item.token,
+          patient: item.patient,
+          doctor: `${item.doctor} (${item.room || 'Room 04'})`,
+          type: item.status,
+          wait: item.waitTime
+        })));
+      }
+
+      if (appointmentsResponse) {
+        setAppointments(appointmentsResponse);
+      }
+
+      if (specialistsResponse) {
+        setDoctors(specialistsResponse.map(d => ({
+          id: d.id,
+          name: d.name.startsWith('Dr.') ? d.name : `Dr. ${d.name}`,
+          specialty: d.specialization || d.department,
+          status: d.availability_status || 'Available',
+          room: 'Room 04', 
+          fee: d.consultation_fee
+        })));
+      }
+
+      if (notificationsResponse) {
+        setNotifications(notificationsResponse);
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 30000); // 30s refresh
     return () => clearInterval(interval);
@@ -119,8 +141,14 @@ const AdminDashboard = () => {
       {/* Page Title */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Hospital Overview</h2>
-          <p className="text-sm text-on-surface-variant mt-1 font-medium">Real-time status of MediAssist AI Facility.</p>
+          <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">System Command Center</h2>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-on-surface-variant font-medium">Real-time hospital operations & patient flow.</p>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md border border-emerald-100">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-[10px] font-black uppercase tracking-widest">Live Dashboard</span>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-outline-variant/30 shadow-sm">
           <div className="flex flex-col items-end">

@@ -63,6 +63,9 @@ def book_appointment_route():
         if isinstance(result, dict) and result.get("error"):
             return error_response(result["error"], 404)
 
+        # Emit real-time update
+        socketio.emit('appointment_created', result)
+        
         return success_response("Appointment booked successfully", result, 201)
 
     except Exception as e:
@@ -101,6 +104,9 @@ def complete_queue_route(queue_id):
         if not result:
             return error_response("Queue not found", 404)
 
+        # Emit real-time update
+        socketio.emit('appointment_updated', result)
+        
         return success_response("Queue marked as completed", result)
 
     except Exception as e:
@@ -116,6 +122,9 @@ def cancel_appointment_route(appointment_id):
         if not result:
             return error_response("Appointment not found", 404)
 
+        # Emit real-time update
+        socketio.emit('appointment_updated', result)
+        
         return success_response("Appointment cancelled successfully", result)
 
     except Exception as e:
@@ -137,6 +146,10 @@ def check_in_patient_route(patient_id):
         result = check_in_patient(patient_id)
         if result.get("error"):
             return error_response(result["error"], 400)
+            
+        # Emit real-time update
+        socketio.emit('appointment_updated', result)
+        
         return success_response("Patient checked in successfully", result)
     except Exception as e:
         return error_response(str(e), 500)
@@ -148,6 +161,10 @@ def check_out_patient_route(patient_id):
         result = check_out_patient(patient_id)
         if result.get("error"):
             return error_response(result["error"], 400)
+            
+        # Emit real-time update
+        socketio.emit('appointment_updated', result)
+        
         return success_response("Patient checked out successfully", result)
     except Exception as e:
         return error_response(str(e), 500)
@@ -176,6 +193,13 @@ def reschedule_appointment(appointment_id):
             
         new_date = datetime.fromisoformat(new_date_str)
         appt = move_appointment(appointment_id, new_date, new_doctor_session_id)
+        
+        # Emit real-time update
+        socketio.emit('appointment_updated', {
+            "id": appt.id,
+            "new_date": appt.appointment_date.strftime("%Y-%m-%d")
+        })
+        
         return success_response("Appointment rescheduled successfully", {
             "id": appt.id,
             "new_date": appt.appointment_date.strftime("%Y-%m-%d")

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
 import { useAdminSearch } from '../../context/AdminSearchContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { socketService } from '../../services/socketService';
 import './AdminAppointments.css';
 
 const AdminAppointments = () => {
@@ -15,6 +16,7 @@ const AdminAppointments = () => {
   const [selectedSpecialization, setSelectedSpecialization] = useState('');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [aptToCancel, setAptToCancel] = useState(null);
+  const [isLive, setIsLive] = useState(false);
   
   // New Appointment Form State
   const [newAptForm, setNewAptForm] = useState({
@@ -69,6 +71,31 @@ const AdminAppointments = () => {
 
   useEffect(() => {
     fetchAppointments();
+
+    // Socket listeners for real-time updates
+    const handleUpdate = (data) => {
+      console.log('Real-time appointment update received:', data);
+      fetchAppointments();
+    };
+
+    socketService.on('appointment_created', handleUpdate);
+    socketService.on('appointment_booked', handleUpdate);
+    socketService.on('appointment_updated', handleUpdate);
+    socketService.on('appointment_rescheduled', handleUpdate);
+    socketService.on('appointment_deleted', handleUpdate);
+    socketService.on('queue_updated', handleUpdate);
+    
+    setIsLive(true);
+
+    return () => {
+      socketService.off('appointment_created', handleUpdate);
+      socketService.off('appointment_booked', handleUpdate);
+      socketService.off('appointment_updated', handleUpdate);
+      socketService.off('appointment_rescheduled', handleUpdate);
+      socketService.off('appointment_deleted', handleUpdate);
+      socketService.off('queue_updated', handleUpdate);
+      setIsLive(false);
+    };
   }, []);
 
   useEffect(() => {
@@ -258,7 +285,15 @@ const AdminAppointments = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Appointment Management</h2>
-          <p className="text-sm text-on-surface-variant mt-1 font-medium">Manage and monitor patient bookings.</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-on-surface-variant font-medium">Manage and monitor patient bookings.</p>
+            {isLive && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md border border-emerald-100">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest">Live Sync</span>
+              </div>
+            )}
+          </div>
         </div>
         <button 
           onClick={() => setShowNewAptModal(true)}

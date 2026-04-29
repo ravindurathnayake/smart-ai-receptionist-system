@@ -43,23 +43,27 @@ def create_patient():
         from flask import request
         data = request.get_json()
         
+        def get_val(key):
+            val = data.get(key)
+            return None if val == "" else val
+
         new_patient = Patient(
             full_name=data.get("full_name"),
             phone_number=data.get("phone_number"),
-            email=data.get("email"),
+            email=get_val("email"),
             age=data.get("age"),
             gender=data.get("gender"),
             dob=data.get("dob"),
-            nic=data.get("nic"),
-            address=data.get("address"),
-            blood_type=data.get("blood_type"),
-            medical_history=data.get("medical_history"),
-            guardian_name=data.get("guardian_name"),
-            guardian_nic=data.get("guardian_nic"),
-            guardian_phone=data.get("guardian_phone"),
-            guardian_email=data.get("guardian_email"),
-            guardian_relationship=data.get("guardian_relationship"),
-            guardian_id=data.get("guardian_id")
+            nic=get_val("nic"),
+            address=get_val("address"),
+            blood_type=get_val("blood_type"),
+            medical_history=get_val("medical_history"),
+            guardian_name=get_val("guardian_name"),
+            guardian_nic=get_val("guardian_nic"),
+            guardian_phone=get_val("guardian_phone"),
+            guardian_email=get_val("guardian_email"),
+            guardian_relationship=get_val("guardian_relationship"),
+            guardian_id=get_val("guardian_id")
         )
         
         # Handle face capture
@@ -114,6 +118,37 @@ def update_patient(patient_id):
         
         db.session.commit()
         return success_response("Patient updated successfully")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e), 500)
+
+@patient_bp.route("/<int:patient_id>", methods=["DELETE"])
+def delete_patient(patient_id):
+    try:
+        from ..models import Patient, Appointment, Review, Queue, Payment
+        patient = Patient.query.get_or_404(patient_id)
+        
+        # Manually cascade delete associated records
+        appointments = Appointment.query.filter_by(patient_id=patient_id).all()
+        for appt in appointments:
+            Queue.query.filter_by(appointment_id=appt.id).delete()
+            Payment.query.filter_by(appointment_id=appt.id).delete()
+            Review.query.filter_by(appointment_id=appt.id).delete()
+            db.session.delete(appt)
+            
+        Review.query.filter_by(patient_id=patient_id).delete()
+        
+        # Handle linked children
+        linked_children = Patient.query.filter_by(guardian_id=patient_id).all()
+        for child in linked_children:
+            child.guardian_id = None
+            
+        db.session.delete(patient)
+        db.session.commit()
+        
+        socketio.emit('patient_deleted', {"id": patient_id})
+        
+        return success_response("Patient deleted successfully")
     except Exception as e:
         db.session.rollback()
         return error_response(str(e), 500)
@@ -209,35 +244,59 @@ def find_patient_by_nic(nic):
         if not patient:
             return error_response("Patient not found", 404)
         
+        # Check for linked profiles (children)
+        linked = Patient.query.filter(
+            (Patient.guardian_id == patient.id) | 
+            (Patient.guardian_nic == patient.nic) |
+            (Patient.guardian_phone == patient.phone_number)
+        ).all()
+
+        if linked:
+            profiles = [{
+                "id": patient.id,
+                "name": patient.full_name,
+                "full_name": patient.full_name,
+                "age": patient.age,
+                "nic": patient.nic,
+                "role": "Primary",
+                "phone": patient.phone_number,
+                "phone_number": patient.phone_number
+            }]
+            for child in linked:
+                profiles.append({
+                    "id": child.id,
+                    "name": child.full_name,
+                    "full_name": child.full_name,
+                    "age": child.age,
+                    "nic": child.nic,
+                    "role": "Family Member",
+                    "phone": child.phone_number,
+                    "phone_number": child.phone_number
+                })
+            return success_response("Guardian recognized", {"profiles": profiles})
+            
         return success_response("Patient found", {
             "id": patient.id,
+            "formatted_id": f"PAT-{patient.id:04d}",
             "name": patient.full_name,
+            "full_name": patient.full_name,
             "phone": patient.phone_number,
-            "nic": patient.nic
+            "phone_number": patient.phone_number,
+            "email": patient.email,
+            "nic": patient.nic,
+            "age": patient.age,
+            "dob": patient.dob,
+            "gender": patient.gender,
+            "address": patient.address,
+            "blood_type": patient.blood_type,
+            "guardian_name": patient.guardian_name,
+            "guardian_nic": patient.guardian_nic,
+            "guardian_phone": patient.guardian_phone,
+            "guardian_relationship": patient.guardian_relationship
         })
     except Exception as e:
         return error_response(str(e), 500)
 
-@patient_bp.route("/<int:patient_id>", methods=["DELETE"])
-def delete_patient(patient_id):
-    try:
-        patient = Patient.query.get_or_404(patient_id)
-        
-        from ..models import Appointment, Queue
-        # Delete queue entries first to satisfy foreign key constraints
-        appointments = Appointment.query.filter_by(patient_id=patient_id).all()
-        appt_ids = [a.id for a in appointments]
-        
-        if appt_ids:
-            Queue.query.filter(Queue.appointment_id.in_(appt_ids)).delete(synchronize_session=False)
-            Appointment.query.filter(Appointment.id.in_(appt_ids)).delete(synchronize_session=False)
-        
-        db.session.delete(patient)
-        db.session.commit()
-        return success_response("Patient record and history deleted successfully")
-    except Exception as e:
-        db.session.rollback()
-        return error_response(f"Delete failed: {str(e)}", 500)
 
 @patient_bp.route("/login-face", methods=["POST"])
 def login_face():

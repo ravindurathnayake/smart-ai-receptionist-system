@@ -24,9 +24,7 @@ const AdminPatients = () => {
       try {
         setError(null);
         setLoading(true);
-        console.log("Fetching patients...");
         const data = await apiService.getPatients();
-        console.log("Patients data received:", data);
         setPatients(data);
       } catch (err) {
         console.error("Failed to fetch patients:", err);
@@ -37,14 +35,26 @@ const AdminPatients = () => {
     };
     fetchPatients();
 
-    // REAL-TIME LISTENER FOR NEW PATIENTS
+    // REAL-TIME LISTENERS
     socketService.on('patient_created', (data) => {
       console.log("New patient registered in real-time:", data);
       fetchPatients();
     });
 
+    socketService.on('patient_updated', (data) => {
+      console.log("Patient updated in real-time:", data);
+      fetchPatients();
+    });
+
+    socketService.on('patient_deleted', (data) => {
+      console.log("Patient deleted in real-time:", data);
+      fetchPatients();
+    });
+
     return () => {
       socketService.off('patient_created');
+      socketService.off('patient_updated');
+      socketService.off('patient_deleted');
     };
   }, []);
 
@@ -108,7 +118,13 @@ const AdminPatients = () => {
     <div className="patients-wrapper admin-page-transition">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Patient Records</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Patient Records</h2>
+            <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-[10px] font-black border border-green-100 shadow-sm">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              LIVE SYNC
+            </div>
+          </div>
           <p className="text-sm text-on-surface-variant mt-1 font-medium">Digital health identity management and clinical history.</p>
         </div>
         <button 
@@ -393,11 +409,12 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
               />
             </div>
 
-            {calculateAge(formData.dob) >= 18 && (
+            {(formData.dob === '' || calculateAge(formData.dob) >= 18) && (
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">NIC Number</label>
                 <input 
                   className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                  placeholder="Patient NIC"
                   value={formData.nic}
                   onChange={e => setFormData({...formData, nic: e.target.value})}
                 />
