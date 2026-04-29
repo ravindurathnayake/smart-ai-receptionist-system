@@ -17,21 +17,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'rescheduled', 'cancelled'
   const [selectedItem, setSelectedItem] = useState(null); // For details modal
-  const [kioskStatus, setKioskStatus] = useState('Offline');
-
-  useEffect(() => {
-    // KIOSK HEARTBEAT LISTENER
-    socketService.on('kiosk_heartbeat', (data) => {
-      setKioskStatus('Online');
-      // Set a timeout to mark it offline if no heartbeat for 10 seconds
-      clearTimeout(window.kioskTimeout);
-      window.kioskTimeout = setTimeout(() => setKioskStatus('Offline'), 10000);
-    });
-
-    return () => {
-      socketService.off('kiosk_heartbeat');
-    };
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
