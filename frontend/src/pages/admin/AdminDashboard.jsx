@@ -17,7 +17,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'rescheduled', 'cancelled'
   const [selectedItem, setSelectedItem] = useState(null); // For details modal
-
   const [kioskStatus, setKioskStatus] = useState('Offline');
 
   useEffect(() => {
@@ -29,22 +28,10 @@ const AdminDashboard = () => {
       window.kioskTimeout = setTimeout(() => setKioskStatus('Offline'), 10000);
     });
 
-    // NEW NOTIFICATION LISTENER
-    socketService.on('new_notification', (data) => {
-      console.log("Real-time notification received:", data);
-      setNotifications(prev => {
-        // Avoid duplicates if any
-        if (prev.find(n => n.id === data.id)) return prev;
-        return [data, ...prev];
-      });
-    });
-
     return () => {
       socketService.off('kiosk_heartbeat');
-      socketService.off('new_notification');
     };
   }, []);
-
 
   useEffect(() => {
     const fetchData = async () => {
