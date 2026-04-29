@@ -3,6 +3,7 @@ from ..extensions import db
 from ..models.specialist import Specialist
 from ..models.doctor_session import DoctorSession
 from ..models.appointment import Appointment
+from ..models.queue import Queue
 from datetime import datetime, date
 
 from ..utils.response import success_response, error_response
@@ -37,13 +38,22 @@ def get_specialists():
                 "start_time": sess.start_time.strftime("%H:%M"),
                 "end_time": sess.end_time.strftime("%H:%M"),
                 "max_patients": sess.max_patients,
+                "session_number": sess.session_number,
+                "room_number": sess.room_number,
                 "current_bookings": Appointment.query.filter(
                     Appointment.doctor_session_id == sess.id,
                     db.func.date(Appointment.appointment_date) == (sess.session_date if sess.session_date else today),
                     Appointment.status != "Cancelled"
                 ).count(),
-                "session_number": sess.session_number,
-                "room_number": sess.room_number
+                "waiting_count": db.session.query(db.func.count(Queue.id)).filter(
+                    Queue.doctor_session_id == sess.id,
+                    Queue.status == "WAITING",
+                    db.func.date(Queue.check_in_time) == today
+                ).scalar() or 0,
+                "checked_in_count": db.session.query(db.func.count(Queue.id)).filter(
+                    Queue.doctor_session_id == sess.id,
+                    db.func.date(Queue.check_in_time) == today
+                ).scalar() or 0
             } for sess in s.sessions]
         } for s in specialists])
     except Exception as e:
@@ -75,7 +85,21 @@ def get_specialist(specialist_id):
                 "current_count": sess.current_count,
                 "session_number": sess.session_number,
                 "room_number": sess.room_number,
-                "status": sess.status
+                "status": sess.status,
+                "current_bookings": Appointment.query.filter(
+                    Appointment.doctor_session_id == sess.id,
+                    db.func.date(Appointment.appointment_date) == (sess.session_date if sess.session_date else date.today()),
+                    Appointment.status != "Cancelled"
+                ).count(),
+                "waiting_count": db.session.query(db.func.count(Queue.id)).filter(
+                    Queue.doctor_session_id == sess.id,
+                    Queue.status == "WAITING",
+                    db.func.date(Queue.check_in_time) == date.today()
+                ).scalar() or 0,
+                "checked_in_count": db.session.query(db.func.count(Queue.id)).filter(
+                    Queue.doctor_session_id == sess.id,
+                    db.func.date(Queue.check_in_time) == date.today()
+                ).scalar() or 0
             } for sess in s.sessions]
         })
     except Exception as e:
@@ -213,6 +237,8 @@ def delete_specialist(specialist_id):
         s = Specialist.query.get_or_404(specialist_id)
         db.session.delete(s)
         db.session.commit()
+        from ..extensions import socketio
+        socketio.emit('specialist_updated', {'type': 'delete', 'specialist_id': specialist_id})
         return success_response("Specialist deleted successfully")
     except Exception as e:
         db.session.rollback()
@@ -236,6 +262,8 @@ def add_session(specialist_id):
         )
         db.session.add(new_sess)
         db.session.commit()
+        from ..extensions import socketio
+        socketio.emit('specialist_updated', {'specialist_id': specialist_id})
         return success_response("Session added successfully", {"id": new_sess.id}, 201)
     except Exception as e:
         db.session.rollback()

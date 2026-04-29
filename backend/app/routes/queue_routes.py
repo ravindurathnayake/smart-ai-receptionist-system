@@ -19,11 +19,12 @@ queue_bp = Blueprint('queue', __name__, url_prefix='/api/queue')
 def check_in():
     data = request.json
     patient_id = data.get('patient_id')
+    appointment_id = data.get('appointment_id')
     
     if not patient_id:
         return jsonify({"error": "patient_id is required"}), 400
         
-    result = check_in_patient(patient_id)
+    result = check_in_patient(patient_id, appointment_id)
     if "error" in result:
         return jsonify(result), 400
         
@@ -34,11 +35,12 @@ def manual_check_in_route():
     data = request.json
     identifier = data.get('identifier')
     patient_id = data.get('patient_id')
+    appointment_id = data.get('appointment_id')
     
     if not identifier and not patient_id:
         return jsonify({"error": "identifier or patient_id is required"}), 400
         
-    result = manual_check_in(identifier, patient_id)
+    result = manual_check_in(identifier, patient_id, appointment_id)
     if "error" in result:
         return jsonify(result), 400
         
@@ -98,9 +100,10 @@ def face_check_in():
     data = request.json
     face_image = data.get('face_image')
     patient_id = data.get('patient_id')
+    appointment_id = data.get('appointment_id')
     
     if patient_id:
-        result = check_in_patient(patient_id)
+        result = check_in_patient(patient_id, appointment_id)
         return jsonify(result), 200
 
     if not face_image:
@@ -137,5 +140,5 @@ def face_check_in():
         return jsonify({"success": True, "profiles": profiles}), 200
 
     # Trigger check-in for the identified patient
-    result = check_in_patient(patient.id)
+    result = check_in_patient(patient.id, appointment_id)
     return jsonify(result), 200

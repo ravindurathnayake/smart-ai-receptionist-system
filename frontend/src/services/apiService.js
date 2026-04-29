@@ -150,8 +150,12 @@ export const apiService = {
         const response = await api.get(`/availability/${specialistId}`, { params: { date } });
         return response.data.data;
     },
-    faceCheckIn: async (faceImage, patientId = null) => {
-        const response = await api.post('/queue/face-check-in', { face_image: faceImage, patient_id: patientId });
+    faceCheckIn: async (faceImage, patientId = null, appointmentId = null) => {
+        const response = await api.post('/queue/face-check-in', { 
+            face_image: faceImage, 
+            patient_id: patientId,
+            appointment_id: appointmentId
+        });
         return response.data;
     },
     loginPatientWithFace: async (faceImage) => {

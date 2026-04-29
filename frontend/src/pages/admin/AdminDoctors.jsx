@@ -46,23 +46,37 @@ const AdminDoctors = () => {
           let totalCapacity = 15; // Default fallback
 
           if (s.sessions && s.sessions.length > 0) {
-            // Find current or next session
-            const currentSession = s.sessions.find(sess => sess.status === 'ACTIVE') || s.sessions[0];
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const currentDayName = today.toLocaleDateString('en-US', { weekday: 'long' });
 
-            const dateStr = currentSession.session_date || currentSession.day_of_week || 'N/A';
-            shiftText = `${dateStr} • ${currentSession.start_time} (S${currentSession.session_number || 1})`;
+            // Aggregate today's stats across all sessions
+            const totalBooked = s.sessions.reduce((acc, sess) => acc + (sess.current_bookings || 0), 0);
+            const totalWaiting = s.sessions.reduce((acc, sess) => acc + (sess.waiting_count || 0), 0);
+            const totalCapacity = s.sessions.reduce((acc, sess) => acc + (sess.max_patients || 20), 0);
+
+            // Find the most relevant session for display
+            // 1. ACTIVE session
+            // 2. Today's session
+            // 3. First session in list
+            const displaySession = s.sessions.find(sess => sess.status === 'ACTIVE') || 
+                                  s.sessions.find(sess => sess.session_date === todayStr || sess.day_of_week === currentDayName) ||
+                                  s.sessions[0];
+
+            const dateStr = displaySession.session_date || displaySession.day_of_week || 'N/A';
+            shiftText = `${dateStr} • ${displaySession.start_time} (S${displaySession.session_number || 1})`;
 
             return {
               id: s.id,
               name: s.title ? `${s.title} ${s.name}` : `Dr. ${s.name}`,
               specialty: s.specialization || s.department,
-              nextSession: shiftText,
-              room: `${currentSession.room_number || 'Room 04'} • OPD Block`,
-              capacity: currentSession.max_patients || 20,
-              booked: currentSession.current_bookings || 0,
-              waiting: currentSession.waiting_count || 0,
-              sessionStatus: currentSession.status || 'NOT_STARTED',
-              sessionId: currentSession.id,
+              nextSession: s.sessions.length > 1 ? `${shiftText} (+${s.sessions.length - 1} more)` : shiftText,
+              room: `${displaySession.room_number || 'Room 04'} • OPD Block`,
+              capacity: totalCapacity,
+              booked: totalBooked,
+              waiting: totalWaiting,
+              sessionStatus: displaySession.status || 'NOT_STARTED',
+              sessionId: displaySession.id,
               raw: s
             };
           }
@@ -107,14 +121,23 @@ const AdminDoctors = () => {
   useEffect(() => {
     fetchData();
 
-    socketService.on('appointment_booked', () => fetchData(true));
-    socketService.on('appointment_rescheduled', () => fetchData(true));
-    socketService.on('specialist_updated', () => fetchData(true));
+    const handleUpdate = () => {
+      console.log('Real-time update triggered');
+      fetchData(true);
+    };
+
+    socketService.on('appointment_booked', handleUpdate);
+    socketService.on('appointment_rescheduled', handleUpdate);
+    socketService.on('specialist_updated', handleUpdate);
+    socketService.on('queue_updated', handleUpdate);
+    socketService.on('stats_updated', handleUpdate);
 
     return () => {
-      socketService.off('appointment_booked');
-      socketService.off('appointment_rescheduled');
-      socketService.off('specialist_updated');
+      socketService.off('appointment_booked', handleUpdate);
+      socketService.off('appointment_rescheduled', handleUpdate);
+      socketService.off('specialist_updated', handleUpdate);
+      socketService.off('queue_updated', handleUpdate);
+      socketService.off('stats_updated', handleUpdate);
     };
   }, [fetchData]);
 
@@ -683,7 +706,7 @@ const AdminDoctors = () => {
                                     <div>
                                       <p className="text-[9px] font-black text-outline uppercase tracking-tighter">Check-in Rate</p>
                                       <p className="text-sm font-black text-on-surface">
-                                        {Math.round(((session.waiting_count || 0) / Math.max(1, session.current_bookings || 0)) * 100)}% Verified
+                                        {Math.round(((session.checked_in_count || 0) / Math.max(1, session.current_bookings || 0)) * 100)}% Verified
                                       </p>
                                     </div>
                                   </div>

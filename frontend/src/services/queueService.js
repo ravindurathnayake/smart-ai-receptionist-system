@@ -3,9 +3,9 @@ import axios from 'axios';
 const API_BASE_URL = 'http://localhost:5000/api/queue';
 
 const queueService = {
-    checkIn: async (patientId) => {
+    checkIn: async (patientId, appointmentId = null) => {
         try {
-            const response = await axios.post(`${API_BASE_URL}/check-in`, { patient_id: patientId });
+            const response = await axios.post(`${API_BASE_URL}/check-in`, { patient_id: patientId, appointment_id: appointmentId });
             return response.data;
         } catch (error) {
             console.error('Error in express check-in:', error);
@@ -13,9 +13,9 @@ const queueService = {
         }
     },
 
-    manualCheckIn: async (identifier, patientId = null) => {
+    manualCheckIn: async (identifier, patientId = null, appointmentId = null) => {
         try {
-            const response = await axios.post(`${API_BASE_URL}/manual-check-in`, { identifier, patient_id: patientId });
+            const response = await axios.post(`${API_BASE_URL}/manual-check-in`, { identifier, patient_id: patientId, appointment_id: appointmentId });
             return response.data;
         } catch (error) {
             console.error('Error in manual check-in:', error);

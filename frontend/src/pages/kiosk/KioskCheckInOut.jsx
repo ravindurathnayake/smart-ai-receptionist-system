@@ -83,6 +83,9 @@ const KioskCheckInOut = () => {
     const [checkInData, setCheckInData] = useState(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [noAppointment, setNoAppointment] = useState(false);
+    const [appointmentsList, setAppointmentsList] = useState(null);
+    const [sessionEndedData, setSessionEndedData] = useState(null);
+    const [selectedProfileId, setSelectedProfileId] = useState(null);
     const webcamRef = React.useRef(null);
 
     useEffect(() => {
@@ -136,6 +139,13 @@ const KioskCheckInOut = () => {
             if (payload.profiles) {
                 setScanning(false);
                 setProfiles(payload.profiles);
+            } else if (payload.requires_selection) {
+                setScanning(false);
+                setAppointmentsList(payload.appointments);
+                setSelectedProfileId(payload.patient_id);
+            } else if (payload.session_ended) {
+                setScanning(false);
+                setSessionEndedData(payload);
             } else if (payload.success || payload.id || payload.patient_id) {
                 setScanning(false);
                 const pId = payload.id || payload.patient_id;
@@ -172,7 +182,14 @@ const KioskCheckInOut = () => {
                 navigate('/checkout');
             } else {
                 const response = await apiService.faceCheckIn(null, profile.id);
-                if (response.success) {
+                if (response.requires_selection) {
+                    setAppointmentsList(response.appointments);
+                    setSelectedProfileId(profile.id);
+                    setProfiles(null);
+                } else if (response.session_ended) {
+                    setSessionEndedData(response);
+                    setProfiles(null);
+                } else if (response.success) {
                     saveSession(profile.id, profile.name, profile.nic);
                     setCheckInData(response);
                     setShowSuccessModal(true);
@@ -189,6 +206,27 @@ const KioskCheckInOut = () => {
             } else {
                 alert(err.error || 'Selection failed');
             }
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleSelectAppointment = async (appointmentId) => {
+        setIsProcessing(true);
+        setAppointmentsList(null);
+        try {
+            // Face check-in uses a slightly different route/service but we can pass appointment_id now
+            const response = await apiService.faceCheckIn(null, selectedProfileId, appointmentId);
+            
+            if (response.session_ended) {
+                setSessionEndedData(response);
+            } else if (response.success) {
+                saveSession(response.patient_id, response.patient_name, response.nic);
+                setCheckInData(response);
+                setShowSuccessModal(true);
+            }
+        } catch (err) {
+            alert(err.error || 'Appointment selection failed.');
         } finally {
             setIsProcessing(false);
         }
@@ -422,7 +460,67 @@ const KioskCheckInOut = () => {
                 <KioskTopBar title={isCheckOutMode ? 'Quick Check-Out' : 'Check-In / Check-Out'} patientName={patientName} showNotifications={false} />
 
                 <div className="flex-1 overflow-hidden flex flex-col items-center justify-center px-8 py-4 z-10 gap-6">
-                    {profiles ? (
+                    {sessionEndedData ? (
+                        <div className="animate-scale-up w-full max-w-xl mx-auto bg-white rounded-[3rem] shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
+                            <div className="bg-red-50 p-10 text-red-600 text-center border-b border-red-100">
+                                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                                    <span className="material-symbols-outlined text-5xl">event_busy</span>
+                                </div>
+                                <h2 className="text-3xl font-black font-headline">Session Ended</h2>
+                                <p className="text-red-600/80 font-medium mt-2">{sessionEndedData.message}</p>
+                            </div>
+                            <div className="p-10 space-y-4">
+                                <button onClick={() => { alert('Refund request initiated.'); setSessionEndedData(null); setScanning(true); }} className="w-full py-4 bg-white text-red-600 border-2 border-red-200 rounded-2xl font-bold text-base hover:bg-red-50 transition-all flex items-center justify-center gap-3">
+                                    <span className="material-symbols-outlined">payments</span>
+                                    Request Refund
+                                </button>
+                                <button onClick={() => navigate('/doctors')} className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                                    <span className="material-symbols-outlined">calendar_month</span>
+                                    Reschedule Appointment
+                                </button>
+                                <button onClick={() => navigate('/doctors', { state: { filter_department: sessionEndedData.department } })} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-lg shadow-xl shadow-slate-800/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                                    <span className="material-symbols-outlined">group</span>
+                                    Find Alternative Doctor
+                                </button>
+                                <button onClick={() => { setSessionEndedData(null); setScanning(true); }} className="w-full py-3 text-slate-400 font-bold text-xs hover:text-primary transition-colors mt-2">
+                                    ← Try Scanning Again
+                                </button>
+                            </div>
+                        </div>
+                    ) : appointmentsList ? (
+                        <div className="animate-scale-up w-full max-w-2xl mx-auto space-y-6 flex flex-col">
+                            <div className="text-center">
+                                <h3 className="text-2xl font-black font-headline text-on-surface">Select Appointment</h3>
+                                <p className="text-on-surface-variant text-sm">You have multiple appointments today. Which session are you checking into?</p>
+                            </div>
+                            <div className="grid gap-4">
+                                {appointmentsList.map(appt => (
+                                    <button 
+                                        key={appt.id}
+                                        onClick={() => handleSelectAppointment(appt.id)}
+                                        className="flex items-center justify-between gap-4 p-5 bg-white rounded-3xl border border-slate-100 shadow-sm hover:border-primary hover:shadow-md transition-all text-left group"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                                                <span className="material-symbols-outlined text-3xl">stethoscope</span>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-lg text-on-surface">{appt.doctor}</p>
+                                                <p className="text-xs font-semibold text-slate-500">{appt.department} • Room {appt.room}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-black text-xl text-primary">{appt.time}</p>
+                                            <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${appt.session_status === 'ACTIVE' ? 'text-green-500' : appt.session_status === 'ENDED' ? 'text-red-500' : 'text-slate-400'}`}>{appt.session_status}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            <button onClick={() => { setAppointmentsList(null); setScanning(true); }} className="py-3 text-slate-400 font-bold text-sm hover:text-primary transition-colors mt-2">
+                                ← Back to biometric scan
+                            </button>
+                        </div>
+                    ) : profiles ? (
                         <div className="animate-scale-up w-full max-w-2xl mx-auto space-y-6 flex flex-col">
                             <div className="text-center">
                                 <h3 className="text-2xl font-black font-headline text-on-surface">Select Patient Profile</h3>

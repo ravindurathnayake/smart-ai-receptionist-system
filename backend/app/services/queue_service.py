@@ -4,35 +4,87 @@ from app.models import Patient, Appointment, Queue
 from app.services.email_service import send_checkin_notification, send_checkout_notification
 from app.services.whatsapp_service import send_checkin_whatsapp, send_checkout_whatsapp
 
-def check_in_patient(patient_id):
+def check_in_patient(patient_id, appointment_id=None):
     """
     Checks in a patient for their appointment today.
+    Enforces single active check-in, handles multiple appointments, and handles ended sessions.
     """
     today = date.today()
     
-    # Find today's appointment for the patient (allow multiple active statuses)
-    appointment = Appointment.query.filter(
+    # 1. Enforce Single Active Check-in
+    # Check if patient already has an active queue entry
+    active_queue = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
         db.func.date(Appointment.appointment_date) == today,
-        Appointment.status.in_(["Booked", "Scheduled", "Confirmed"])
+        Queue.status.in_(["WAITING", "ACTIVE"])
     ).first()
     
-    if not appointment:
-        return {"error": "No appointment found for today. Please register or book an appointment."}
+    if active_queue:
+        return {"error": "You already have an active check-in. Please complete or check out of your current session before checking in again."}
     
-    # Prepare full response data
+    # 2. Handle Appointment Selection
+    if appointment_id:
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment or appointment.patient_id != patient_id:
+            return {"error": "Invalid appointment selected."}
+    else:
+        # Fetch all eligible appointments for today
+        appointments = Appointment.query.filter(
+            Appointment.patient_id == patient_id,
+            db.func.date(Appointment.appointment_date) == today,
+            Appointment.status.in_(["Booked", "Scheduled", "Confirmed"])
+        ).all()
+        
+        if not appointments:
+            return {"error": "No appointment found for today. Please register or book an appointment."}
+            
+        if len(appointments) > 1:
+            # Need user to select which one to check into
+            appt_list = []
+            for appt in appointments:
+                spec = appt.specialist
+                title = spec.title if (spec and spec.title) else "Dr."
+                sess = appt.session
+                appt_list.append({
+                    "id": appt.id,
+                    "doctor": f"{title} {spec.name}" if spec else "N/A",
+                    "department": spec.department if spec else "General",
+                    "time": appt.appointment_date.strftime("%I:%M %p") if appt.appointment_date else "N/A",
+                    "room": sess.room_number if sess and sess.room_number else "TBD",
+                    "session_status": sess.status if sess else "ACTIVE",
+                    "priority": appt.priority_level
+                })
+            return {"success": True, "requires_selection": True, "appointments": appt_list}
+            
+        appointment = appointments[0]
+
+    # 3. Handle Session Ended
+    session = appointment.session
+    if session and session.status in ["ENDED", "Cancelled", "NEEDS_RESCHEDULE"]:
+        spec = appointment.specialist
+        return {
+            "success": False, 
+            "session_ended": True, 
+            "appointment_id": appointment.id,
+            "department": spec.department if spec else "General",
+            "message": "The session for this appointment has already ended or been cancelled."
+        }
+
+    # Prepare full response data for successful check-in
     patient = Patient.query.get(patient_id)
     specialist = appointment.specialist
     title = specialist.title if (specialist and specialist.title) else "Dr."
     doctor_full = f"{title} {specialist.name}" if specialist else "N/A"
     dept_name = specialist.department if specialist else "General"
-    room = appointment.session.room_number if appointment.session and appointment.session.room_number else "Room 04"
+    room = session.room_number if session and session.room_number else "Room 04"
     app_time = appointment.appointment_date.strftime("%I:%M %p") if appointment.appointment_date else "N/A"
     full_name = patient.full_name if patient else "Patient"
 
-    # Check if already in queue
+    # Check if already in queue (this shouldn't happen if they don't have an active one, but just in case for COMPLETED ones)
     existing_queue = Queue.query.filter_by(appointment_id=appointment.id).first()
     if existing_queue:
+        if existing_queue.status == "COMPLETED":
+            return {"error": "You have already completed this appointment."}
         return {
             "success": True, 
             "queue_number": existing_queue.queue_number, 
@@ -87,7 +139,6 @@ def check_in_patient(patient_id):
             wa_sent = send_checkin_whatsapp(patient.phone_number, full_name, next_num, next_num * 5, doctor_full)
             notifications["whatsapp"] = "sent" if wa_sent else "failed"
     
-    session = appointment.session
     session_num = session.session_number if session else 1
     
     return {
@@ -104,13 +155,13 @@ def check_in_patient(patient_id):
         "notifications": notifications
     }
 
-def manual_check_in(identifier, patient_id=None):
+def manual_check_in(identifier, patient_id=None, appointment_id=None):
     """
     Checks in a patient using NIC or Phone Number.
-    Supports guardian profile selection.
+    Supports guardian profile selection and specific appointment selection.
     """
     if patient_id:
-        return check_in_patient(patient_id)
+        return check_in_patient(patient_id, appointment_id)
 
     # Find primary matching patient (usually the adult/guardian)
     primary = Patient.query.filter(
@@ -127,10 +178,6 @@ def manual_check_in(identifier, patient_id=None):
         (Patient.guardian_phone == primary.phone_number)
     ).all()
 
-    # Filter only those who have appointments today (optional but better UX?)
-    # The user asked to "show accounts", so we show all even if no appt?
-    # Usually we show all linked accounts.
-    
     if linked:
         profiles = [{
             "id": primary.id,
@@ -151,7 +198,7 @@ def manual_check_in(identifier, patient_id=None):
         return {"success": True, "profiles": profiles}
     
     # Only one profile found, proceed with check-in
-    return check_in_patient(primary.id)
+    return check_in_patient(primary.id, appointment_id)
 
 def check_out_patient(patient_id):
     """
@@ -380,6 +427,7 @@ def call_next_patient(doctor_session_id):
         'room': next_qe.appointment.session.room_number if next_qe.appointment.session else "TBA"
     })
     socketio.emit('session_status_changed', {'doctor_session_id': doctor_session_id, 'status': 'ACTIVE'})
+    socketio.emit('specialist_updated', {'specialist_id': session.specialist_id})
     
     return {
         "success": True, 
@@ -439,6 +487,7 @@ def end_session(doctor_session_id):
     # EMIT REAL-TIME UPDATE
     socketio.emit('session_status_changed', {'doctor_session_id': doctor_session_id, 'status': 'ENDED'})
     socketio.emit('queue_updated', {'type': 'session_end', 'doctor_session_id': doctor_session_id})
+    socketio.emit('specialist_updated', {'specialist_id': session.specialist_id})
     
     return {"success": True, "message": f"Session ended. {len(waiting_qes)} waiting patients cancelled."}
 
@@ -456,6 +505,8 @@ def skip_patient(queue_id):
     
     # EMIT REAL-TIME UPDATE
     socketio.emit('queue_updated', {'type': 'skip', 'queue_id': queue_id})
+    if qe.appointment and qe.appointment.specialist_id:
+        socketio.emit('specialist_updated', {'specialist_id': qe.appointment.specialist_id})
     
     return { "success": True, "message": "Patient marked as missed." }
 
