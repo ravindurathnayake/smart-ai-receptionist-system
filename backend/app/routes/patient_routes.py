@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from ..models import Patient
-from ..extensions import db
+from ..extensions import db, socketio
 from ..utils.response import success_response, error_response
 from ..services import get_face_embedding
 
@@ -73,6 +73,13 @@ def create_patient():
         
         db.session.add(new_patient)
         db.session.commit()
+        
+        # Emit real-time update
+        socketio.emit('patient_created', {
+            "id": new_patient.id,
+            "formatted_id": f"PAT-{new_patient.id:04d}",
+            "name": new_patient.full_name
+        })
         
         return success_response("Patient created successfully", {
             "id": new_patient.id,

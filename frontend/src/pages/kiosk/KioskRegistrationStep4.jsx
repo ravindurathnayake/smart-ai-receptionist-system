@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './KioskRegistrationStep4.css';
 import { apiService } from '../../services/apiService';
@@ -110,10 +110,12 @@ const TopBar = ({ step = 4, totalSteps = 4, title = "Final Confirmation" }) => {
 
 const KioskRegistrationStep4 = () => {
     const navigate = useNavigate();
-    const [regData, setRegData] = React.useState(null);
-    const [isSaving, setIsSaving] = React.useState(false);
+    const [regData, setRegData] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [regId, setRegId] = useState('');
 
-    React.useEffect(() => {
+    useEffect(() => {
         const saved = localStorage.getItem('registrationData');
         if (saved) {
             try {
@@ -168,11 +170,15 @@ const KioskRegistrationStep4 = () => {
                 guardian_id: isMinor ? regData.guardianId : null
             };
 
-            await apiService.createPatient(patientPayload);
+            const result = await apiService.createPatient(patientPayload);
+            setRegId(result.formatted_id || `PAT-${result.id.toString().padStart(4, '0')}`);
             
             localStorage.removeItem('registrationData');
-            alert("Registration Successful!");
-            navigate('/');
+            setShowSuccess(true);
+            // Auto-navigate after 8 seconds if they don't click anything
+            setTimeout(() => {
+                navigate('/');
+            }, 8000);
         } catch (error) {
             console.error("Registration error:", error);
             alert(`Error: ${error.response?.data?.message || 'Failed to register. Please try again.'}`);
@@ -363,6 +369,37 @@ const KioskRegistrationStep4 = () => {
                     </div>
                 </div>
             </main>
+
+            {showSuccess && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-500">
+                    <div className="bg-white rounded-[3rem] w-full max-w-lg overflow-hidden shadow-2xl shadow-primary/20 animate-in zoom-in slide-in-from-bottom-10 duration-700">
+                        <div className="p-12 text-center">
+                            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8 relative">
+                                <span className="material-symbols-outlined text-5xl text-primary animate-bounce" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                                <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping"></div>
+                            </div>
+                            
+                            <h2 className="text-3xl font-black text-primary mb-3 font-headline tracking-tight">Registration Successful!</h2>
+                            <p className="text-slate-500 font-bold mb-8">Welcome to MediAssist AI Healthcare Facility.</p>
+                            
+                            <div className="bg-slate-50 rounded-3xl p-6 mb-8 border border-slate-100">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Patient Digital ID</p>
+                                <p className="text-4xl font-black text-primary font-headline tracking-tighter">{regId}</p>
+                                <p className="text-xs font-bold text-slate-500 mt-2">Please keep this ID for future reference.</p>
+                            </div>
+
+                            <button 
+                                onClick={() => navigate('/')}
+                                className="w-full py-5 bg-gradient-to-br from-primary to-primary-container text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                            >
+                                Finish & Return Home
+                            </button>
+                            
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-6">Redirecting automatically in a few seconds...</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

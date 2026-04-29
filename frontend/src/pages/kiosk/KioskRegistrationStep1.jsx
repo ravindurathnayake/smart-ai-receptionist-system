@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './KioskRegistrationStep1.css';
+import { apiService } from '../../services/apiService';
 
 // ─── Shared Components (consistent with KioskAIAssistant) ──────────────────────
 
@@ -146,6 +147,30 @@ const KioskRegistrationStep1 = () => {
     }
   }, []);
 
+  const isFormValid = () => {
+    const basicValid = formData.fullName.trim() !== '' && formData.dob !== '' && formData.gender !== '';
+    const age = calculateAge(formData.dob);
+    const isMinor = age > 0 && age < 18;
+
+    if (isMinor) {
+      return (
+        basicValid &&
+        formData.guardianName.trim() !== '' &&
+        formData.guardianNic.trim() !== '' &&
+        formData.guardianPhone.trim() !== '' &&
+        formData.relationship !== ''
+      );
+    } else {
+      return basicValid && formData.phone.trim() !== '' && formData.nic.trim() !== '';
+    }
+  };
+
+  const handleNext = () => {
+    if (!isFormValid()) return;
+    localStorage.setItem('registrationData', JSON.stringify(formData));
+    navigate('/register/step2');
+  };
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     
@@ -183,7 +208,7 @@ const KioskRegistrationStep1 = () => {
     }, 800); // 800ms debounce
   };
 
-  const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+  const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', "Don't Know"];
   const relationships = ['Father', 'Mother', 'Guardian'];
 
   const calculateAge = (dobString) => {
@@ -275,9 +300,9 @@ const KioskRegistrationStep1 = () => {
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
                     <span className="material-symbols-outlined text-base">bloodtype</span>
-                    Blood Group
+                    Blood Group <span className="text-[10px] lowercase font-normal opacity-60 ml-1">(Optional)</span>
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {bloodGroups.map((bg) => (
                       <button
                         key={bg}
@@ -375,18 +400,6 @@ const KioskRegistrationStep1 = () => {
                         value={formData.guardianNic}
                         onChange={(e) => handleInputChange('guardianNic', e.target.value)}
                       />
-                      {isSearching && (
-                        <div className="absolute right-4 top-[3.2rem] flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">
-                          <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                          Checking...
-                        </div>
-                      )}
-                      {!isSearching && formData.guardianId && (
-                        <div className="absolute right-4 top-[3.2rem] flex items-center gap-1 text-[10px] font-black text-green-600 uppercase tracking-widest animate-in fade-in zoom-in duration-300">
-                          <span className="material-symbols-outlined text-sm">verified</span>
-                          Linked Patient
-                        </div>
-                      )}
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -463,8 +476,10 @@ const KioskRegistrationStep1 = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate('/register/step2')}
-                  className="bg-gradient-to-br from-primary to-primary-container text-white px-10 py-4 rounded-full font-bold text-lg shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-transform flex items-center gap-2"
+                  onClick={handleNext}
+                  disabled={!isFormValid()}
+                  className={`bg-gradient-to-br from-primary to-primary-container text-white px-10 py-4 rounded-full font-bold text-lg shadow-xl shadow-primary/20 transition-all flex items-center gap-2 ${!isFormValid() ? 'opacity-50 cursor-not-allowed grayscale-[0.5]' : 'hover:scale-105 active:scale-95'
+                    }`}
                 >
                   Next Step
                   <span className="material-symbols-outlined font-bold">arrow_forward</span>

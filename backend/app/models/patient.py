@@ -14,7 +14,7 @@ class Patient(db.Model):
     gender = db.Column(db.String(20), nullable=True)
     nic = db.Column(db.String(20), unique=True, nullable=True)
     address = db.Column(db.Text, nullable=True)
-    blood_type = db.Column(db.String(5), nullable=True)
+    blood_type = db.Column(db.String(20), nullable=True)
     medical_history = db.Column(db.Text, nullable=True)
     profile_image = db.Column(db.String(255), nullable=True)
     face_embedding = db.Column(db.JSON, nullable=True)

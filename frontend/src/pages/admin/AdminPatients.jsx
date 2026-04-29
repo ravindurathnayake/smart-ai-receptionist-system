@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
 import { useAdminSearch } from '../../context/AdminSearchContext';
+import { socketService } from '../../services/socketService';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import './AdminPatients.css';
 
@@ -35,6 +36,16 @@ const AdminPatients = () => {
       }
     };
     fetchPatients();
+
+    // REAL-TIME LISTENER FOR NEW PATIENTS
+    socketService.on('patient_created', (data) => {
+      console.log("New patient registered in real-time:", data);
+      fetchPatients();
+    });
+
+    return () => {
+      socketService.off('patient_created');
+    };
   }, []);
 
   const handleCheckIn = async (patient) => {
@@ -278,27 +289,66 @@ const AdminPatients = () => {
 };
 
 const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) => {
+  const calculateAge = (dobString) => {
+    if (!dobString) return 0;
+    const today = new Date();
+    const birthDate = new Date(dobString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const [formData, setFormData] = useState({
-    full_name: patient?.name || '',
-    phone_number: patient?.phone || '',
+    full_name: patient?.full_name || patient?.name || '',
+    phone_number: patient?.phone_number || patient?.phone || '',
     email: patient?.email || '',
+    dob: patient?.dob || '',
     age: patient?.age || '',
     gender: patient?.gender || 'Male',
     nic: patient?.nic || '',
     address: patient?.address || '',
     blood_type: patient?.blood_type || 'O+',
-    medical_history: ''
+    medical_history: '',
+    guardian_name: patient?.guardian_name || '',
+    guardian_nic: patient?.guardian_nic || '',
+    guardian_phone: patient?.guardian_phone || '',
+    guardian_relationship: patient?.guardian_relationship || 'Father'
   });
   const [loading, setLoading] = useState(false);
+
+  const isFormValid = () => {
+    const calculatedAge = calculateAge(formData.dob);
+    const basicValid = formData.full_name.trim() !== '' && formData.dob !== '' && formData.gender !== '';
+    const isMinor = calculatedAge > 0 && calculatedAge < 18;
+
+    if (isMinor) {
+      return (
+        basicValid &&
+        formData.guardian_name.trim() !== '' &&
+        formData.guardian_nic.trim() !== '' &&
+        formData.guardian_phone.trim() !== '' &&
+        formData.guardian_relationship !== ''
+      );
+    } else {
+      return basicValid && formData.phone_number.trim() !== '' && formData.nic.trim() !== '';
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+      const payload = {
+        ...formData,
+        age: calculateAge(formData.dob)
+      };
       if (mode === 'edit') {
-        await apiService.updatePatient(patient.id, formData);
+        await apiService.updatePatient(patient.id, payload);
       } else {
-        await apiService.createPatient(formData);
+        await apiService.createPatient(payload);
       }
       onSuccess();
     } catch (err) {
@@ -343,22 +393,27 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">NIC Number</label>
-              <input 
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
-                value={formData.nic}
-                onChange={e => setFormData({...formData, nic: e.target.value})}
-              />
-            </div>
+            {calculateAge(formData.dob) >= 18 && (
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">NIC Number</label>
+                <input 
+                  className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                  value={formData.nic}
+                  onChange={e => setFormData({...formData, nic: e.target.value})}
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">Age</label>
+              <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">Date of Birth</label>
               <input 
-                type="number"
+                type="date"
                 className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
-                value={formData.age}
-                onChange={e => setFormData({...formData, age: e.target.value})}
+                value={formData.dob}
+                onChange={e => {
+                  const newDob = e.target.value;
+                  setFormData({...formData, dob: newDob, age: calculateAge(newDob)});
+                }}
               />
             </div>
 
@@ -382,7 +437,7 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
                 value={formData.blood_type}
                 onChange={e => setFormData({...formData, blood_type: e.target.value})}
               >
-                {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(type => (
+                {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', "Don't Know"].map(type => (
                   <option key={type}>{type}</option>
                 ))}
               </select>
@@ -397,6 +452,50 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
                 onChange={e => setFormData({...formData, email: e.target.value})}
               />
             </div>
+
+            {formData.dob !== '' && calculateAge(formData.dob) < 18 && (
+              <div className="col-span-2 grid grid-cols-2 gap-6 bg-primary/5 p-6 rounded-3xl border border-primary/10 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="col-span-2">
+                  <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Guardian Information (Required)</h4>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Guardian Name</label>
+                  <input 
+                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                    value={formData.guardian_name}
+                    onChange={e => setFormData({...formData, guardian_name: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Guardian NIC</label>
+                  <input 
+                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                    value={formData.guardian_nic}
+                    onChange={e => setFormData({...formData, guardian_nic: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Guardian Phone</label>
+                  <input 
+                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                    value={formData.guardian_phone}
+                    onChange={e => setFormData({...formData, guardian_phone: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Relationship</label>
+                  <select 
+                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 px-5 py-3.5 rounded-2xl outline-none transition-all font-medium appearance-none"
+                    value={formData.guardian_relationship}
+                    onChange={e => setFormData({...formData, guardian_relationship: e.target.value})}
+                  >
+                    <option>Father</option>
+                    <option>Mother</option>
+                    <option>Guardian</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div className="col-span-2 space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">Address</label>
@@ -417,8 +516,8 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
             </button>
             <button 
               type="submit"
-              disabled={loading}
-              className="flex-[2] py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 transition-all">
+              disabled={loading || !isFormValid()}
+              className="flex-[2] py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 disabled:grayscale transition-all">
               {loading ? (mode === 'edit' ? 'Updating...' : 'Registering...') : (mode === 'edit' ? 'Save Changes' : 'Complete Registration')}
             </button>
           </div>
