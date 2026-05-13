@@ -266,7 +266,7 @@ const KioskHome = () => {
               role: 'bot', 
               text: "⚠️ Please go to the Emergency Room immediately! 📍 Ground Floor - Emergency Unit. 🚑 Medical staff has been notified of your situation.",
               actions: [
-                  { label: 'View ER Route', type: 'navigate', payload: '/hospital-map' },
+                  { label: 'View ER Route', type: 'navigate', payload: '/hospital-map?destination=emergency' },
                   { label: 'Exit Emergency Mode', type: 'message', payload: 'Thank you, I am okay now.' }
               ]
           }]);

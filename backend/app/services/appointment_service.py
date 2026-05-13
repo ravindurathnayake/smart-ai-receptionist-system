@@ -67,7 +67,7 @@ def get_specialist_availability(specialist_id, target_date_str):
     return available_sessions
 
 
-def book_appointment(full_name, phone_number, specialist_id, symptom, appointment_date, doctor_session_id=None, patient_id=None):
+def book_appointment(full_name, phone_number, specialist_id, symptom, appointment_date, nic=None, doctor_session_id=None, patient_id=None):
     """
     Handles full appointment booking logic:
     - Finds or creates patient
@@ -82,21 +82,27 @@ def book_appointment(full_name, phone_number, specialist_id, symptom, appointmen
     if patient_id:
         patient = Patient.query.get(patient_id)
     
+    if not patient and nic:
+        patient = Patient.query.filter_by(nic=nic).first()
+    
     if not patient and phone_number:
         patient = Patient.query.filter_by(phone_number=phone_number).first()
         
     if not patient:
         patient = Patient(
-            full_name=full_name,
-            phone_number=phone_number
+            full_name=full_name or f"Patient {nic[-4:] if nic else 'New'}",
+            phone_number=phone_number,
+            nic=nic
         )
         db.session.add(patient)
         db.session.commit()
     else:
-        # Update name if it was missing or different (optional)
+        # Update name/nic if missing
         if full_name and not patient.full_name:
             patient.full_name = full_name
-            db.session.commit()
+        if nic and not patient.nic:
+            patient.nic = nic
+        db.session.commit()
 
     # Validate specialist exists
     specialist = Specialist.query.get(specialist_id)
