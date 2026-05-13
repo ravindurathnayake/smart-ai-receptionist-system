@@ -601,154 +601,145 @@ const AdminDoctors = () => {
 
                   <div className="space-y-4">
                     {formData.sessions.length === 0 ? (
-                      <div className="p-12 border-2 border-dashed border-outline-variant/20 rounded-[2.5rem] text-center bg-surface-container-lowest/50">
-                        <div className="w-16 h-16 bg-surface-container rounded-3xl flex items-center justify-center mx-auto mb-4 text-outline/30">
+                      <div className="p-12 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-center bg-slate-50/50 group hover:border-primary/30 transition-all cursor-pointer" onClick={addSessionRow}>
+                        <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-slate-300 shadow-sm group-hover:scale-110 transition-transform">
                           <span className="material-symbols-rounded text-4xl">calendar_add_on</span>
                         </div>
-                        <p className="text-sm font-bold text-outline uppercase tracking-widest">No active sessions defined</p>
-                        <p className="text-xs text-on-surface-variant mt-1">Add a new shift to start scheduling consultations.</p>
+                        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No active sessions defined</p>
+                        <p className="text-xs text-slate-500 mt-1">Add a new shift to start scheduling consultations.</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-4">
                         {formData.sessions.map((session, idx) => (
-                          <div key={idx} className="p-6 bg-white border border-outline-variant/10 rounded-[1.75rem] shadow-sm hover:shadow-md hover:border-primary/20 transition-all group animate-in slide-in-from-bottom-2 duration-300">
-                            <div className="grid grid-cols-12 gap-6 items-center">
-                              {/* Session Identity */}
-                              <div className="col-span-1 space-y-2">
-                                <div className="flex items-center gap-2 px-1">
-                                  <span className="material-symbols-rounded text-sm text-primary">pin</span>
-                                  <label className="text-[10px] font-black text-outline uppercase tracking-widest">No</label>
+                          <div key={idx} className="relative p-6 bg-white border border-slate-100 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.06)] hover:border-primary/20 transition-all group animate-in slide-in-from-bottom-2 duration-300">
+                            {/* Session Header/Indicator */}
+                            <div className="flex items-center justify-between mb-6">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
+                                  #{session.session_number || idx + 1}
                                 </div>
-                                <input
-                                  type="number"
-                                  className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all text-center"
-                                  value={session.session_number || ''}
-                                  onChange={(e) => handleSessionChange(idx, 'session_number', e.target.value)}
-                                  placeholder="1"
-                                />
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Session Identity</span>
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => removeSessionRow(idx)}
+                                className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-error hover:bg-error/5 rounded-full transition-all"
+                                title="Remove Shift"
+                              >
+                                <span className="material-symbols-rounded text-xl">delete</span>
+                              </button>
+                            </div>
 
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-start">
                               {/* Date Selection */}
-                              <div className="col-span-2 space-y-2">
-                                <div className="flex items-center gap-2 px-1">
-                                  <span className="material-symbols-rounded text-sm text-primary">calendar_month</span>
-                                  <label className="text-[10px] font-black text-outline uppercase tracking-widest">Session Date</label>
-                                </div>
+                              <div className="col-span-1 md:col-span-1 lg:col-span-3 space-y-2">
+                                <label className="flex items-center gap-2 px-1">
+                                  <span className="material-symbols-rounded text-xs text-primary">calendar_today</span>
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date</span>
+                                </label>
                                 <input
                                   type="date"
                                   required
-                                  className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
+                                  className="w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all"
                                   value={session.session_date || ''}
                                   onChange={(e) => handleSessionChange(idx, 'session_date', e.target.value)}
                                 />
                               </div>
 
                               {/* Time Range */}
-                              <div className="col-span-4 space-y-2">
-                                <div className="flex items-center gap-2 px-1">
-                                  <span className="material-symbols-rounded text-sm text-primary">schedule</span>
-                                  <label className="text-[10px] font-black text-outline uppercase tracking-widest">Time Window</label>
-                                </div>
-                                <div className="flex items-center gap-2">
+                              <div className="col-span-1 md:col-span-1 lg:col-span-5 space-y-2">
+                                <label className="flex items-center gap-2 px-1">
+                                  <span className="material-symbols-rounded text-xs text-primary">schedule</span>
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Time Window</span>
+                                </label>
+                                <div className="flex items-center gap-2 p-1.5 bg-slate-50/50 border border-slate-100 rounded-xl">
                                   <input
                                     type="time"
-                                    className="flex-1 px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
+                                    className="flex-1 px-2 py-1.5 bg-white border border-slate-100 rounded-lg text-xs font-bold outline-none focus:border-primary/40 transition-all"
                                     value={session.start_time}
                                     onChange={(e) => handleSessionChange(idx, 'start_time', e.target.value)}
                                   />
-                                  <span className="text-outline text-xs font-black">TO</span>
+                                  <span className="text-[10px] font-black text-slate-300">TO</span>
                                   <input
                                     type="time"
-                                    className="flex-1 px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
+                                    className="flex-1 px-2 py-1.5 bg-white border border-slate-100 rounded-lg text-xs font-bold outline-none focus:border-primary/40 transition-all"
                                     value={session.end_time}
                                     onChange={(e) => handleSessionChange(idx, 'end_time', e.target.value)}
                                   />
                                 </div>
                               </div>
 
-                              {/* Room & Capacity */}
-                              <div className="col-span-4 grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 px-1">
-                                    <span className="material-symbols-rounded text-sm text-primary">meeting_room</span>
-                                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">Room</label>
-                                  </div>
-                                  <input
-                                    className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
-                                    value={session.room_number}
-                                    onChange={(e) => handleSessionChange(idx, 'room_number', e.target.value)}
-                                    placeholder="e.g. Room 04"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 px-1">
-                                    <span className="material-symbols-rounded text-sm text-primary">groups</span>
-                                    <label className="text-[10px] font-black text-outline uppercase tracking-widest">Limit</label>
-                                  </div>
-                                  <input
-                                    type="number"
-                                    className="w-full px-4 py-3 bg-surface-container-low rounded-xl text-xs font-bold outline-none border-2 border-transparent focus:border-primary/20 transition-all"
-                                    value={session.max_patients}
-                                    onChange={(e) => handleSessionChange(idx, 'max_patients', parseInt(e.target.value, 10) || 0)}
-                                  />
-                                </div>
+                              {/* Room Selection */}
+                              <div className="col-span-1 md:col-span-1 lg:col-span-2 space-y-2">
+                                <label className="flex items-center gap-2 px-1">
+                                  <span className="material-symbols-rounded text-xs text-primary">meeting_room</span>
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Room</span>
+                                </label>
+                                <input
+                                  className="w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-primary/40 transition-all"
+                                  value={session.room_number}
+                                  onChange={(e) => handleSessionChange(idx, 'room_number', e.target.value)}
+                                  placeholder="Room 04"
+                                />
                               </div>
 
-                              {/* Session Stats (Practical Display) */}
+                              {/* Capacity */}
+                              <div className="col-span-1 md:col-span-1 lg:col-span-2 space-y-2">
+                                <label className="flex items-center gap-2 px-1">
+                                  <span className="material-symbols-rounded text-xs text-primary">groups</span>
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Limit</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  className="w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-primary/40 transition-all"
+                                  value={session.max_patients}
+                                  onChange={(e) => handleSessionChange(idx, 'max_patients', parseInt(e.target.value, 10) || 0)}
+                                />
+                              </div>
+
+                              {/* Session Stats Integration */}
                               {session.id && (
-                                <div className="col-span-12 grid grid-cols-4 gap-4 pt-4 mt-2 border-t border-outline-variant/5">
-                                  <div className="bg-surface-container-lowest p-3 rounded-2xl flex items-center gap-3 border border-outline-variant/10">
-                                    <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                                      <span className="material-symbols-rounded text-lg">book_online</span>
+                                <div className="col-span-1 md:col-span-2 lg:col-span-12 mt-4 pt-4 border-t border-slate-50 grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                  <div className="p-3 rounded-2xl bg-slate-50/50 border border-slate-100/50 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-primary">
+                                      <span className="material-symbols-rounded text-lg">bookmark_added</span>
                                     </div>
                                     <div>
-                                      <p className="text-[9px] font-black text-outline uppercase tracking-tighter">Total Bookings</p>
-                                      <p className="text-sm font-black text-on-surface">{session.current_bookings || 0} Patients</p>
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-1">Booked</p>
+                                      <p className="text-xs font-black text-slate-700">{session.current_bookings || 0} / {session.max_patients}</p>
                                     </div>
                                   </div>
-                                  <div className="bg-surface-container-lowest p-3 rounded-2xl flex items-center gap-3 border border-outline-variant/10">
-                                    <div className="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600">
-                                      <span className="material-symbols-rounded text-lg">how_to_reg</span>
+                                  <div className="p-3 rounded-2xl bg-emerald-50/30 border border-emerald-100/50 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-emerald-500">
+                                      <span className="material-symbols-rounded text-lg">check_circle</span>
                                     </div>
                                     <div>
-                                      <p className="text-[9px] font-black text-outline uppercase tracking-tighter">Remaining Slots</p>
-                                      <p className="text-sm font-black text-on-surface">{(session.max_patients || 20) - (session.current_bookings || 0)} Available</p>
+                                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter leading-none mb-1">Status</p>
+                                      <p className="text-xs font-black text-emerald-700 uppercase tracking-tighter">{session.status || 'Active'}</p>
                                     </div>
                                   </div>
-                                  <div className="bg-surface-container-lowest p-3 rounded-2xl flex items-center gap-3 border border-outline-variant/10">
-                                    <div className="w-8 h-8 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-600">
-                                      <span className="material-symbols-rounded text-lg">group</span>
+                                  <div className="p-3 rounded-2xl bg-amber-50/30 border border-amber-100/50 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-amber-500">
+                                      <span className="material-symbols-rounded text-lg">groups</span>
                                     </div>
                                     <div>
-                                      <p className="text-[9px] font-black text-outline uppercase tracking-tighter">Check-in Rate</p>
-                                      <p className="text-sm font-black text-on-surface">
-                                        {Math.round(((session.checked_in_count || 0) / Math.max(1, session.current_bookings || 0)) * 100)}% Verified
+                                      <p className="text-[9px] font-black text-amber-400 uppercase tracking-tighter leading-none mb-1">In Queue</p>
+                                      <p className="text-xs font-black text-amber-700">{session.waiting_count || 0} Waiting</p>
+                                    </div>
+                                  </div>
+                                  <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-primary">
+                                      <span className="material-symbols-rounded text-lg">event_repeat</span>
+                                    </div>
+                                    <div>
+                                      <p className="text-[9px] font-black text-primary/40 uppercase tracking-tighter leading-none mb-1">Progress</p>
+                                      <p className="text-xs font-black text-primary">
+                                        {Math.round(((session.checked_in_count || 0) / Math.max(1, session.current_bookings || 0)) * 100)}% Done
                                       </p>
-                                    </div>
-                                  </div>
-                                  <div className="bg-surface-container-lowest p-3 rounded-2xl flex items-center gap-3 border border-outline-variant/10">
-                                    <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                                      <span className="material-symbols-rounded text-lg">pending_actions</span>
-                                    </div>
-                                    <div>
-                                      <p className="text-[9px] font-black text-outline uppercase tracking-tighter">Status</p>
-                                      <p className="text-sm font-black text-on-surface uppercase tracking-tighter">{session.status || 'Scheduled'}</p>
                                     </div>
                                   </div>
                                 </div>
                               )}
-
-                              {/* Actions */}
-                              <div className="col-span-1 flex justify-end">
-                                <button
-                                  type="button"
-                                  onClick={() => removeSessionRow(idx)}
-                                  className="w-12 h-12 flex items-center justify-center text-outline-variant hover:text-error hover:bg-error/10 rounded-2xl transition-all"
-                                  title="Remove Shift"
-                                >
-                                  <span className="material-symbols-rounded text-xl">delete_outline</span>
-                                </button>
-                              </div>
                             </div>
                           </div>
                         ))}
