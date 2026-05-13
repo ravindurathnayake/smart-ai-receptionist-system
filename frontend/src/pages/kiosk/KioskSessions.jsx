@@ -1050,9 +1050,18 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                             </p>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Consultation Fee</p>
-                        <p className="text-xl font-bold text-primary">Rs. {doctor.consultation_fee || '4,500'}</p>
+                    <div className="text-right flex flex-col gap-1">
+                        <div className="flex justify-end items-center gap-2">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Consultation</p>
+                            <p className="text-xs font-bold text-on-surface">Rs. {doctor.consultation_fee || '4,500'}</p>
+                        </div>
+                        <div className="flex justify-end items-center gap-2">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Hospital Fee</p>
+                            <p className="text-xs font-bold text-on-surface">Rs. 500</p>
+                        </div>
+                        <div className="mt-1 pt-1 border-t border-slate-200">
+                            <p className="text-xl font-black text-primary">Rs. {(parseInt(doctor.consultation_fee || 4500) + 500).toLocaleString()}</p>
+                        </div>
                     </div>
                 </div>
 

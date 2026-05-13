@@ -555,8 +555,8 @@ const KioskCheckInOut = () => {
                         <>
                             <div className="text-center space-y-2">
                                 <div className="inline-flex items-center gap-3 px-5 py-2 bg-primary/10 text-primary rounded-full font-bold text-[10px] uppercase tracking-widest mx-auto">
-                                    <span className="material-symbols-outlined text-lg animate-pulse">biometric_adp</span>
-                                    AI Biometric System
+                                    <span className="material-symbols-outlined text-lg">face</span>
+                                    Secure Identification
                                 </div>
                                 <h2 className="text-4xl font-extrabold font-headline text-on-surface tracking-tight">
                                     {isCheckOutMode ? 'Express Check-Out' : 'Express Check-In'}

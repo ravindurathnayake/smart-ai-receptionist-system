@@ -7,9 +7,9 @@
 
 .admin-sidebar {
     width: 288px;
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(24px);
-    border-right: 1px solid rgba(0, 0, 0, 0.05);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 249, 250, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -17,54 +17,77 @@
     left: 0;
     bottom: 0;
     z-index: 50;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.02);
 }
 
 .admin-logo-section {
-    padding: 2rem;
-    padding-bottom: 2.5rem;
+    padding: 1.5rem 1rem 0.5rem 1rem;
 }
 
 .admin-nav-item {
     display: flex;
-    items-center: center;
+    align-items: center;
     gap: 1rem;
-    padding: 1rem 1.25rem;
-    border-radius: 1.25rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    color: #5f6368;
+    padding: 0.75rem 1.125rem;
+    border-radius: 0.875rem;
+    transition: all 0.2s ease;
+    color: #64748b;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 15px;
-    margin-bottom: 0.5rem;
+    font-weight: 700;
+    font-size: 13.5px;
+    position: relative;
+    overflow: hidden;
 }
 
 .admin-nav-item:hover {
-    background: rgba(0, 71, 141, 0.05);
-    color: #00478d;
+    background: white;
+    color: var(--md-sys-color-primary, #00478d);
+    transform: translateX(6px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
 }
 
 .admin-nav-item.active {
-    background: #00478d;
+    background: var(--md-sys-color-primary, #00478d);
     color: #ffffff;
-    box-shadow: 0 10px 30px rgba(0, 71, 141, 0.25);
+    box-shadow: 0 10px 25px rgba(0, 71, 141, 0.25);
+    transform: translateX(4px);
 }
 
-.admin-nav-item icon {
-    font-size: 22px;
+.admin-nav-item.active .active-indicator {
+    position: absolute;
+    right: 0;
+    top: 25%;
+    bottom: 25%;
+    width: 4px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px 0 0 4px;
 }
 
-.admin-sidebar-support {
-    margin-top: auto;
-    padding: 2rem;
-    padding-top: 0;
+.admin-nav-item .material-symbols-rounded {
+    font-size: 20px;
+    transition: transform 0.3s ease;
 }
 
-.support-card {
-    background: rgba(0, 71, 141, 0.05);
-    border-radius: 1.5rem;
-    padding: 1.25rem;
-    border: 1px solid rgba(0, 71, 141, 0.1);
+.admin-nav-item:hover .material-symbols-rounded {
+    transform: scale(1.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.admin-footer-profile:hover {
+    transform: translateY(-2px);
 }
 
 .admin-header {
@@ -114,12 +137,6 @@
     border-radius: 1.25rem;
 }
 
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
 
-.admin-page-transition {
-    animation: fadeIn 0.6s ease forwards;
-}
+/* Animations */
+/* Removed problematic fadeIn that was trapping fixed modals */

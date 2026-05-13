@@ -238,9 +238,34 @@ def process_message(message, patient_id=None):
                 if isinstance(booking, dict) and "error" in booking: 
                     return {"reply": f"I apologize, I encountered an error: {booking['error']}", "actions": []}
                 
+                # Fetch doctor details for the payment page
+                doc = Specialist.query.get(data["doctor_id"])
+                
                 return {
-                    "reply": f"Perfect! Your appointment with Dr. {data['doctor_name']} is confirmed for {dt_obj.strftime('%Y-%m-%d at %I:%M %p')}. A confirmation has been sent to your phone.", 
-                    "actions": [{"label": "View My Appointments", "type": "navigate", "payload": "/patient-dashboard"}]
+                    "reply": f"Perfect! Your appointment with Dr. {data['doctor_name']} is confirmed for {dt_obj.strftime('%Y-%m-%d at %I:%M %p')}. Now, please proceed to the payment page to settle the consultation and hospital fees to finalize your booking.", 
+                    "actions": [
+                        {
+                            "label": "Proceed to Payment", 
+                            "type": "navigate", 
+                            "payload": "/payment",
+                            "data": {
+                                "appointment": {
+                                    **booking,
+                                    "full_name": data.get("patient_name"),
+                                    "phone_number": data.get("phone_number"),
+                                    "appointment_date": dt_obj.strftime('%Y-%m-%d %I:%M %p'),
+                                    "session_id": data.get("doctor_session_id")
+                                },
+                                "doctor": {
+                                    "id": doc.id,
+                                    "name": f"{doc.title} {doc.name}",
+                                    "specialty": doc.specialization,
+                                    "consultation_fee": doc.consultation_fee
+                                }
+                            }
+                        },
+                        {"label": "Back to Dashboard", "type": "navigate", "payload": "/patient-dashboard"}
+                    ]
                 }
             except Exception as e:
                 return {"reply": "I encountered an error while booking. Would you like to try again?", "actions": [{"label": "Try Again", "type": "message", "payload": "book appointment"}]}

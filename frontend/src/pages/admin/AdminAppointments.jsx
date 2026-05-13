@@ -274,7 +274,7 @@ const AdminAppointments = () => {
   };
 
   return (
-    <div className="appointments-wrapper admin-page-transition">
+    <div className="appointments-wrapper">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Appointment Management</h2>
@@ -440,7 +440,7 @@ const AdminAppointments = () => {
 
       {/* New Appointment Modal */}
       {showNewAptModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col">
             <div className="p-8 border-b border-slate-100 bg-primary/5 flex justify-between items-center shrink-0">
               <div>

@@ -7,11 +7,15 @@ import './KioskPayment.css';
 const KioskPayment = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { appointment, doctor } = location.state || {};
+    const { appointment, doctor } = location.state || { appointment: {}, doctor: {} };
 
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [step, setStep] = useState('method'); // method, details, processing, success
     const [isProcessing, setIsProcessing] = useState(false);
+    
+    const consultationFee = parseInt(doctor?.consultation_fee) || 4500;
+    const hospitalFee = 500;
+    const totalAmount = consultationFee + hospitalFee;
     const [cardNumber, setCardNumber] = useState('');
     const [expiry, setExpiry] = useState('');
     const [cvv, setCvv] = useState('');
@@ -28,11 +32,18 @@ const KioskPayment = () => {
 
         const txnId = `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
+        if (!appointment?.appointment_id && !appointment?.id) {
+            alert("No appointment information found. Please try booking again.");
+            setIsProcessing(false);
+            setStep('method');
+            return;
+        }
+
         try {
             // Call the real confirmation API which also triggers the email
             const response = await apiService.confirmPayment({
                 appointment_id: appointment.appointment_id || appointment.id,
-                amount: doctor.consultation_fee || 4500,
+                amount: totalAmount,
                 payment_method: paymentMethod === 'card' ? 'Card' : 'Cash at Counter',
                 transaction_id: txnId
             });
@@ -89,7 +100,7 @@ const KioskPayment = () => {
                     <div className="bg-slate-50 rounded-3xl p-6 mb-10 text-left border border-slate-100">
                         <div className="flex justify-between mb-3">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Amount Paid</span>
-                            <span className="text-lg font-black text-primary">Rs. {doctor?.consultation_fee || '4,500'}</span>
+                            <span className="text-lg font-black text-primary">Rs. {totalAmount.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Transaction ID</span>
@@ -145,16 +156,16 @@ const KioskPayment = () => {
 
                     <div className="mt-12 pt-8 border-t border-slate-100">
                         <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-slate-500">Subtotal</span>
-                            <span className="text-xs font-bold text-on-surface">Rs. {doctor?.consultation_fee || '4,500'}</span>
+                            <span className="text-xs font-bold text-slate-500">Consultation Fee</span>
+                            <span className="text-xs font-bold text-on-surface">Rs. {consultationFee.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between items-center mb-6">
-                            <span className="text-xs font-bold text-slate-500">Service Fee</span>
-                            <span className="text-xs font-bold text-on-surface">Rs. 0.00</span>
+                            <span className="text-xs font-bold text-slate-500">Hospital Fee</span>
+                            <span className="text-xs font-bold text-on-surface">Rs. {hospitalFee.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-sm font-black text-on-surface">Total</span>
-                            <span className="text-xl font-black text-primary">Rs. {doctor?.consultation_fee || '4,500'}</span>
+                            <span className="text-xl font-black text-primary">Rs. {totalAmount.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
@@ -277,7 +288,7 @@ const KioskPayment = () => {
                                 className="w-full py-6 bg-primary text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3"
                             >
                                 <span className="material-symbols-outlined">lock</span>
-                                {paymentMethod === 'card' ? 'Securely Pay Rs. 4,500' : 'Confirm & Generate Ticket'}
+                                {paymentMethod === 'card' ? `Securely Pay Rs. ${totalAmount.toLocaleString()}` : 'Confirm & Generate Ticket'}
                             </button>
                         </div>
                     )}

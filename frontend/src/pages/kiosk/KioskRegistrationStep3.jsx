@@ -229,7 +229,7 @@ const KioskRegistrationStep3 = () => {
                                     {/* AI Status Badge */}
                                     <div className="absolute bottom-8 px-6 py-3 bg-white/80 backdrop-blur-xl rounded-full border border-white/20 flex items-center gap-3 shadow-lg">
                                         <div className={`w-2.5 h-2.5 rounded-full ${isCaptured ? 'bg-secondary' : 'bg-primary animate-pulse'}`}></div>
-                                        <span className="text-xs font-bold text-on-surface uppercase tracking-[0.2em]">AI Analysis: {scanStatus}</span>
+                                        <span className="text-xs font-bold text-on-surface uppercase tracking-[0.2em]">Status: {scanStatus}</span>
                                     </div>
                                 </div>
                             </div>

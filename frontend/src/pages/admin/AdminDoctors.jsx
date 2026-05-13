@@ -293,7 +293,7 @@ const AdminDoctors = () => {
   };
 
   return (
-    <div className="doctors-wrapper admin-page-transition">
+    <div className="doctors-wrapper">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Staff Management</h2>
@@ -450,7 +450,7 @@ const AdminDoctors = () => {
 
       {/* Professional Modal for Registration/Edit */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
           <div className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low shrink-0">
