@@ -1,0 +1,89 @@
+.analytics-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+    .analytics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.analytics-card {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 2.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-legend {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.legend-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+}
+
+.legend-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #727783;
+    letter-spacing: 0.08em;
+}
+
+.chart-container-inner {
+    height: 18rem;
+    width: 100%;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.analytics-insight-hero {
+    background: rgba(248, 249, 250, 0.5);
+    padding: 2rem;
+    border-radius: 2.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+
+.analytics-stat-tile {
+    padding: 1rem;
+    background: #ffffff;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(0, 71, 141, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+}
+
+.analytics-stat-tile p:first-child {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #727783;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.analytics-stat-tile p:last-child {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #00478d;
+}

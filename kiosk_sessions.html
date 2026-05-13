@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Specialist Profile - The Ethereal Clinic</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* 100vh locked fullscreen */
+        }
+        .headline-font {
+            font-family: 'Manrope', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .ai-pulse {
+            box-shadow: 0 0 40px rgba(0, 93, 182, 0.15);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#abedff",
+                        "on-surface-variant": "#424752",
+                        "primary": "#00478d",
+                        "on-primary-container": "#c8daff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#005313",
+                        "background": "#f8f9fa",
+                        "surface-bright": "#f8f9fa",
+                        "primary-fixed": "#d6e3ff",
+                        "inverse-surface": "#2e3132",
+                        "on-tertiary-container": "#8ee7ff",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#91f78e",
+                        "on-background": "#191c1d",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#79d3ea",
+                        "on-surface": "#191c1d",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#001f26",
+                        "surface-dim": "#d9dadb",
+                        "secondary-fixed-dim": "#78dc77",
+                        "outline": "#727783",
+                        "on-secondary-container": "#00731e",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#e7e8e9",
+                        "surface-container-low": "#f3f4f5",
+                        "surface-container": "#edeeef",
+                        "outline-variant": "#c2c6d4",
+                        "on-tertiary-fixed-variant": "#004e5c",
+                        "secondary": "#006e1c",
+                        "on-primary-fixed": "#001b3d",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface": "#f8f9fa",
+                        "on-primary-fixed-variant": "#00468c",
+                        "tertiary-container": "#00697b",
+                        "surface-variant": "#e1e3e4",
+                        "tertiary": "#004f5d",
+                        "surface-tint": "#005db6",
+                        "primary-container": "#005eb8",
+                        "inverse-primary": "#a9c7ff",
+                        "secondary-fixed": "#94f990",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#002204",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="h-screen w-72 fixed left-0 top-0 border-r-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,71,141,0.06)] flex flex-col h-full py-8 z-50">
+<div class="px-8 mb-12">
+<h1 class="text-xl font-bold tracking-tight text-blue-900 dark:text-blue-100 headline-font">The Ethereal Clinic</h1>
+<p class="text-xs text-slate-500 font-medium tracking-wide uppercase mt-1">Empathetic Concierge</p>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Home -->
+<a class="text-slate-600 dark:text-slate-400 hover:text-blue-600 px-4 py-3 mx-2 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined text-2xl">home</span>
+<span class="font-medium">Home</span>
+</a>
+<!-- AI Assistant -->
+<a class="text-slate-600 dark:text-slate-400 hover:text-blue-600 px-4 py-3 mx-2 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined text-2xl">smart_toy</span>
+<span class="font-medium">AI Assistant</span>
+</a>
+<!-- Queue Status -->
+<a class="text-slate-600 dark:text-slate-400 hover:text-blue-600 px-4 py-3 mx-2 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined text-2xl">hourglass_empty</span>
+<span class="font-medium">Queue Status</span>
+</a>
+<!-- Book Appointment (Active) -->
+<a class="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-xl font-semibold px-4 py-3 mx-2 flex items-center gap-4 transition-transform active:scale-95" href="#">
+<span class="material-symbols-outlined text-2xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">calendar_add_on</span>
+<span class="font-medium">Book Appointment</span>
+</a>
+<!-- Check-In/Out -->
+<a class="text-slate-600 dark:text-slate-400 hover:text-blue-600 px-4 py-3 mx-2 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined text-2xl">login</span>
+<span class="font-medium">Check-In/Out</span>
+</a>
+<!-- Hospital Map -->
+<a class="text-slate-600 dark:text-slate-400 hover:text-blue-600 px-4 py-3 mx-2 flex items-center gap-4 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-all duration-300 group" href="#">
+<span class="material-symbols-outlined text-2xl">map</span>
+<span class="font-medium">Hospital Map</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<div class="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+<p class="text-xs text-primary font-bold mb-1">Emergency Support</p>
+<p class="text-[10px] text-slate-500 mb-3 leading-relaxed">Need urgent assistance? Our AI is available 24/7.</p>
+<button class="w-full bg-white text-primary text-xs font-bold py-2 rounded-lg shadow-sm">Call Now</button>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-72 min-h-screen flex flex-col relative overflow-hidden">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 right-0 w-[calc(100%-18rem)] h-20 bg-white/50 dark:bg-slate-950/50 backdrop-blur-2xl flex items-center justify-between px-12 z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-white" data-weight="fill" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+</div>
+<span class="text-lg font-semibold text-blue-900 dark:text-blue-50 headline-font">The Ethereal Clinic</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="h-8 w-px bg-slate-200"></div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold text-on-surface">Anura Perera • Patient</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">ID: #8829-LH</p>
+</div>
+<img alt="Anura Perera Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" data-alt="professional headshot of a middle-aged Sri Lankan man with a kind expression and warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2pvCWI05-9iR24k6UkpR2P4AAKdpiy-K1SuWsxwoe5MQ_Qlh9_DWMHyal-KohH65F3ptH6TxD86lsv70pjXg4gNvLY7xa3CPCNw87eOe3pfX_J6YrQBUzoPIHzBZVExDNNUeYnLAu_DaBTcCMsqFWn1K257mO1FoGZ4OqOYvYmbG_t0uiYJ50ZDwULkjduTxZsLOjve_T_Opi1a_R50efOY47hHqs-hYOuxzX8Spbs7dlKij4rq3rIcisdFE8jcDBmBE36SB1zYA"/>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="pt-20 flex-1 grid grid-cols-12 gap-0 overflow-hidden">
+<!-- Doctor Profile Section (Left) -->
+<section class="col-span-5 bg-surface-container-low p-12 overflow-y-auto custom-scrollbar">
+<div class="max-w-md mx-auto">
+<div class="relative mb-8 group">
+<div class="absolute inset-0 bg-primary/20 rounded-3xl blur-2xl group-hover:blur-3xl transition-all opacity-40"></div>
+<img alt="Dr. Aruni Rajapaksa" class="relative w-full aspect-[4/5] object-cover rounded-3xl shadow-xl border border-white/50" data-alt="portrait of a confident female specialist doctor in a white coat smiling in a bright high-end medical office" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmvOtKm8ynio5IWqs-sHhBEnG5hv7d1clKeLtF72P27djFgkBPqymdJopwFpvmm-y0RbrXPb_aa2nFbinVBtawvG1-JF0QHRqne0JDbTlwmbf4H-5rJBkn6AWLjZBs96BV78dXhf8TSyH2A5eXwD52Vp6Iyas1w71MTt6sRfu5bQM-OMqoR72HiptwHrD4518OP1u_sQ4L9kJobYQGFLxqG22VDe8XEta_l6gXBHtVnESEiXW2XsIcja5zGCOEf8Y2Has-IupZMOc"/>
+<div class="absolute -bottom-6 -right-6 bg-white p-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3">
+<div class="bg-secondary-container p-2 rounded-xl">
+<span class="material-symbols-outlined text-secondary" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<div>
+<p class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Availability</p>
+<p class="text-sm font-bold text-secondary">Accepting Patients</p>
+</div>
+</div>
+</div>
+<h2 class="text-4xl font-extrabold text-on-surface headline-font leading-tight mb-2">Dr. Aruni Rajapaksa</h2>
+<p class="text-primary font-semibold text-lg mb-6">Senior Consultant Cardiologist</p>
+<div class="flex gap-4 mb-8">
+<div class="bg-white/80 p-4 rounded-2xl flex-1 border border-white shadow-sm">
+<p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Experience</p>
+<p class="text-xl font-bold text-on-surface">15+ Years</p>
+</div>
+<div class="bg-white/80 p-4 rounded-2xl flex-1 border border-white shadow-sm">
+<p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Reviews</p>
+<div class="flex items-center gap-1">
+<span class="text-xl font-bold text-on-surface">4.9</span>
+<span class="material-symbols-outlined text-yellow-500 text-sm" data-weight="fill" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest">About Doctor</h3>
+<p class="text-on-surface-variant leading-relaxed text-sm">
+                            Dr. Rajapaksa is a world-renowned cardiologist specializing in non-invasive cardiac imaging and empathetic patient care. She has successfully led over 2,000 complex diagnostic procedures at the Ethereal Clinic.
+                        </p>
+</div>
+<div class="mt-8 pt-8 border-t border-slate-200 space-y-4">
+<h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Languages Spoken</h3>
+<div class="flex gap-2">
+<span class="px-4 py-1.5 bg-white rounded-full text-xs font-semibold shadow-sm border border-slate-100">Sinhala</span>
+<span class="px-4 py-1.5 bg-white rounded-full text-xs font-semibold shadow-sm border border-slate-100">English</span>
+<span class="px-4 py-1.5 bg-white rounded-full text-xs font-semibold shadow-sm border border-slate-100">Tamil</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Session Selection (Right) -->
+<section class="col-span-7 bg-white p-12 overflow-y-auto custom-scrollbar relative">
+<div class="max-w-2xl mx-auto">
+<header class="mb-10 text-center">
+<h2 class="text-3xl font-bold headline-font mb-2">Select Your Session</h2>
+<p class="text-slate-500">Choose a preferred date and time for your consultation</p>
+</header>
+<!-- Modern Calendar Component -->
+<div class="grid grid-cols-7 gap-3 mb-12">
+<!-- Date Cards -->
+<div class="flex flex-col items-center p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer group">
+<span class="text-xs font-bold text-slate-400 group-hover:text-slate-600 mb-1 uppercase">Mon</span>
+<span class="text-xl font-bold">12</span>
+</div>
+<div class="flex flex-col items-center p-4 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 cursor-pointer">
+<span class="text-xs font-bold opacity-70 mb-1 uppercase">Tue</span>
+<span class="text-xl font-bold">13</span>
+</div>
+<div class="flex flex-col items-center p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer group">
+<span class="text-xs font-bold text-slate-400 group-hover:text-slate-600 mb-1 uppercase">Wed</span>
+<span class="text-xl font-bold">14</span>
+</div>
+<div class="flex flex-col items-center p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer group">
+<span class="text-xs font-bold text-slate-400 group-hover:text-slate-600 mb-1 uppercase">Thu</span>
+<span class="text-xl font-bold">15</span>
+</div>
+<div class="flex flex-col items-center p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer group">
+<span class="text-xs font-bold text-slate-400 group-hover:text-slate-600 mb-1 uppercase">Fri</span>
+<span class="text-xl font-bold">16</span>
+</div>
+<div class="flex flex-col items-center p-4 rounded-2xl opacity-40 cursor-not-allowed">
+<span class="text-xs font-bold text-slate-400 mb-1 uppercase">Sat</span>
+<span class="text-xl font-bold">17</span>
+</div>
+<div class="flex flex-col items-center p-4 rounded-2xl opacity-40 cursor-not-allowed">
+<span class="text-xs font-bold text-slate-400 mb-1 uppercase">Sun</span>
+<span class="text-xl font-bold">18</span>
+</div>
+</div>
+<!-- Time Slot Categories -->
+<div class="space-y-10">
+<div>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-orange-400">light_mode</span>
+<h3 class="font-bold text-slate-700">Morning Slots</h3>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<button class="glass-panel p-4 rounded-2xl border border-slate-100 text-sm font-semibold hover:border-primary hover:text-primary transition-all text-center">09:00 AM</button>
+<button class="glass-panel p-4 rounded-2xl border border-primary bg-primary/5 text-sm font-bold text-primary transition-all text-center">09:45 AM</button>
+<button class="bg-slate-50 p-4 rounded-2xl border border-transparent text-sm font-semibold text-slate-300 transition-all text-center cursor-not-allowed" disabled="">10:30 AM</button>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-blue-400">partly_cloudy_day</span>
+<h3 class="font-bold text-slate-700">Afternoon Slots</h3>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<button class="glass-panel p-4 rounded-2xl border border-slate-100 text-sm font-semibold hover:border-primary hover:text-primary transition-all text-center">02:00 PM</button>
+<button class="glass-panel p-4 rounded-2xl border border-slate-100 text-sm font-semibold hover:border-primary hover:text-primary transition-all text-center">03:15 PM</button>
+<button class="glass-panel p-4 rounded-2xl border border-slate-100 text-sm font-semibold hover:border-primary hover:text-primary transition-all text-center">04:30 PM</button>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-indigo-400">dark_mode</span>
+<h3 class="font-bold text-slate-700">Evening Slots</h3>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<button class="glass-panel p-4 rounded-2xl border border-slate-100 text-sm font-semibold hover:border-primary hover:text-primary transition-all text-center">06:00 PM</button>
+<button class="glass-panel p-4 rounded-2xl border border-slate-100 text-sm font-semibold hover:border-primary hover:text-primary transition-all text-center">07:00 PM</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Summary & Actions -->
+<div class="mt-16 sticky bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md pt-8 border-t border-slate-100">
+<div class="max-w-2xl mx-auto flex items-center justify-between p-6 bg-slate-50 rounded-3xl mb-8">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center border border-slate-100">
+<span class="material-symbols-outlined text-primary">event_available</span>
+</div>
+<div>
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Appointment Summary</p>
+<p class="text-sm font-bold text-on-surface">Tuesday, 13 Oct • 09:45 AM</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Consultation Fee</p>
+<p class="text-xl font-bold text-primary">Rs. 4,500</p>
+</div>
+</div>
+<div class="max-w-2xl mx-auto flex items-center gap-4 mb-4">
+<button class="flex-1 py-5 px-8 bg-surface-container-highest text-on-surface-variant rounded-full font-bold text-lg hover:bg-slate-200 transition-all">
+                            Back to Doctor Search
+                        </button>
+<button class="flex-[2] py-5 px-8 bg-gradient-to-br from-primary to-primary-container text-white rounded-full font-bold text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                            Confirm Appointment
+                        </button>
+</div>
+</div>
+</section>
+</div>
+<!-- Floating AI Assistant -->
+<div class="fixed bottom-8 right-8 z-[60]">
+<div class="group relative flex items-center">
+<div class="absolute right-full mr-4 bg-white px-5 py-3 rounded-2xl shadow-xl border border-slate-100 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0 w-64 pointer-events-none">
+<p class="text-xs font-bold text-primary mb-1">MediAssist AI</p>
+<p class="text-[11px] text-slate-600 leading-relaxed">"Dr. Rajapaksa is highly rated for patient empathy. This slot is usually quiet, perfect for a detailed discussion."</p>
+</div>
+<button class="w-16 h-16 bg-white rounded-2xl shadow-2xl flex items-center justify-center border border-slate-50 ai-pulse group-hover:scale-110 transition-transform">
+<div class="relative">
+<span class="material-symbols-outlined text-3xl text-primary" data-weight="fill" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<span class="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full border-2 border-white"></span>
+</div>
+</button>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Ethereal Clinic | Check-In / Check-Out</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;600;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-dim": "#d9dadb",
+                      "tertiary": "#004f5d",
+                      "secondary-container": "#91f78e",
+                      "surface-bright": "#f8f9fa",
+                      "primary": "#00478d",
+                      "primary-container": "#005eb8",
+                      "on-secondary": "#ffffff",
+                      "on-background": "#191c1d",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-tertiary-container": "#8ee7ff",
+                      "on-error": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-low": "#f3f4f5",
+                      "background": "#f8f9fa",
+                      "surface-container": "#edeeef",
+                      "secondary-fixed": "#94f990",
+                      "on-secondary-fixed-variant": "#005313",
+                      "tertiary-container": "#00697b",
+                      "secondary": "#006e1c",
+                      "outline-variant": "#c2c6d4",
+                      "on-primary-fixed": "#001b3d",
+                      "error-container": "#ffdad6",
+                      "on-secondary-fixed": "#002204",
+                      "on-error-container": "#93000a",
+                      "surface": "#f8f9fa",
+                      "on-primary-container": "#c8daff",
+                      "surface-tint": "#005db6",
+                      "on-tertiary-fixed": "#001f26",
+                      "on-surface": "#191c1d",
+                      "surface-variant": "#e1e3e4",
+                      "tertiary-fixed": "#abedff",
+                      "on-secondary-container": "#00731e",
+                      "inverse-surface": "#2e3132",
+                      "primary-fixed": "#d6e3ff",
+                      "on-surface-variant": "#424752",
+                      "inverse-primary": "#a9c7ff",
+                      "secondary-fixed-dim": "#78dc77",
+                      "on-primary": "#ffffff",
+                      "tertiary-fixed-dim": "#79d3ea",
+                      "outline": "#727783",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-highest": "#e1e3e4",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "on-tertiary-fixed-variant": "#004e5c",
+                      "surface-container-high": "#e7e8e9",
+                      "on-primary-fixed-variant": "#00468c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "xxl": "1.5rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .scanner-glow {
+            box-shadow: 0 0 60px rgba(0, 71, 141, 0.15);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface min-h-screen flex">
+<!-- SideNavBar from SCREEN_121 layout -->
+<aside class="hidden md:flex flex-col gap-6 p-6 w-80 h-screen sticky top-0 dark:bg-gray-800 rounded-r-[1.5rem] shadow-[0_12px_40px_rgba(0,71,141,0.06)] shrink-0 z-20 bg-white">
+<div class="flex flex-col gap-2 mb-8">
+<img alt="MediAssist AI Logo" class="h-16 w-auto object-contain self-start" src="https://lh3.googleusercontent.com/aida/ADBb0ujXwF6C1p4tSb8vEq_Vmwl_53J0InGaheovhXLH7KGxUAskWVzcmzRsAs4hNU6BDpnzzgqIddtDEE2uKDp7voQktbfUaXQqNCZbJy-zXfZepWAjM1L0U9AF10_W9r1H4ZajR8yZC60FtPSzwt4s6LU5DYKM4PuwSNmLqlHjnd1GpTrYwyE43IkdQkjzasfMPYu577RrcaQ7m44ZjDXHlFvqJh3bkIFwJbJEfn-rtsmpCtyZlecRtVcsOJwJGz1hb3L15Gl0yN9F_Q"/>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-bold">Home</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+<span class="font-bold">AI Assistant</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="hourglass_empty">hourglass_empty</span>
+<span class="font-bold">Queue Status</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="font-bold">Book Appointment</span>
+</a>
+<!-- Active State: Check-In / Check-Out -->
+<a class="flex items-center gap-4 px-6 py-4 bg-[#005eb8] text-white rounded-[1.5rem] shadow-lg scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="how_to_reg">how_to_reg</span>
+<span class="font-bold">Check-In / Check-Out</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-4 text-[#00478d] dark:text-gray-300 opacity-70 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-[1.5rem] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="font-bold">Hospital Map</span>
+</a>
+</nav>
+<div class="mt-auto">
+<div class="p-6 bg-surface-container-low rounded-[1.5rem] border-dashed border-2 border-outline-variant/30 text-center">
+<span class="material-symbols-outlined text-primary text-3xl mb-2" data-icon="support_agent">support_agent</span>
+<p class="text-sm font-bold text-on-surface-variant">Need Assistance?</p>
+<button class="mt-4 w-full py-3 bg-primary text-on-primary rounded-full font-bold text-sm shadow-md hover:opacity-90 transition-opacity">Call for Help</button>
+</div>
+<div class="my-4 border-t border-outline-variant/30"></div>
+<button class="flex items-center gap-4 px-6 py-4 w-full text-error opacity-70 hover:bg-error-container/20 rounded-[1.5rem] transition-all">
+<span class="material-symbols-outlined" data-icon="exit_to_app">exit_to_app</span>
+<span class="font-bold">Sign Out</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-grow min-h-screen relative overflow-y-auto bg-surface-container-low">
+<!-- TopAppBar from SCREEN_121 layout -->
+<header class="flex justify-between items-center w-full px-12 py-8 sticky top-0 z-10 bg-white border-b border-outline-variant/10">
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div>
+<h2 class="text-3xl font-bold tracking-tight text-[#00478d] dark:text-blue-400 font-headline">The Ethereal Clinic</h2>
+<p class="text-on-surface-variant font-label text-sm">Check-In / Check-Out Flow</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<button class="p-3 rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-gray-500" data-icon="notifications">notifications</span>
+</button>
+<button class="p-3 rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-gray-500" data-icon="help">help</span>
+</button>
+</div>
+<div class="flex flex-col items-end mr-4">
+<span class="font-bold text-on-surface text-sm">Anura Perera</span>
+<span class="text-xs text-on-surface-variant">Patient</span>
+</div>
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md flex items-center">
+<img alt="Patient Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA23aVCJXaRc1i8jL1PPpipEVeuTIpYnsVezSeevgF5FPk5FUMf7Z5w6uELKIn5A6zrpzdpxTXYgN2IdZijFHV_C366ri2faiSYn-zKJZ41nnsWUl3z1zMSjIYkSCNHzOSu-BuNR1jJMLecSrqAwIC7heiPxzB_r3w9Ve8Cualxp2sbnUhFoBi2mUWm4GB-ndZYlxmqdR4A1fCpc4ZBQ-vtLDgjYfzv_BUU54UxJL7mB_gnfHTbesqkOHwzQ0SY1vnWLPfVTEcIPTI"/>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-12 flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Background Decorative Elements -->
+<div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-100/50 rounded-full blur-[120px] -z-10"></div>
+<div class="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] bg-secondary-container/30 rounded-full blur-[100px] -z-10"></div>
+<!-- Central Scanner Area -->
+<div class="w-full max-w-4xl flex flex-col items-center text-center space-y-12">
+<div class="space-y-4">
+<h2 class="text-5xl font-extrabold font-headline text-on-surface tracking-tight">Express Check-In</h2>
+<p class="text-xl text-on-surface-variant font-light max-w-xl mx-auto">Please stand within the highlighted zone for biometric authentication. Our AI will recognize you instantly.</p>
+</div>
+<!-- Scanner Component -->
+<div class="relative group">
+<!-- Outer Pulse Rings -->
+<div class="absolute inset-0 bg-primary/5 rounded-full animate-ping duration-[3s] scale-125 opacity-20"></div>
+<div class="relative w-80 h-80 lg:w-96 lg:h-96 rounded-full p-4 glass-panel border border-white/40 scanner-glow flex items-center justify-center">
+<!-- Scanner HUD Decoration -->
+<div class="absolute inset-0 border-4 border-dashed border-primary/20 rounded-full animate-[spin_20s_linear_infinite]"></div>
+<!-- Inner Camera View/Simulated Feed -->
+<div class="w-full h-full rounded-full overflow-hidden relative border-4 border-white shadow-inner">
+<img alt="HUD Interface" class="w-full h-full object-cover opacity-80" data-alt="futuristic digital user interface with data points and biometric facial recognition scanning lines over a dark technology background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWpttEUDapyh0DaaioJHUNfxNr78vLYfMve1R2IejjvC38ZjnGVxHJg1zx3-4I6FjLhW3huRHMEpswg54fxmXUsFl_1bMuZRdsESJ0P8g2fPMt0Cn6MlkNV6D5ypk7mMlfVxi4qAHEF-uB97O1VjDoj6L3nF-PSDKAvAY42MgCRHmFo0aaTXWkEvUqsW2jgiA30FplTNJbWDHavpRRS4sz8E7rMVSImUEJEfYM3mvfSMjtfG3IOekZ80DBrwLaX7mHrb3sFeqdZ5A"/>
+<!-- Scanning Line -->
+<div class="absolute inset-x-0 h-1 bg-primary/60 shadow-[0_0_15px_rgba(0,71,141,1)] top-1/2 -translate-y-1/2 animate-[bounce_4s_ease-in-out_infinite]"></div>
+<!-- AI Identity Pulse -->
+<div class="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent flex items-end justify-center pb-8">
+<div class="flex items-center space-x-2 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
+</span>
+<span class="text-sm font-bold text-primary">System: Scanning...</span>
+</div>
+</div>
+</div>
+<!-- Corner Accents -->
+<div class="absolute -top-2 -left-2 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-3xl"></div>
+<div class="absolute -top-2 -right-2 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-3xl"></div>
+<div class="absolute -bottom-2 -left-2 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-3xl"></div>
+<div class="absolute -bottom-2 -right-2 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-3xl"></div>
+</div>
+</div>
+<!-- Action Cards Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl px-6">
+<!-- Manual Check-In Card -->
+<button class="flex items-center justify-between p-8 bg-surface-container-lowest rounded-xxl shadow-[0_12px_40px_rgba(0,71,141,0.06)] hover:bg-blue-50 transition-all duration-300 group text-left">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-4xl" data-icon="fingerprint">fingerprint</span>
+</div>
+<div>
+<h3 class="text-xl font-bold font-headline text-on-surface">Manual Check-In</h3>
+<p class="text-on-surface-variant">Use NIC or Phone Number</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</button>
+<!-- Check-Out Card -->
+<button class="flex items-center justify-between p-8 bg-surface-container-lowest rounded-xxl shadow-[0_12px_40px_rgba(0,71,141,0.06)] hover:bg-secondary/5 transition-all duration-300 group text-left">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-2xl bg-secondary-container flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-4xl" data-icon="logout">logout</span>
+</div>
+<div>
+<h3 class="text-xl font-bold font-headline text-on-surface">Check-Out</h3>
+<p class="text-on-surface-variant">End session &amp; collect receipt</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-secondary transition-colors" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</button>
+</div>
+<!-- Language Selection Prompt -->
+<div class="flex items-center gap-4 pt-4">
+<span class="text-sm font-medium text-slate-400">Preferred language?</span>
+<div class="flex gap-2">
+<button class="px-4 py-1.5 rounded-full border border-slate-200 text-sm font-semibold hover:border-primary hover:text-primary transition-all">සිංහල</button>
+<button class="px-4 py-1.5 rounded-full border border-slate-200 text-sm font-semibold hover:border-primary hover:text-primary transition-all">தமிழ்</button>
+<button class="px-4 py-1.5 rounded-full bg-slate-900 text-white text-sm font-semibold">English</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating AI Prompt -->
+<div class="fixed bottom-12 right-12 flex items-center space-x-4">
+<div class="glass-panel px-6 py-4 rounded-xxl shadow-xl border border-white/50 max-w-xs">
+<p class="text-sm font-medium text-primary">"I'm here if you need help finding your appointment details."</p>
+</div>
+<div class="w-16 h-16 bg-gradient-to-br from-primary to-primary-container rounded-full flex items-center justify-center text-white shadow-2xl relative overflow-hidden">
+<!-- AI Pulse Component -->
+<div class="absolute inset-0 bg-white/20 blur-xl"></div>
+<span class="material-symbols-outlined text-3xl z-10" data-icon="smart_toy">smart_toy</span>
+</div>
+</div>
+</body></html>

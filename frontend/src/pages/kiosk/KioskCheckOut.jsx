@@ -1,0 +1,320 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Logo from '../../components/common/Logo';
+import queueService from '../../services/queueService';
+import './KioskCheckOut.css';
+
+// ─── Visit Summary card (left 8 cols) ────────────────────────────────────────
+
+const TIMELINE = [
+    { icon: 'login',       title: 'Check-in Completed',         detail: '08:45 AM • Main Lobby',   badge: 'Verified'  },
+    { icon: 'stethoscope', title: 'Consultation with Dr. Silva', detail: '09:15 AM • Room 302',     badge: 'Closed'    },
+    { icon: 'medication',  title: 'Pharmacy Collection',         detail: '10:05 AM • Ground Floor', badge: 'Picked Up' },
+];
+
+const VisitSummary = ({ patient }) => (
+    <div className="col-span-8 bg-surface-container-lowest rounded-3xl p-7 shadow-sm border border-outline-variant/10 relative overflow-hidden flex flex-col">
+        <div className="blob-top-right" />
+
+        <div className="flex justify-between items-start mb-5 relative z-10">
+            <div>
+                <h3 className="text-xl font-bold font-headline flex items-center gap-2 text-on-surface">
+                    <span className="material-symbols-outlined text-primary">receipt_long</span>
+                    Visit Summary
+                </h3>
+            </div>
+            <div className="flex gap-2">
+                <span className="bg-secondary-container text-on-secondary-container text-xs font-bold px-3 py-1 rounded-full">Duration: 1h 30m</span>
+                <span className="bg-primary-fixed text-on-primary-fixed text-xs font-bold px-3 py-1 rounded-full">3 Services</span>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 mb-5 relative z-10">
+            <div>
+                <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-1">Patient</p>
+                <p className="text-lg font-bold text-on-surface">{patient?.full_name || patient?.name || 'Patient'}</p>
+            </div>
+            <div>
+                <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-1">Appointment</p>
+                <p className="text-lg font-bold text-on-surface">General Wellness Check</p>
+            </div>
+        </div>
+
+        <div className="border-t border-surface-container-low pt-4 relative z-10 flex-1">
+            <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-3">Activity Timeline</p>
+            <div className="space-y-3">
+                {TIMELINE.map((item, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-surface-container-low rounded-2xl flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-primary text-[20px]">{item.icon}</span>
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                            <p className="font-bold text-sm text-on-surface">{item.title}</p>
+                            <p className="text-on-surface-variant text-xs">{item.detail}</p>
+                        </div>
+                        <span className="text-secondary font-bold text-xs shrink-0">{item.badge}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
+);
+
+// ─── Right column cards ───────────────────────────────────────────────────────
+
+const DigitalReceiptCard = () => (
+    <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-sm border border-outline-variant/10 text-center flex flex-col gap-4">
+        <div className="w-14 h-14 bg-primary-fixed rounded-2xl flex items-center justify-center mx-auto">
+            <span className="material-symbols-outlined text-primary text-3xl">phone_android</span>
+        </div>
+        <div>
+            <h4 className="text-base font-bold font-headline text-on-surface mb-1">Digital Receipt</h4>
+            <p className="text-on-surface-variant text-xs leading-relaxed px-2">Send a secure copy of your visit details to your MediAssist mobile app.</p>
+        </div>
+        <button className="receipt-btn w-full py-3 px-4 rounded-full bg-surface-container-highest text-on-primary-fixed-variant font-bold text-sm">Collect Digital Receipt</button>
+    </div>
+);
+
+const NextStepsCard = () => (
+    <div className="bg-primary/5 rounded-3xl p-6 border border-primary/10 flex flex-col gap-3">
+        <h4 className="font-bold font-headline flex items-center gap-2 text-on-surface text-sm">
+            <span className="material-symbols-outlined text-primary text-[20px]">info</span>
+            Next Steps
+        </h4>
+        <ul className="space-y-2 text-left">
+            {['Lab results will be available in 24 hours.', 'Follow-up appointment scheduled for Aug 12th.', 'Prescription sent to your registered pharmacy.'].map((step, i) => (
+                <li key={i} className="flex gap-2 text-xs text-on-surface-variant">
+                    <span className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 shrink-0" />
+                    {step}
+                </li>
+            ))}
+        </ul>
+    </div>
+);
+
+const HealthTipBanner = () => (
+    <div className="col-span-12 health-tip-banner h-36 relative overflow-hidden rounded-3xl">
+        <img alt="Modern hospital" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1W2IQ2nsF7f14iSpBLz3BlnxJ3PM1asJ1baGYox6Subqg2IVAyONRL1pPhm-gSp7dsNsPrHHE4SRrao84Bzw21H18octhNv3v3dwIT8mCbT8HPMpcxGuDeikf03a-GEmmVFbuJgO5HqtCo1ciJylcsKnQMR1uRiG-QdJFZlDYRcGYrEejFpOrV12qbFQnmmSjA7OtV8xi57cmRPvNIUe9tvRzxsRQEKJxRqPeHe0VetTfd3ySE2bjG_IFgnqHzyYrAZivrJv4cLc" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-transparent flex items-center px-10">
+            <div className="text-white text-left max-w-md">
+                <p className="text-primary-fixed font-bold tracking-widest uppercase text-[10px] mb-1">Health Tip</p>
+                <h3 className="text-xl font-bold italic font-headline mb-1">"Wellness is a journey, not a destination."</h3>
+                <p className="text-white/80 text-xs">Remember to stay hydrated and take a short walk every hour. See you soon!</p>
+            </div>
+        </div>
+    </div>
+);
+
+const CountdownTimer = ({ seconds, total }) => {
+    const r = 22;
+    const circ = 2 * Math.PI * r;
+    const pct = seconds / total;
+    const dash = circ * pct;
+    return (
+        <div className="countdown-ring relative">
+            <svg width="48" height="48" viewBox="0 0 48 48">
+                <circle className="track" cx="24" cy="24" r={r} />
+                <circle className="fill" cx="24" cy="24" r={r} strokeDasharray={`${dash} ${circ}`} />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-primary">{seconds}</span>
+        </div>
+    );
+};
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+const KioskCheckOut = () => {
+    const navigate = useNavigate();
+    const [patient, setPatient] = useState(null);
+    const [countdown, setCountdown] = useState(45);
+    const [finished, setFinished] = useState(false);
+    const [noCheckIn, setNoCheckIn] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
+
+    useEffect(() => {
+        const savedPatient = localStorage.getItem('activePatient');
+        if (savedPatient) {
+            const parsed = JSON.parse(savedPatient);
+            setPatient(parsed);
+            handleCheckOut(parsed.id);
+        } else {
+            // Visitors shouldn't really be at checkout, but we'll handle it
+            navigate('/');
+        }
+    }, [navigate]);
+
+    const handleCheckOut = async (patientId) => {
+        try {
+            const response = await queueService.checkOut(patientId);
+            if (response.error && response.error.includes("No active check-in")) {
+                setNoCheckIn(true);
+                setErrorMsg(response.error);
+            } else {
+                console.log('Check-Out Successful');
+            }
+        } catch (err) {
+            console.error('Check-Out Failed:', err);
+            if (err.error && err.error.includes("No active check-in")) {
+                setNoCheckIn(true);
+                setErrorMsg(err.error);
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (finished) {
+            const resetTimer = setTimeout(() => {
+                localStorage.removeItem('activePatient');
+                navigate('/');
+            }, 5000);
+            return () => clearTimeout(resetTimer);
+        }
+        if (countdown <= 0) {
+            setFinished(true);
+            return;
+        }
+        const t = setTimeout(() => setCountdown(s => s - 1), 1000);
+        return () => clearTimeout(t);
+    }, [countdown, finished, navigate]);
+
+    if (!patient && !finished) return null;
+
+    const patientName = patient?.full_name || patient?.name || 'Patient';
+
+    return (
+        <div className="w-screen h-screen overflow-hidden flex font-body bg-surface text-on-surface text-left">
+            {/* ── Left Sidebar ── */}
+            <aside className="hidden md:flex flex-col w-64 h-screen bg-white border-r border-outline-variant/30 z-20 shrink-0">
+                <div className="p-6 pb-4 cursor-pointer" onClick={() => navigate('/')}>
+                    <Logo size="sm" className="w-full" />
+                </div>
+                <nav className="flex-1 flex flex-col px-3 mt-4 gap-1">
+                    {[
+                        { icon: 'account_circle',   label: 'Personal Dashboard',   path: '/patient-dashboard' },
+                        { icon: 'smart_toy',        label: 'AI Assistant',         path: '/assistant' },
+                        { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
+                        { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
+                        { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out', active: true  },
+                        { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
+                    ].map(({ icon, label, path, active }) => (
+                        <div key={label} onClick={() => path !== '#' && navigate(path)} className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm cursor-pointer ${active ? 'nav-item-active' : 'text-primary hover:bg-slate-50'}`}>
+                            <span className="material-symbols-outlined text-[22px]" style={active ? { fontVariationSettings: "'FILL' 1" } : {}}>{icon}</span>
+                            <span>{label}</span>
+                        </div>
+                    ))}
+                </nav>
+                <div className="px-4 pb-5 mt-auto">
+                    <div className="p-5 bg-slate-50 rounded-xl border border-dashed border-outline-variant/40 text-center mb-4">
+                        <span className="material-symbols-outlined text-primary text-2xl mb-2 block">support_agent</span>
+                        <p className="text-xs font-bold text-primary mb-3">Need Assistance?</p>
+                        <button className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity" onClick={() => navigate('/assistant')}>Call for Help</button>
+                    </div>
+                    <button onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }} className="flex items-center gap-4 px-5 py-3.5 w-full text-red-600 hover:bg-red-50 rounded-xl transition-all border-t border-slate-100 pt-4">
+                        <span className="material-symbols-outlined">logout</span>
+                        <span className="font-bold text-sm">Sign Out</span>
+                    </button>
+                </div>
+            </aside>
+
+            {/* ── Main Canvas ── */}
+            <main className="flex-1 flex flex-col overflow-hidden bg-surface relative">
+                <header className="flex justify-between items-center w-full px-10 h-16 bg-white border-b border-outline-variant/20 z-30 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors" onClick={() => navigate(-1)}><span className="material-symbols-outlined text-slate-600">arrow_back</span></button>
+                        <h1 className="text-xl font-extrabold tracking-tight text-primary font-headline">MediAssist AI</h1>
+                        <div className="h-4 w-px bg-outline-variant mx-1" />
+                        <span className="text-slate-500 font-medium text-sm">Check-Out</span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-100 font-headline">
+                        <div className="text-right">
+                            <p className="text-sm font-bold text-on-surface leading-none">{patientName}</p>
+                            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Patient</p>
+                        </div>
+                        <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white">{patientName.charAt(0)}</div>
+                    </div>
+                </header>
+
+                <div className="flex-1 overflow-hidden flex flex-col px-8 py-4 min-h-0">
+                    {noCheckIn ? (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-8 animate-scale-up">
+                            <div className="w-32 h-32 rounded-full bg-warning-container flex items-center justify-center relative">
+                                <div className="absolute inset-0 rounded-full animate-ping bg-warning/20" />
+                                <span className="material-symbols-outlined text-warning text-6xl z-10">running_with_errors</span>
+                            </div>
+                            <div className="text-center space-y-3 max-w-md">
+                                <h2 className="font-headline text-4xl font-black text-on-surface tracking-tight">No Active Check-In</h2>
+                                <p className="text-on-surface-variant text-lg font-medium leading-relaxed">
+                                    We couldn't find an active check-in record for <span className="text-primary font-bold">{patientName}</span> today.
+                                </p>
+                                <div className="p-5 bg-surface-container rounded-2xl border border-outline-variant/30 text-left mt-6">
+                                    <p className="text-sm text-on-surface-variant flex gap-3">
+                                        <span className="material-symbols-outlined text-primary text-xl">info</span>
+                                        You must check in first before you can check out. If you believe this is an error, please see a receptionist.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-3 w-full max-w-xs">
+                                <button 
+                                    onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }}
+                                    className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                >
+                                    <span className="material-symbols-outlined">home</span>
+                                    Back to Home
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/checkin-out')}
+                                    className="w-full py-3 text-slate-400 font-bold text-xs hover:text-primary transition-colors"
+                                >
+                                    Try Different Identity
+                                </button>
+                            </div>
+                        </div>
+                    ) : !finished ? (
+                        <>
+                            <div className="flex items-center gap-5 mb-4 shrink-0">
+                                <div className="relative w-16 h-16 rounded-full bg-secondary-container/30 flex items-center justify-center shrink-0">
+                                    <div className="absolute inset-0 rounded-full animate-pulse bg-secondary/10" />
+                                    <span className="material-symbols-outlined text-secondary text-4xl z-10" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>
+                                </div>
+                                <div className="text-left">
+                                    <h2 className="text-3xl font-extrabold font-headline text-on-surface tracking-tight">Visit Complete</h2>
+                                    <p className="text-on-surface-variant text-sm font-light">Thank you for choosing MediAssist AI. We hope your experience today was seamless.</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden">
+                                <VisitSummary patient={patient} />
+                                <div className="col-span-4 flex flex-col gap-4">
+                                    <DigitalReceiptCard />
+                                    <NextStepsCard />
+                                </div>
+                                <HealthTipBanner />
+                            </div>
+
+                            <div className="shrink-0 flex items-center justify-center gap-6 pt-3">
+                                <button onClick={() => setFinished(true)} className="finish-btn editorial-gradient text-white text-lg font-bold px-12 py-4 rounded-full shadow-2xl shadow-blue-400/30 flex items-center gap-3 font-headline">Finish Session <span className="material-symbols-outlined">arrow_forward</span></button>
+                                <div className="flex items-center gap-3">
+                                    <CountdownTimer seconds={countdown} total={45} />
+                                    <p className="text-on-surface-variant/70 text-xs font-medium">Auto-close in {countdown}s</p>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-5">
+                            <div className="w-24 h-24 rounded-full bg-secondary-container flex items-center justify-center">
+                                <span className="material-symbols-outlined text-5xl text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>waving_hand</span>
+                            </div>
+                            <div className="text-center">
+                                <h2 className="font-headline text-3xl font-extrabold text-on-surface mb-2">Take Care, {patientName.split(' ')[0]}!</h2>
+                                <p className="text-on-surface-variant text-base max-w-sm">Your session has been closed. This kiosk will reset for the next patient.</p>
+                            </div>
+                            <button onClick={() => { localStorage.removeItem('activePatient'); navigate('/'); }} className="px-8 py-3 bg-primary text-white font-bold rounded-full text-sm shadow-md">Reset Kiosk Now</button>
+                        </div>
+                    )}
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default KioskCheckOut;

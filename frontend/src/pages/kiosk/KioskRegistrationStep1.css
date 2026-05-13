@@ -1,0 +1,88 @@
+/* =============================================
+   KioskRegistrationStep1.css
+   Styles for the Patient Registration (Step 1)
+   ============================================= */
+
+/* Active nav pill (similar to KioskAIAssistant) */
+.nav-item-active {
+    background-color: #005eb8;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 94, 184, 0.30);
+}
+
+/* Glass card effect */
+.glass-card {
+    background: rgba(255, 255, 255, 0.80);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* AI ambient blobs */
+.ai-pulse-bg {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: #005db6;
+    filter: blur(80px);
+    opacity: 0.1;
+    z-index: 0;
+    border-radius: 100%;
+}
+
+/* Custom rounded corner for the form card */
+.form-card-rounded {
+    border-radius: 2.5rem;
+}
+
+/* Input styling from Stitch */
+.form-input-kiosk {
+    background-color: #f3f4f5; /* surface-container-low */
+    border: none;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.form-input-kiosk:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 71, 141, 0.2);
+    background-color: #ffffff;
+}
+
+/* OTP Input styling */
+.otp-input {
+    width: 100%;
+    height: 4rem;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border-radius: 1rem;
+    background-color: #f3f4f5;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.otp-input:focus {
+    outline: none;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(0, 71, 141, 0.2);
+}
+
+/* Selected Button style (Gender etc) */
+.btn-toggle-active {
+    background-color: #91f78e; /* secondary-container */
+    color: #002204; /* on-secondary-container */
+    font-weight: 700;
+}
+
+.btn-toggle-inactive {
+    background-color: #f3f4f5; /* surface-container-low */
+    color: #424752; /* on-surface-variant */
+    font-weight: 700;
+}
+
+.btn-toggle-inactive:hover {
+    background-color: #e7e8e9; /* surface-container-high */
+}

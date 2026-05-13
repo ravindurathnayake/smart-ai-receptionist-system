@@ -1,0 +1,168 @@
+/* =============================================
+   KioskSessions.css
+   Styles for the Specialist Sessions kiosk screen
+   ============================================= */
+
+/* Ambient blobs — exact copy from KioskAIAssistant */
+.ambient-blob-top {
+    position: absolute;
+    top: -6rem;
+    right: -6rem;
+    width: 24rem;
+    height: 24rem;
+    background: rgba(0, 94, 184, 0.05);
+    border-radius: 9999px;
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 0;
+}
+.ambient-blob-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    width: 32rem;
+    height: 32rem;
+    background: rgba(0, 110, 28, 0.04);
+    border-radius: 9999px;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Active nav pill — exact copy from KioskAIAssistant */
+.nav-item-active {
+    background-color: #005eb8;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 94, 184, 0.30);
+}
+
+/* Glass panel matches Stitch */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.80);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Hidden scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Thin custom scrollbar for time-slot panels */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+/* Horizontal date-strip scroll */
+.date-scroll-track {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+}
+.date-scroll-track::-webkit-scrollbar { height: 3px; }
+.date-scroll-track::-webkit-scrollbar-track { background: transparent; }
+.date-scroll-track::-webkit-scrollbar-thumb {
+    background: #c2c6d4;
+    border-radius: 9999px;
+}
+.date-card {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    min-width: 3.75rem;         /* consistent width per day card */
+}
+
+/* AI pulse shadow */
+.ai-pulse { box-shadow: 0 0 40px rgba(0, 93, 182, 0.18); }
+
+/* Time slot button states */
+.time-slot {
+    transition: border-color 0.2s, color 0.2s, background 0.2s, transform 0.15s;
+}
+.time-slot:hover:not(:disabled) {
+    border-color: #00478d;
+    color: #00478d;
+    background: rgba(0, 71, 141, 0.04);
+}
+.time-slot.selected {
+    border-color: #00478d;
+    background: rgba(0, 71, 141, 0.07);
+    color: #00478d;
+    font-weight: 700;
+}
+.time-slot.booked {
+    opacity: 0.38;
+    cursor: not-allowed;
+    background: #f3f4f5;
+}
+
+/* Doctor photo glow */
+.doctor-photo-glow {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 71, 141, 0.20);
+    border-radius: 1.5rem;
+    filter: blur(2rem);
+    opacity: 0.35;
+    transition: filter 0.4s, opacity 0.4s;
+    pointer-events: none;
+}
+
+/* Availability badge */
+.avail-badge {
+    position: absolute;
+    bottom: -1.5rem;
+    right: -1.5rem;
+    background: #ffffff;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+    border: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+/* Floating AI button */
+.ai-fab-sq {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 60;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+    border: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.ai-fab-sq:hover { transform: scale(1.1); }
+
+.ai-tooltip {
+    position: absolute;
+    right: calc(100% + 1rem);
+    bottom: 0;
+    width: 16rem;
+    background: #ffffff;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    border: 1px solid #e2e8f0;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(1rem);
+    transition: opacity 0.25s, transform 0.25s;
+}
+.ai-fab-wrapper:hover .ai-tooltip {
+    opacity: 1;
+    transform: translateX(0);
+}

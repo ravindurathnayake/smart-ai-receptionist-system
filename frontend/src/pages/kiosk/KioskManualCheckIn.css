@@ -1,0 +1,112 @@
+/* =============================================
+   KioskManualCheckIn.css
+   Styles for the Manual Check-In page
+   ============================================= */
+
+/* Active nav pill — exact copy from KioskAIAssistant */
+.nav-item-active {
+    background-color: #005eb8;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 94, 184, 0.30);
+}
+
+/* Glass card from Stitch */
+.glass-card {
+    background: rgba(255, 255, 255, 0.80);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* AI ambient pulse blobs */
+.ai-pulse-blob {
+    position: absolute;
+    width: 20rem;
+    height: 20rem;
+    background: radial-gradient(circle, rgba(0, 71, 141, 0.10) 0%, rgba(0, 94, 184, 0) 70%);
+    filter: blur(40px);
+    border-radius: 9999px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Input field focus ring */
+.form-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 71, 141, 0.18);
+}
+
+/* Submit button */
+.submit-btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.submit-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 16px 40px rgba(0, 71, 141, 0.28);
+}
+.submit-btn:active { transform: scale(0.98); }
+
+/* Assistance banner button */
+.assist-btn {
+    transition: background 0.2s, color 0.2s;
+}
+.assist-btn:hover {
+    background: #00478d;
+    color: #ffffff;
+}
+
+/* QR FAB */
+.qr-fab {
+    position: fixed;
+    bottom: 2.5rem;
+    right: 2.5rem;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1.1rem 1.2rem;
+    background: #005eb8;
+    color: #c8daff;
+    border-radius: 1.5rem;
+    box-shadow: 0 12px 36px rgba(0, 71, 141, 0.35);
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+.qr-fab:hover {
+    background: #00478d;
+    transform: translateY(-2px);
+}
+.qr-fab:active { transform: scale(0.96); }
+
+/* Step indicator dots */
+.step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: #c2c6d4;
+    transition: background 0.2s, width 0.2s;
+}
+.step-dot.active {
+    background: #00478d;
+    width: 24px;
+}
+
+/* Progress bar animation */
+@keyframes progressPulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.6; }
+}
+.progress-bar-animate {
+    animation: progressPulse 2s ease-in-out infinite;
+}
+
+/* ── Success Animations ──────────────────────────── */
+.animate-scale-up {
+    animation: scaleUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}

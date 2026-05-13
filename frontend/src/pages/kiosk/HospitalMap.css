@@ -1,0 +1,75 @@
+.map-page-container {
+  overflow: hidden;
+}
+
+.path-animation {
+  stroke-dasharray: 12;
+  animation: dash 30s linear infinite;
+}
+
+@keyframes dash {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 71, 141, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 71, 141, 0.2);
+}
+
+.animate-ping {
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.floating-bot {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+svg text {
+  pointer-events: none;
+  user-select: none;
+}
+
+svg rect {
+  transition: all 0.3s ease;
+}
+
+/* Kiosk mode enhancements */
+@media (min-width: 1024px) {
+  .map-page-container {
+    cursor: default;
+  }
+  
+  button {
+    cursor: pointer;
+  }
+}

@@ -1,0 +1,99 @@
+/* =============================================
+   KioskCheckOut.css
+   Styles for the Check-Out kiosk screen
+   ============================================= */
+
+/* Active nav pill — exact copy from KioskAIAssistant */
+.nav-item-active {
+    background-color: #005eb8;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 94, 184, 0.30);
+}
+
+/* Glass card effect */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.80);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Editorial gradient (primary CTA) */
+.editorial-gradient {
+    background: linear-gradient(135deg, #00478d 0%, #005eb8 100%);
+}
+
+/* AI pulse on icon */
+.ai-pulse {
+    box-shadow: 0 0 40px 10px rgba(0, 93, 182, 0.10);
+}
+
+/* Ambient blobs */
+.blob-top-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 16rem;
+    height: 16rem;
+    background: rgba(0, 71, 141, 0.05);
+    border-radius: 9999px;
+    margin-right: -5rem;
+    margin-top: -5rem;
+    filter: blur(3rem);
+    pointer-events: none;
+}
+
+/* Timeline item */
+.timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Countdown ring */
+.countdown-ring {
+    position: relative;
+    width: 3rem;
+    height: 3rem;
+}
+.countdown-ring svg {
+    transform: rotate(-90deg);
+}
+.countdown-ring .track {
+    fill: none;
+    stroke: #e1e3e4;
+    stroke-width: 3;
+}
+.countdown-ring .fill {
+    fill: none;
+    stroke: #00478d;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+}
+
+/* Finish session button */
+.finish-btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.finish-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 16px 48px rgba(0, 71, 141, 0.28);
+}
+.finish-btn:active { transform: scale(0.97); }
+
+/* Digital receipt button */
+.receipt-btn {
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.receipt-btn:hover {
+    background: #d6e3ff;
+    box-shadow: 0 4px 16px rgba(0, 71, 141, 0.12);
+}
+
+/* Health tip banner */
+.health-tip-banner {
+    position: relative;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    flex-shrink: 0;
+}

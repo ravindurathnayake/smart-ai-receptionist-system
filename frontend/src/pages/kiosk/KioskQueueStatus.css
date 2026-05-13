@@ -1,0 +1,128 @@
+/* =============================================
+   KioskQueueStatus.css
+   Styles for the Queue Status kiosk screen
+   ============================================= */
+
+/* Glass card — matches KioskAIAssistant glass-card */
+.glass-card {
+    background: rgba(255, 255, 255, 0.80);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Active nav pill — exact copy from KioskAIAssistant */
+.nav-item-active {
+    background-color: #005eb8;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 94, 184, 0.30);
+}
+
+/* Ambient background blobs — exact copy from KioskAIAssistant */
+.ambient-blob-top {
+    position: absolute;
+    top: -6rem;
+    right: -6rem;
+    width: 24rem;
+    height: 24rem;
+    background: rgba(0, 94, 184, 0.05);
+    border-radius: 9999px;
+    filter: blur(100px);
+    pointer-events: none;
+}
+
+.ambient-blob-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    width: 32rem;
+    height: 32rem;
+    background: rgba(0, 110, 28, 0.04);
+    border-radius: 9999px;
+    filter: blur(120px);
+    pointer-events: none;
+}
+
+/* No-scrollbar utility — exact copy from KioskAIAssistant */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Horizontal scroll container for appointment cards */
+.appt-scroll-track {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+.appt-scroll-track::-webkit-scrollbar {
+    height: 4px;
+}
+.appt-scroll-track::-webkit-scrollbar-track {
+    background: #f3f4f5;
+    border-radius: 9999px;
+}
+.appt-scroll-track::-webkit-scrollbar-thumb {
+    background: #c2c6d4;
+    border-radius: 9999px;
+}
+.appt-card {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    width: 11rem;           /* fixed width so 2–3 cards visible at once */
+}
+
+/* Progress connector lines */
+.step-line-done    { background-color: #006e1c; }
+.step-line-pending { background-color: #e1e3e4; }
+
+/* Decorative bg icon in primary queue card */
+.queue-bg-icon {
+    position: absolute;
+    bottom: -4rem;
+    right: -4rem;
+    opacity: 0.06;
+    font-size: 16rem;
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+    color: #00478d;
+}
+
+/* Floating AI FAB — bottom-right corner */
+.ai-fab {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #005eb8, #00478d);
+    color: #ffffff;
+    padding: 0.75rem 1.25rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    box-shadow: 0 8px 28px rgba(0, 71, 141, 0.35);
+    cursor: pointer;
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ai-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 36px rgba(0, 71, 141, 0.45);
+}
+.ai-fab:active { transform: scale(0.97); }
+
+.ai-fab-dot {
+    width: 8px;
+    height: 8px;
+    background: #78dc77;   /* secondary-fixed-dim */
+    border-radius: 9999px;
+    animation: fabPulse 2s ease-in-out infinite;
+}
+@keyframes fabPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.6; transform: scale(1.3); }
+}

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Patient Registration - The Empathetic Concierge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed-dim": "#a9c7ff",
+                      "on-tertiary-fixed-variant": "#004e5c",
+                      "surface-container-low": "#f3f4f5",
+                      "on-primary": "#ffffff",
+                      "tertiary-container": "#00697b",
+                      "on-secondary-container": "#00731e",
+                      "secondary-container": "#91f78e",
+                      "inverse-surface": "#2e3132",
+                      "tertiary": "#004f5d",
+                      "on-secondary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-background": "#191c1d",
+                      "on-secondary-fixed": "#002204",
+                      "secondary-fixed-dim": "#78dc77",
+                      "error": "#ba1a1a",
+                      "surface-variant": "#e1e3e4",
+                      "surface-tint": "#005db6",
+                      "on-tertiary-fixed": "#001f26",
+                      "surface-container": "#edeeef",
+                      "surface-bright": "#f8f9fa",
+                      "outline-variant": "#c2c6d4",
+                      "on-tertiary-container": "#8ee7ff",
+                      "on-primary-fixed-variant": "#00468c",
+                      "primary": "#00478d",
+                      "inverse-on-surface": "#f0f1f2",
+                      "primary-container": "#005eb8",
+                      "secondary-fixed": "#94f990",
+                      "on-primary-fixed": "#001b3d",
+                      "tertiary-fixed": "#abedff",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-high": "#e7e8e9",
+                      "secondary": "#006e1c",
+                      "inverse-primary": "#a9c7ff",
+                      "background": "#f8f9fa",
+                      "primary-fixed": "#d6e3ff",
+                      "error-container": "#ffdad6",
+                      "on-error": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "surface-dim": "#d9dadb",
+                      "on-surface-variant": "#424752",
+                      "outline": "#727783",
+                      "on-primary-container": "#c8daff",
+                      "surface-container-highest": "#e1e3e4",
+                      "on-surface": "#191c1d",
+                      "on-secondary-fixed-variant": "#005313",
+                      "tertiary-fixed-dim": "#79d3ea",
+                      "surface": "#f8f9fa"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        .ai-pulse-bg {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: #005db6;
+            filter: blur(80px);
+            opacity: 0.1;
+            z-index: -1;
+            border-radius: 100%;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed-variant overflow-hidden h-screen w-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-slate-50 dark:bg-slate-900 font-manrope text-on-surface flex justify-between items-center px-8 py-4 w-full z-20">
+<div class="text-xl font-bold text-blue-800 dark:text-blue-300 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-lg" style="font-variation-settings: 'FILL' 1;">medical_information</span>
+</div>
+            The Empathetic Concierge
+        </div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-4 text-slate-500 dark:text-slate-400">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-xl">help</span>
+<span class="text-sm font-medium">Help</span>
+</div>
+<div class="p-2 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors relative cursor-pointer">
+<span class="material-symbols-outlined text-xl">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</div>
+</div>
+<div class="flex items-center gap-3 pl-6 border-l border-outline-variant/30">
+<img alt="Support Representative Avatar" class="w-10 h-10 rounded-full object-cover" data-alt="Professional hospital representative smiling warmly in a clinical setting with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeEgiLlKlT6MB9_xJubPcKrDLUcLwv15DRzvMGUuFYSgmtMIEC4N8zgYGSIyNpt0yZC5ZhhiX42TmFlW-itQBKBbG4kxF-8WURu6P0Y3RJ5sfXpVANYlvQzwYTQ_k9vYB_BnUmPqQNVZ1V2zYkOr50EVfjuFdb3iw_9ACvxi-Zf8Bve1QCVeEsCUo7iua9TZhg5DjkIBofWxzZa8FM3Z-v27vvgmz0d0dQyp3lkTwDoK8us-3QU23FCji577JjadnqaET_RcDJGwc"/>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-blue-800 dark:text-blue-300">MediAssist AI</span>
+<span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Online Support</span>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar -->
+<aside class="bg-slate-100 dark:bg-slate-950 flex flex-col h-screen py-8 pr-4 font-manrope text-sm w-72 z-10">
+<div class="px-8 mb-10">
+<div class="flex items-center gap-4 mb-2">
+<div class="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center text-white shadow-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_hospital</span>
+</div>
+<div>
+<h2 class="text-lg font-black text-blue-900 dark:text-blue-200 leading-tight">Patient Intake</h2>
+<p class="text-xs text-slate-500">Step-by-step registration</p>
+</div>
+</div>
+</div>
+<nav class="flex flex-col gap-1">
+<!-- Step 1: Active -->
+<div class="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-r-full font-semibold flex items-center gap-4 px-8 py-4 cursor-default">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span>Basic Info</span>
+</div>
+<!-- Step 2 -->
+<div class="text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r-full transition-all flex items-center gap-4 px-8 py-4 cursor-pointer">
+<span class="material-symbols-outlined">medical_services</span>
+<span>Symptoms</span>
+</div>
+<!-- Step 3 -->
+<div class="text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r-full transition-all flex items-center gap-4 px-8 py-4 cursor-pointer">
+<span class="material-symbols-outlined">face</span>
+<span>Face Capture</span>
+</div>
+<!-- Step 4 -->
+<div class="text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r-full transition-all flex items-center gap-4 px-8 py-4 cursor-pointer">
+<span class="material-symbols-outlined">check_circle</span>
+<span>Confirmation</span>
+</div>
+</nav>
+<div class="mt-auto px-8 pb-8">
+<div class="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/20">
+<p class="text-[11px] text-slate-500 font-medium uppercase tracking-widest mb-2">Help Desk</p>
+<p class="text-xs leading-relaxed text-slate-600">Need assistance with the kiosk? Press the button on your right.</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Area (Canvas) -->
+<main class="flex-1 bg-surface relative overflow-hidden flex flex-col items-center p-8">
+<div class="ai-pulse-bg top-1/4 left-1/4"></div>
+<div class="ai-pulse-bg bottom-1/4 right-1/4"></div>
+<div class="max-w-4xl w-full flex flex-col h-full py-2">
+<!-- Welcome Section -->
+<div class="text-center mb-8">
+<h1 class="text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight mb-4">Welcome to Your Care Journey</h1>
+<p class="text-on-surface-variant text-lg max-w-2xl mx-auto leading-relaxed">
+                        To provide you with the best medical attention, please share your basic identification details below.
+                    </p>
+</div>
+<!-- Registration Form Bento Card -->
+<div class="glass-card flex-1 rounded-[2.5rem] p-10 border border-outline-variant/10 shadow-[0_12px_40px_rgba(0,71,141,0.06)] relative overflow-hidden flex flex-col justify-between">
+<div class="grid grid-cols-2 gap-x-12 gap-y-10">
+<!-- Full Name -->
+<div class="flex flex-col gap-3 group">
+<label class="text-sm font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-base">badge</span>
+                                Full Name
+                            </label>
+<input class="bg-surface-container-low border-none rounded-2xl p-5 text-lg font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all" placeholder="Enter your full legal name" type="text"/>
+</div>
+<!-- Date of Birth -->
+<div class="flex flex-col gap-3">
+<label class="text-sm font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+                                Date of Birth
+                            </label>
+<input class="bg-surface-container-low border-none rounded-2xl p-5 text-lg font-medium focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all" type="date"/>
+</div>
+<!-- Gender -->
+<div class="flex flex-col gap-3">
+<label class="text-sm font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-base">diversity_3</span>
+                                Gender
+                            </label>
+<div class="grid grid-cols-3 gap-3">
+<button class="py-4 rounded-2xl bg-secondary-container text-on-secondary-container font-bold transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">male</span> Male
+                                </button>
+<button class="py-4 rounded-2xl bg-surface-container-low text-on-surface-variant font-bold hover:bg-surface-container-high transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">female</span> Female
+                                </button>
+<button class="py-4 rounded-2xl bg-surface-container-low text-on-surface-variant font-bold hover:bg-surface-container-high transition-all flex items-center justify-center gap-2">
+                                    Other
+                                </button>
+</div>
+</div>
+<!-- Phone Number -->
+<div class="flex flex-col gap-3">
+<label class="text-sm font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-base">call</span>
+                                Phone Number
+                            </label>
+<div class="relative">
+<span class="absolute left-5 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">+94</span>
+<input class="bg-surface-container-low border-none rounded-2xl p-5 pl-16 w-full text-lg font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all" placeholder="77 123 4567" type="tel"/>
+</div>
+</div><div class="flex flex-col gap-3 group">
+<label class="text-sm font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-base">verified_user</span>
+        Enter 4-Digit OTP
+    </label>
+<div class="flex flex-col gap-2">
+<div class="grid grid-cols-4 gap-4">
+<input class="bg-surface-container-low border-none rounded-2xl p-5 text-center text-2xl font-bold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all mb-8" maxlength="1" placeholder="0" type="text"/>
+<input class="bg-surface-container-low border-none rounded-2xl p-5 text-center text-2xl font-bold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all mb-8" maxlength="1" placeholder="0" type="text"/>
+<input class="bg-surface-container-low border-none rounded-2xl p-5 text-center text-2xl font-bold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all mb-8" maxlength="1" placeholder="0" type="text"/>
+<input class="bg-surface-container-low border-none rounded-2xl p-5 text-center text-2xl font-bold placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all mb-8" maxlength="1" placeholder="0" type="text"/>
+</div>
+<div class="flex justify-between items-center px-1">
+<span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Code expires in 01:59</span>
+<button class="text-[10px] text-primary font-bold uppercase tracking-wider hover:underline underline-offset-4">Resend Code</button>
+</div>
+</div>
+</div><div class="flex flex-col gap-3 group">
+<label class="text-sm font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-base">mail</span>
+                                Email Address
+                            </label>
+<input class="bg-surface-container-low border-none rounded-2xl p-5 text-lg font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all" placeholder="example@domain.com" type="email"/>
+</div><!-- NIC Number -->
+<div class="flex flex-col gap-3 group">
+<label class="text-sm font-bold text-primary px-1 tracking-wide uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-base">fingerprint</span>
+        NIC Number
+    </label>
+<input class="bg-surface-container-low border-none rounded-2xl p-5 text-lg font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all" placeholder="Enter your NIC number" type="text"/>
+</div>
+</div>
+<!-- Lower Section with Encryption & Button -->
+<div class="mt-12 flex items-center justify-between">
+<div class="flex items-center gap-4 bg-slate-100/50 px-6 py-4 rounded-2xl border border-outline-variant/10">
+<div class="w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<div>
+<h4 class="font-bold text-on-surface leading-tight">Data Encryption Active</h4>
+<p class="text-xs text-on-surface-variant leading-tight">Your data is protected by 256-bit medical grade encryption.</p>
+</div>
+</div>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white px-12 py-5 rounded-full font-bold text-xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-transform flex items-center gap-3">
+                            Next Step
+                            <span class="material-symbols-outlined font-bold">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Footer / Status -->
+<div class="mt-8 flex justify-center items-center gap-8 text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+<span class="flex items-center gap-2 text-primary">
+<span class="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                        Basic Info
+                    </span>
+<span class="w-8 h-[1px] bg-outline-variant"></span>
+<span>Symptoms</span>
+<span class="w-8 h-[1px] bg-outline-variant"></span>
+<span>Biometrics</span>
+<span class="w-8 h-[1px] bg-outline-variant"></span>
+<span>Finish</span>
+</div>
+</div>
+</main>
+</div>
+<!-- Background Decoration -->
+<div class="fixed bottom-0 right-0 p-8 opacity-10 pointer-events-none select-none z-0">
+<span class="material-symbols-outlined text-[300px]" style="font-variation-settings: 'wght' 100;">health_and_safety</span>
+</div>
+</body></html>

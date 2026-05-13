@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MediAssist AI - Patient Registration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .ai-pulse {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 93, 182, 0.08) 0%, rgba(0, 93, 182, 0) 70%);
+            filter: blur(40px);
+            z-index: -1;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-bright": "#f8f9fa",
+                      "secondary-fixed-dim": "#78dc77",
+                      "primary-container": "#005eb8",
+                      "on-primary-container": "#c8daff",
+                      "on-primary-fixed-variant": "#00468c",
+                      "surface-dim": "#d9dadb",
+                      "surface-container-highest": "#e1e3e4",
+                      "surface-variant": "#e1e3e4",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#191c1d",
+                      "on-secondary-fixed": "#002204",
+                      "secondary-fixed": "#94f990",
+                      "on-secondary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-container-high": "#e7e8e9",
+                      "inverse-on-surface": "#f0f1f2",
+                      "secondary-container": "#91f78e",
+                      "surface-tint": "#005db6",
+                      "secondary": "#006e1c",
+                      "tertiary": "#004f5d",
+                      "on-secondary-fixed-variant": "#005313",
+                      "tertiary-fixed-dim": "#79d3ea",
+                      "tertiary-fixed": "#abedff",
+                      "on-tertiary-fixed": "#001f26",
+                      "on-secondary-container": "#00731e",
+                      "tertiary-container": "#00697b",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-container": "#8ee7ff",
+                      "on-background": "#191c1d",
+                      "on-surface-variant": "#424752",
+                      "surface-container-low": "#f3f4f5",
+                      "error": "#ba1a1a",
+                      "error-container": "#ffdad6",
+                      "background": "#f8f9fa",
+                      "surface-container-lowest": "#ffffff",
+                      "outline-variant": "#c2c6d4",
+                      "primary-fixed": "#d6e3ff",
+                      "on-primary-fixed": "#001b3d",
+                      "on-error-container": "#93000a",
+                      "outline": "#727783",
+                      "primary-fixed-dim": "#a9c7ff",
+                      "primary": "#00478d",
+                      "inverse-primary": "#a9c7ff",
+                      "surface-container": "#edeeef",
+                      "surface": "#f8f9fa",
+                      "inverse-surface": "#2e3132",
+                      "on-tertiary-fixed-variant": "#004e5c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface font-body text-on-surface min-h-screen overflow-x-hidden">
+<!-- Sidebar Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full w-72 flex flex-col p-6 z-40 bg-slate-50 dark:bg-slate-900 h-full rounded-r-3xl bg-slate-100 dark:bg-slate-800/50 shadow-xl shadow-blue-900/5 font-manrope font-semibold">
+<div class="mb-12 flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-primary-container rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+</div>
+<h2 class="text-xl font-extrabold text-blue-900">Patient Intake</h2>
+<p class="text-slate-500 text-sm">Step 1 of 4</p>
+</div>
+<nav class="flex-1 space-y-3">
+<!-- Active State Navigation -->
+<a class="flex items-center gap-4 px-5 py-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="fingerprint">fingerprint</span>
+<span>Identity</span>
+</a>
+<!-- Inactive States -->
+<a class="flex items-center gap-4 px-5 py-4 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+<span>Symptoms</span>
+</a>
+<a class="flex items-center gap-4 px-5 py-4 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Insurance</span>
+</a>
+<a class="flex items-center gap-4 px-5 py-4 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span>Review</span>
+</a>
+</nav>
+<button class="mt-auto py-4 px-6 bg-error/10 text-error font-bold rounded-2xl hover:bg-error/20 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">emergency</span>
+            Emergency Help
+        </button>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-72 min-h-screen relative flex flex-col">
+<!-- Top App Bar -->
+<header class="flex justify-between items-center w-full max-w-screen-2xl mx-auto w-full top-0 px-8 py-6 bg-slate-50 dark:bg-slate-900 bg-gradient-to-b from-slate-100 to-transparent shadow-none font-manrope tracking-tight">
+<div class="flex items-center gap-3">
+<div class="text-2xl font-bold text-blue-800 dark:text-blue-300">MediAssist AI</div>
+<div class="h-6 w-[1px] bg-outline-variant mx-4"></div>
+<div class="text-slate-500 font-medium">Lanka Premium Hospital</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<button class="material-symbols-outlined text-slate-500 hover:opacity-80 transition-opacity" data-icon="help">help</button>
+<button class="material-symbols-outlined text-slate-500 hover:opacity-80 transition-opacity" data-icon="language">language</button>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden bg-primary-fixed border-2 border-white">
+<img alt="AI Assistant Pulse" data-alt="Modern AI assistant pulse avatar with soft glowing blue and teal interface elements representing technological precision and care" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9xQndOX0kkFT8EYlIynQDpeEWEKFLqhqYXUWiNkThuxKjWomWsi-rYD_xnIprWgm_mUkbtZumsxBBgj6OBxv_ophwrfTTIzaT5soz6cfZA1g741t53h6LwaXK8vCpkVxy3x_S4jBnJ1H2gAPOZFwPmikNb7TxCCuhu-vGgvp3d56J-muxwVjH-LgcoodSQa9-8ovn09qnM4h_tn0WmH6MxLzOIX1FduydBZV_Z-7F0eE2eipBqv24HpeYHsagWErUyTcRPLmvxac"/>
+</div>
+</div>
+</header>
+<section class="flex-1 flex flex-col items-center justify-start p-12 max-w-6xl mx-auto w-full">
+<!-- AI Pulse Background Effect -->
+<div class="ai-pulse top-20"></div>
+<!-- Welcome & Progress Header -->
+<div class="text-center mb-12">
+<h1 class="font-headline text-4xl font-extrabold text-on-surface tracking-tight mb-4">Patient Registration</h1>
+<p class="text-on-surface-variant text-lg">Please provide your details for a seamless medical experience.</p>
+</div>
+<!-- Step Progress Indicator -->
+<div class="flex items-center justify-center w-full mb-16 gap-4">
+<div class="flex flex-col items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold ring-8 ring-primary-fixed/30">1</div>
+<span class="text-sm font-bold text-primary">Personal Info</span>
+</div>
+<div class="h-1 w-20 bg-primary-fixed rounded-full mb-8"></div>
+<div class="flex flex-col items-center gap-3 opacity-40">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface font-bold">2</div>
+<span class="text-sm font-medium">Contact</span>
+</div>
+<div class="h-1 w-20 bg-surface-container-highest rounded-full mb-8"></div>
+<div class="flex flex-col items-center gap-3 opacity-40">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface font-bold">3</div>
+<span class="text-sm font-medium">Confirmation</span>
+</div>
+</div>
+<!-- Form Content: Bento Grid Inspired Layout -->
+<form class="w-full grid grid-cols-1 md:grid-cols-2 gap-8 glass-panel p-10 rounded-[2rem] shadow-2xl shadow-blue-900/5 relative overflow-hidden">
+<!-- Background Decoration -->
+<div class="absolute -right-20 -top-20 w-64 h-64 bg-secondary/5 rounded-full blur-3xl"></div>
+<!-- Full Name -->
+<div class="space-y-3">
+<label class="text-sm font-bold text-on-surface ml-2">Full Name</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40">person</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-5 pl-14 pr-6 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg placeholder:text-outline" placeholder="Enter as per NIC" type="text"/>
+</div>
+</div>
+<!-- Date of Birth -->
+<div class="space-y-3">
+<label class="text-sm font-bold text-on-surface ml-2">Date of Birth</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40">calendar_month</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-5 pl-14 pr-6 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg" type="date"/>
+</div>
+</div>
+<!-- Gender -->
+<div class="space-y-3">
+<label class="text-sm font-bold text-on-surface ml-2">Gender</label>
+<div class="flex gap-4">
+<label class="flex-1 cursor-pointer">
+<input class="hidden peer" name="gender" type="radio"/>
+<div class="w-full text-center py-5 rounded-xl bg-surface-container-low peer-checked:bg-primary peer-checked:text-white transition-all font-semibold">Male</div>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="hidden peer" name="gender" type="radio"/>
+<div class="w-full text-center py-5 rounded-xl bg-surface-container-low peer-checked:bg-primary peer-checked:text-white transition-all font-semibold">Female</div>
+</label>
+<label class="flex-1 cursor-pointer">
+<input class="hidden peer" name="gender" type="radio"/>
+<div class="w-full text-center py-5 rounded-xl bg-surface-container-low peer-checked:bg-primary peer-checked:text-white transition-all font-semibold">Other</div>
+</label>
+</div>
+</div>
+<!-- NIC Number -->
+<div class="space-y-3">
+<label class="text-sm font-bold text-on-surface ml-2">NIC Number (Sri Lankan Context)</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40">badge</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-5 pl-14 pr-6 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg placeholder:text-outline" placeholder="e.g. 199012345678 or 901234567V" type="text"/>
+</div>
+</div>
+<!-- Mobile Number -->
+<div class="space-y-3">
+<label class="text-sm font-bold text-on-surface ml-2">Mobile Number</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40">call</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-5 pl-14 pr-6 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg placeholder:text-outline" placeholder="07X XXX XXXX" type="tel"/>
+</div>
+</div>
+<!-- Home Address -->
+<div class="space-y-3">
+<label class="text-sm font-bold text-on-surface ml-2">Home Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-5 top-7 text-primary/40">location_on</span>
+<textarea class="w-full bg-surface-container-low border-none rounded-xl py-5 pl-14 pr-6 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg placeholder:text-outline" placeholder="Complete street address" rows="1"></textarea>
+</div>
+</div>
+<!-- Emergency Section Divider -->
+<div class="md:col-span-2 pt-6 flex items-center gap-4">
+<div class="h-[1px] flex-1 bg-surface-container-high"></div>
+<span class="text-xs font-black uppercase tracking-widest text-outline">Emergency Contact Information</span>
+<div class="h-[1px] flex-1 bg-surface-container-high"></div>
+</div>
+<!-- Emergency Name & Relation -->
+<div class="space-y-3">
+<label class="text-sm font-bold text-on-surface ml-2">Contact Person &amp; Relationship</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40">family_restroom</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-5 pl-14 pr-6 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg placeholder:text-outline" placeholder="Name (e.g. S. Perera - Spouse)" type="text"/>
+</div>
+</div>
+<!-- Emergency Phone -->
+<div class="space-y-3">
+<label class="text-sm font-bold text-on-surface ml-2">Emergency Phone</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40">contact_emergency</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-5 pl-14 pr-6 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-lg placeholder:text-outline" placeholder="07X XXX XXXX" type="tel"/>
+</div>
+</div>
+</form>
+<!-- Navigation Actions -->
+<div class="w-full flex justify-between items-center mt-12 mb-20">
+<button class="flex items-center gap-3 px-10 py-5 rounded-full bg-surface-container-high text-on-surface-variant font-bold hover:bg-surface-dim transition-all">
+<span class="material-symbols-outlined">arrow_back</span>
+                    Back to Home
+                </button>
+<div class="flex items-center gap-6">
+<p class="text-sm text-on-surface-variant hidden md:block">All data is encrypted and secure</p>
+<button class="flex items-center gap-4 px-14 py-5 rounded-full bg-gradient-to-r from-primary to-primary-container text-white font-bold text-xl shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all">
+                        Next Step
+                        <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating AI Prompt (Kiosk Experience) -->
+<div class="fixed bottom-10 right-10 z-50">
+<div class="glass-panel p-6 rounded-3xl shadow-2xl flex items-center gap-4 border border-white/50 max-w-xs">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">graphic_eq</span>
+</div>
+<div>
+<p class="text-xs font-bold text-primary uppercase">MediAssist AI</p>
+<p class="text-sm font-medium text-on-surface">"Would you like me to scan your ID for faster entry?"</p>
+</div>
+</div>
+</div>
+</body></html>
