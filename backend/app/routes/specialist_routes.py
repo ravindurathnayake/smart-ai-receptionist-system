@@ -38,8 +38,10 @@ def get_specialists():
                 "start_time": sess.start_time.strftime("%H:%M"),
                 "end_time": sess.end_time.strftime("%H:%M"),
                 "max_patients": sess.max_patients,
+                "current_count": sess.current_count,
                 "session_number": sess.session_number,
                 "room_number": sess.room_number,
+                "status": sess.status,
                 "current_bookings": Appointment.query.filter(
                     Appointment.doctor_session_id == sess.id,
                     db.func.date(Appointment.appointment_date) == (sess.session_date if sess.session_date else today),

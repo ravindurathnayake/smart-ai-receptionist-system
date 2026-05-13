@@ -401,6 +401,22 @@ const AdminDoctors = () => {
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-0 translate-x-4">
+                      {doc.sessionId && doc.sessionStatus === 'NOT_STARTED' && (
+                        <button
+                          onClick={() => handleStatusUpdate(doc.sessionId, 'start')}
+                          className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
+                        >
+                          Start Session
+                        </button>
+                      )}
+                      {doc.sessionStatus === 'ACTIVE' && (
+                        <button
+                          onClick={() => handleStatusUpdate(doc.sessionId, 'end')}
+                          className="px-4 py-2 bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200"
+                        >
+                          End Session
+                        </button>
+                      )}
                       {doc.sessionStatus === 'ACTIVE' && (
                         <button
                           onClick={() => navigate('/admin/queue')}
