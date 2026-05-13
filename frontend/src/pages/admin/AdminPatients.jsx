@@ -115,7 +115,7 @@ const AdminPatients = () => {
   });
 
   return (
-    <div className="patients-wrapper admin-page-transition">
+    <div className="patients-wrapper">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -376,8 +376,8 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
         <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
             <h3 className="text-2xl font-bold text-on-surface font-display">{mode === 'edit' ? 'Edit Patient Info' : 'New Patient Registration'}</h3>
@@ -388,7 +388,7 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto no-scrollbar">
           <div className="grid grid-cols-2 gap-6">
             <div className="col-span-2 space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">Full Name</label>
@@ -569,7 +569,7 @@ const HistoryModal = ({ patient, onClose }) => {
   }, [patient.id]);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
       <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
         <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
           <div>
@@ -797,8 +797,8 @@ const MedicalRecordsModal = ({ patient, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
         <div className="p-8 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center justify-between">
             <h3 className="text-2xl font-bold text-on-surface font-display">Add Medical Record</h3>
@@ -822,7 +822,7 @@ const MedicalRecordsModal = ({ patient, onClose, onSuccess }) => {
           </div>
         </div>
 
-        <div className="p-8">
+        <div className="p-8 overflow-y-auto no-scrollbar">
           {activeTab === 'prescription' ? (
             <form onSubmit={handlePrescriptionSubmit} className="space-y-4">
               <div className="space-y-1.5">
@@ -969,14 +969,14 @@ const AppointmentModal = ({ patient, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[90vh]">
         <div className="p-8 border-b border-slate-100 bg-primary/5">
           <h3 className="text-2xl font-bold text-on-surface font-display">Quick Booking</h3>
           <p className="text-sm text-on-surface-variant font-medium">Schedule appointment for <strong>{patient.name}</strong></p>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto no-scrollbar">
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Select Doctor</label>
             <select 

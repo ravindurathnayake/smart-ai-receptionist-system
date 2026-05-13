@@ -55,7 +55,7 @@ const HospitalAnalytics = () => {
   const { volumeData, specialtyData, hourlyData, metrics } = data;
 
   return (
-    <div className="analytics-wrapper admin-page-transition">
+    <div className="analytics-wrapper">
       <div>
         <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Hospital Analytics</h2>
         <p className="text-sm text-on-surface-variant mt-1 font-medium">Deep insights into patient flow, occupancy, and staff efficiency.</p>

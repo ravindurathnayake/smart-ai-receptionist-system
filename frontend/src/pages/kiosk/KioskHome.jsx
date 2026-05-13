@@ -35,7 +35,7 @@ const translations = {
     typeMessage: "Type your message...",
     send: "Send",
     clearConversation: "Clear Conversation",
-    smartAIActive: "Smart AI Active",
+    smartAIActive: "System Online",
     ayubowan: "Ayubowan",
     medicalHistory: "Medical history & profile",
     scanAppointment: "Scan appointment or NIC",
@@ -56,8 +56,8 @@ const translations = {
     faq3_ans: "You can pay at any payment kiosk or the main billing counter on the 1st floor.",
     faq4: "Can I register as a new patient here?",
     faq4_ans: "Yes! Click the 'New Patient' card on the home screen to start your registration.",
-    guide1_title: "Smart AI Assistant",
-    guide1_desc: "Type or speak to our AI bot for any health-related questions or hospital info.",
+    guide1_title: "Digital Care Assistant",
+    guide1_desc: "Type or speak to our assistant for any health-related questions or hospital info.",
     guide2_title: "Emergency Actions",
     guide2_desc: "Use the red button for immediate medical assistance or staff alerts.",
     guide3_title: "Dashboard & Queue",
@@ -266,7 +266,7 @@ const KioskHome = () => {
               role: 'bot', 
               text: "⚠️ Please go to the Emergency Room immediately! 📍 Ground Floor - Emergency Unit. 🚑 Medical staff has been notified of your situation.",
               actions: [
-                  { label: 'View ER Route', type: 'navigate', payload: '/hospital-map' },
+                  { label: 'View ER Route', type: 'navigate', payload: '/hospital-map?destination=emergency' },
                   { label: 'Exit Emergency Mode', type: 'message', payload: 'Thank you, I am okay now.' }
               ]
           }]);

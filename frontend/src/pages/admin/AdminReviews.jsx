@@ -49,7 +49,7 @@ const AdminReviews = () => {
     });
 
     return (
-        <div className="admin-page-transition p-8">
+        <div className="p-8">
             <div className="flex justify-between items-end mb-8">
                 <div>
                     <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Patient Feedback</h2>
@@ -152,7 +152,7 @@ const AdminReviews = () => {
 
             {/* Response Modal */}
             {selectedReview && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fade-in">
+                <div className="fixed inset-0 z-[999] flex items-center justify-center p-6 animate-fade-in">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedReview(null)}></div>
                     <div className="bg-white rounded-[3rem] w-full max-w-xl relative z-10 shadow-2xl overflow-hidden border border-white">
                         <div className="p-10">

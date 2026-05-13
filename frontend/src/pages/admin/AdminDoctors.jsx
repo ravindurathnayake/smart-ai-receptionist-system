@@ -293,7 +293,7 @@ const AdminDoctors = () => {
   };
 
   return (
-    <div className="doctors-wrapper admin-page-transition">
+    <div className="doctors-wrapper">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Staff Management</h2>
@@ -401,6 +401,22 @@ const AdminDoctors = () => {
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-0 translate-x-4">
+                      {doc.sessionId && doc.sessionStatus === 'NOT_STARTED' && (
+                        <button
+                          onClick={() => handleStatusUpdate(doc.sessionId, 'start')}
+                          className="px-4 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
+                        >
+                          Start Session
+                        </button>
+                      )}
+                      {doc.sessionStatus === 'ACTIVE' && (
+                        <button
+                          onClick={() => handleStatusUpdate(doc.sessionId, 'end')}
+                          className="px-4 py-2 bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200"
+                        >
+                          End Session
+                        </button>
+                      )}
                       {doc.sessionStatus === 'ACTIVE' && (
                         <button
                           onClick={() => navigate('/admin/queue')}
@@ -434,7 +450,7 @@ const AdminDoctors = () => {
 
       {/* Professional Modal for Registration/Edit */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
           <div className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low shrink-0">

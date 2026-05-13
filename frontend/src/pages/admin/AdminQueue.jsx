@@ -140,7 +140,7 @@ const AdminQueue = () => {
   const activeSession = filteredSessions.find(s => s.session_id === activeSessionId) || filteredSessions[0];
 
   return (
-    <div className="queue-wrapper admin-page-transition">
+    <div className="queue-wrapper">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-3xl font-bold font-display text-on-surface tracking-tight">Queue Control Center</h2>

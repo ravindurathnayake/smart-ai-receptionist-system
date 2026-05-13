@@ -137,7 +137,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="admin-dashboard-wrapper admin-page-transition">
+    <div className="admin-dashboard-wrapper">
       {/* Page Title */}
       <div className="flex justify-between items-center">
         <div>
@@ -352,7 +352,7 @@ const AdminDashboard = () => {
 
       {/* Details Modal */}
       {selectedItem && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in duration-300">
             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-primary/5">
               <div>

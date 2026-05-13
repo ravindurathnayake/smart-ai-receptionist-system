@@ -8,67 +8,81 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const { searchQuery, setSearchQuery } = useAdminSearch();
 
-  const menuItems = [
-    { name: 'Dashboard', icon: 'dashboard', path: '/admin' },
-    { name: 'Appointments', icon: 'calendar_today', path: '/admin/appointments' },
-    { name: 'Doctor Management', icon: 'medical_services', path: '/admin/doctors' },
-    { name: 'Queue Control', icon: 'queue', path: '/admin/queue' },
-    { name: 'Patient Records', icon: 'person_search', path: '/admin/patients' },
-    { name: 'Analytics', icon: 'analytics', path: '/admin/analytics' },
-    { name: 'Reviews & Complaints', icon: 'rate_review', path: '/admin/reviews' },
-    { name: 'System Health', icon: 'monitor_heart', path: '/admin/system-health' },
+  const menuGroups = [
+    {
+      title: 'Management',
+      items: [
+        { name: 'Dashboard', icon: 'dashboard', path: '/admin' },
+        { name: 'Appointments', icon: 'calendar_today', path: '/admin/appointments' },
+        { name: 'Doctor Management', icon: 'medical_services', path: '/admin/doctors' },
+        { name: 'Patient Records', icon: 'person_search', path: '/admin/patients' },
+      ]
+    },
+    {
+      title: 'Operations',
+      items: [
+        { name: 'Queue Control', icon: 'queue', path: '/admin/queue' },
+        { name: 'System Health', icon: 'monitor_heart', path: '/admin/system-health' },
+      ]
+    },
+    {
+      title: 'Insights',
+      items: [
+        { name: 'Analytics', icon: 'analytics', path: '/admin/analytics' },
+        { name: 'Reviews & Feedback', icon: 'rate_review', path: '/admin/reviews' },
+      ]
+    }
   ];
 
   return (
     <div className="admin-layout-container text-on-surface">
       {/* Sidebar */}
       <aside className="admin-sidebar">
-        <div className="flex flex-col h-full">
-          <div className="admin-logo-section mb-10 px-2">
-            <Logo size="sm" className="mb-2" />
-            <div className="pl-8 inline-block">
-              <span className="text-[10px] uppercase tracking-widest text-outline font-black opacity-60">Admin Console</span>
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Logo Section */}
+          <div className="admin-logo-section mb-6">
+            <div className="flex items-center gap-3 px-4">
+              <Logo size="sm" onClick={() => navigate('/admin')} className="cursor-pointer" />
             </div>
           </div>
 
-          <nav className="space-y-1 flex-1">
-            {menuItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === '/admin'}
-                className={({ isActive }) =>
-                  `admin-nav-item ${isActive ? 'active' : ''}`
-                }
-              >
-                <span className="material-symbols-rounded">
-                  {item.icon}
-                </span>
-                <span className="nav-label">{item.name}</span>
-              </NavLink>
-            ))}
-          </nav>
-
-          <div className="admin-sidebar-support space-y-4">
-            <div className="support-card">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="material-symbols-rounded text-primary text-xl">help_outline</span>
-                <span className="font-bold text-sm text-primary">Support</span>
+          {/* Navigation Section */}
+          <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
+            {menuGroups.map((group, idx) => (
+              <div key={idx} className="mb-8">
+                <h3 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                  {group.title}
+                </h3>
+                <nav className="space-y-1">
+                  {group.items.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      end={item.path === '/admin'}
+                      className={({ isActive }) =>
+                        `admin-nav-item ${isActive ? 'active' : ''}`
+                      }
+                    >
+                      <span className="material-symbols-rounded">
+                        {item.icon}
+                      </span>
+                      <span className="nav-label">{item.name}</span>
+                      <div className="active-indicator"></div>
+                    </NavLink>
+                  ))}
+                </nav>
               </div>
-              <p className="text-xs text-on-surface-variant leading-relaxed mb-4">
-                Need assistance with the system? Our tech team is online.
-              </p>
-              <button className="w-full py-2.5 px-4 bg-white border border-outline-variant/30 hover:border-primary/30 rounded-xl text-[13px] font-bold text-primary transition-all shadow-sm">
-                Contact Tech Support
-              </button>
-            </div>
+            ))}
+          </div>
 
+          {/* Footer Section */}
+          <div className="p-4 border-t border-slate-100/80 bg-slate-50/50">
             <button 
               onClick={() => navigate('/')}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-error hover:bg-error-container/20 transition-all duration-300 group"
+              className="w-full flex items-center gap-3 px-5 py-3 rounded-xl text-error/80 hover:text-error hover:bg-error/5 transition-all group"
             >
-              <span className="material-symbols-rounded text-[22px]">logout</span>
-              <span className="font-semibold text-[15px]">Sign Out</span>
+              <span className="material-symbols-rounded text-[18px] transition-transform group-hover:-translate-x-1">logout</span>
+              <span className="font-black text-[10px] uppercase tracking-[0.2em]">Sign Out</span>
             </button>
           </div>
         </div>
@@ -110,7 +124,7 @@ const AdminLayout = () => {
         </header>
 
         {/* Content Outlet */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-10 bg-surface admin-page-transition">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-10 bg-surface">
           <Outlet />
         </div>
       </main>

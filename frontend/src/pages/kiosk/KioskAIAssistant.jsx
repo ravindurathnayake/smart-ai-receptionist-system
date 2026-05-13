@@ -9,9 +9,9 @@ import './KioskAIAssistant.css';
 /** AI response / chat bubble panel */
 const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping, scrollRef }) => {
     const suggestions = [
-        '"Where is the Cardiology wing?"',
-        '"Show my prescription history"',
         '"What is my next appointment?"',
+        '"Show my prescriptions"',
+        '"Where is the Cardiology wing?"',
         '"Check me in for today"',
     ];
 
@@ -65,15 +65,34 @@ const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping,
                             <div>"{chat.text}"</div>
                             {chat.actions && chat.actions.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-3">
-                                    {chat.actions.map((btn, bIdx) => (
-                                        <button
-                                            key={bIdx}
-                                            onClick={() => btn.handler()}
-                                            className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-sm hover:opacity-90 transition-opacity"
-                                        >
-                                            {btn.label}
-                                        </button>
-                                    ))}
+                                    {chat.actions.map((btn, bIdx) => {
+                                        let btnClass = "px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ";
+                                        if (btn.variant === 'secondary') {
+                                            btnClass += "bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200";
+                                        } else if (btn.variant === 'outline') {
+                                            btnClass += "bg-white text-primary border border-primary/30 hover:bg-primary/5";
+                                        } else {
+                                            btnClass += "bg-primary text-white hover:opacity-90";
+                                        }
+
+                                        return (
+                                            <button
+                                                key={bIdx}
+                                                onClick={() => {
+                                                    if (btn.handler) {
+                                                        btn.handler();
+                                                    } else if (btn.type === 'navigate') {
+                                                        navigate(btn.payload, { state: btn.data });
+                                                    } else if (btn.type === 'message' || !btn.type) {
+                                                        onSendMessage(btn.payload || btn.label);
+                                                    }
+                                                }}
+                                                className={btnClass}
+                                            >
+                                                {btn.label}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -185,12 +204,12 @@ const KioskAIAssistant = () => {
         }
     }, [chatHistory, patient]);
 
-    const handleSend = async () => {
-        if (!inputValue.trim()) return;
+    const handleSend = async (manualMessage = null) => {
+        if (!manualMessage && !inputValue.trim()) return;
 
-        const userMessage = inputValue.trim();
+        const userMessage = manualMessage || inputValue.trim();
         setChatHistory(prev => [...prev, { role: 'user', text: userMessage }]);
-        setInputValue('');
+        if (!manualMessage) setInputValue('');
         setIsTyping(true);
 
         try {
@@ -206,14 +225,22 @@ const KioskAIAssistant = () => {
             if (response.actions) {
                 botMessage.actions = response.actions.map(action => ({
                     label: action.label,
+                    variant: action.variant || 'primary',
+                    type: action.type,
+                    payload: action.payload,
                     handler: () => {
                         if (action.type === 'navigate') {
-                            navigate(action.payload);
+                            navigate(action.payload, { state: action.data });
                         } else if (action.type === 'message') {
-                            setInputValue(action.payload);
-                            // We don't auto-send to allow user to see what's being sent
+                            // Auto-send secondary actions or specific keywords
+                            if (action.variant === 'secondary' || (action.payload && action.payload.toLowerCase().includes("i don't know"))) {
+                                handleSend(action.payload);
+                            } else {
+                                setInputValue(action.payload);
+                            }
                         }
-                    }
+                    },
+                    data: action.data // Explicitly include data for fallback navigation
                 }));
             }
 

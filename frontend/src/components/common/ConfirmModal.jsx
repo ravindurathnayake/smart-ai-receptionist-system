@@ -43,7 +43,7 @@ const ConfirmModal = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-in fade-in duration-300">
             <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in duration-300 border border-outline-variant/10">
                 <div className={`p-8 flex items-center gap-4 ${getTypeClasses()}`}>
                     <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
