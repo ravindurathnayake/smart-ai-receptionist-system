@@ -17,7 +17,11 @@ from app.services import (
 
 from app.utils.response import success_response, error_response
 from app.services.email_service import send_appointment_confirmation
-from app.services.whatsapp_service import send_whatsapp_notification
+from app.services.whatsapp_service import (
+    send_whatsapp_notification,
+    get_patient_whatsapp_numbers,
+    is_twilio_sandbox_sender,
+)
 from app.models import Patient, Payment, Appointment, Specialist
 from app.extensions import db, socketio
 
@@ -229,6 +233,8 @@ def confirm_payment_route():
         amount = data.get("amount")
         payment_method = data.get("payment_method", "Card")
         transaction_id = data.get("transaction_id")
+        is_counter_payment = payment_method == "Cash at Counter"
+        payment_status = "Unpaid" if is_counter_payment else "Paid"
 
         if not appointment_id:
             return error_response("Appointment ID is required", 400)
@@ -238,7 +244,7 @@ def confirm_payment_route():
             appointment_id=appointment_id,
             amount=amount,
             payment_method=payment_method,
-            status="Paid",
+            status=payment_status,
             transaction_id=transaction_id
         )
         db.session.add(payment)
@@ -248,6 +254,9 @@ def confirm_payment_route():
         if appointment:
             appointment.status = "Scheduled"
             
+        notifications = {"email": "skipped", "whatsapp": "skipped"}
+        warnings = []
+
         # 3. Send Email Confirmation (Optional - don't fail if email fails)
         try:
             patient = appointment.patient
@@ -264,31 +273,55 @@ def confirm_payment_route():
             }
             
             if patient and patient.email:
-                send_appointment_confirmation(
+                email_sent = send_appointment_confirmation(
                     patient_email=patient.email,
                     patient_name=patient.full_name,
                     appointment_details=appointment_details,
-                    doctor_details=doctor_details
+                    doctor_details=doctor_details,
+                    payment_method=payment_method,
+                    payment_status=payment_status,
+                    transaction_id=transaction_id
                 )
+                notifications["email"] = "sent" if email_sent else "failed"
                 
             # 4. Send WhatsApp Notification
-            if patient and patient.phone_number:
-                send_whatsapp_notification(
-                    phone_number=patient.phone_number,
+            whatsapp_numbers = get_patient_whatsapp_numbers(patient)
+            if patient and whatsapp_numbers:
+                whatsapp_sent = send_whatsapp_notification(
+                    phone_numbers=whatsapp_numbers,
                     patient_name=patient.full_name,
                     doctor_name=doctor_details['name'],
                     date=appointment_details['appointment_date'],
-                    doctor_session_id=appointment_details['doctor_session_id']
+                    doctor_session_id=appointment_details['doctor_session_id'],
+                    payment_method=payment_method,
+                    payment_status=payment_status,
+                    transaction_id=transaction_id,
+                    amount=amount
                 )
+                notifications["whatsapp"] = "sent" if whatsapp_sent else "failed"
+                if not whatsapp_sent and is_twilio_sandbox_sender():
+                    warnings.append("Twilio sandbox sender requires each recipient to join the sandbox before messages can be delivered.")
         except Exception as notify_err:
             print(f"Non-critical Error: Notification failed: {str(notify_err)}")
+            notifications["email"] = notifications["email"] if notifications["email"] != "skipped" else "failed"
+            notifications["whatsapp"] = notifications["whatsapp"] if notifications["whatsapp"] != "skipped" else "failed"
 
         db.session.commit()
         
         # EMIT REAL-TIME STATS UPDATE
         socketio.emit('stats_updated', {'type': 'payment', 'amount': amount})
         
-        return success_response("Payment confirmed and receipt sent", {"payment_id": payment.id})
+        if is_counter_payment:
+            return success_response("Counter payment ticket generated", {
+                "payment_id": payment.id,
+                "notifications": notifications,
+                "warnings": warnings
+            })
+        return success_response("Payment confirmed", {
+            "payment_id": payment.id,
+            "notifications": notifications,
+            "warnings": warnings
+        })
 
     except Exception as e:
         db.session.rollback()

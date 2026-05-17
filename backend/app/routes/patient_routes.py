@@ -3,6 +3,7 @@ from ..models import Patient
 from ..extensions import db, socketio
 from ..utils.response import success_response, error_response
 from ..services import get_face_embedding
+from ..services.face_service import normalize_profile_image
 
 patient_bp = Blueprint("patient_bp", __name__)
 
@@ -223,7 +224,7 @@ def nic_login(nic):
                 "address": p.address,
                 "blood_type": p.blood_type,
                 "role": "Primary" if is_guardian else "Family Member",
-                "image": p.profile_image,
+                "image": normalize_profile_image(p.profile_image),
                 "guardian_name": p.guardian_name,
                 "guardian_nic": p.guardian_nic,
                 "guardian_phone": p.guardian_phone,
@@ -328,7 +329,7 @@ def login_face():
                 "age": patient.age,
                 "nic": patient.nic,
                 "role": "Primary",
-                "image": patient.profile_image
+                "image": normalize_profile_image(patient.profile_image)
             }]
             for child in linked:
                 profiles.append({
@@ -338,7 +339,7 @@ def login_face():
                     "age": child.age,
                     "nic": child.nic,
                     "role": "Family Member",
-                    "image": child.profile_image
+                    "image": normalize_profile_image(child.profile_image)
                 })
             return success_response("Guardian recognized", {"profiles": profiles})
 

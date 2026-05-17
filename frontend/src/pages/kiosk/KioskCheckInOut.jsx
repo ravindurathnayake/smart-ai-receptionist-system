@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
-import queueService from '../../services/queueService';
 import Webcam from 'react-webcam';
 import KioskTopBar from '../../components/kiosk/KioskTopBar';
+import { sanitizeImageSrc } from '../../utils/imageUtils';
 import './KioskCheckInOut.css';
 
 // ─── Biometric Scanner ────────────────────────────────────────────────────────
@@ -86,6 +86,7 @@ const KioskCheckInOut = () => {
     const [appointmentsList, setAppointmentsList] = useState(null);
     const [sessionEndedData, setSessionEndedData] = useState(null);
     const [selectedProfileId, setSelectedProfileId] = useState(null);
+    const [errorMessage, setErrorMessage] = useState('');
     const webcamRef = React.useRef(null);
 
     useEffect(() => {
@@ -94,16 +95,6 @@ const KioskCheckInOut = () => {
             setPatient(JSON.parse(savedPatient));
         }
     }, []);
-
-    useEffect(() => {
-        let interval = null;
-        if (scanning && !isProcessing && !showSuccessModal && !profiles && !noAppointment) {
-            interval = setInterval(() => {
-                captureAndRecognize();
-            }, 3000); // Try every 3 seconds
-        }
-        return () => clearInterval(interval);
-    }, [scanning, isProcessing, showSuccessModal, profiles, noAppointment]);
 
     const saveSession = (id, name, nic) => {
         localStorage.setItem('activePatient', JSON.stringify({
@@ -115,7 +106,25 @@ const KioskCheckInOut = () => {
         setPatient({ id, full_name: name }); // Update local state too
     };
 
-    const captureAndRecognize = async () => {
+    const getErrorMessage = (error, fallback = 'Check-in failed. Please try again.') => {
+        if (!error) return fallback;
+        if (typeof error === 'string') return error;
+        if (typeof error.error === 'string' && error.error.trim()) return error.error;
+        if (typeof error.message === 'string' && error.message.trim()) return error.message;
+        return fallback;
+    };
+
+    const resetToScan = () => {
+        setProfiles(null);
+        setAppointmentsList(null);
+        setSessionEndedData(null);
+        setSelectedProfileId(null);
+        setErrorMessage('');
+        setNoAppointment(false);
+        setScanning(true);
+    };
+
+    const captureAndRecognize = React.useCallback(async () => {
         if (!webcamRef.current || isProcessing) return;
 
         const imageSrc = webcamRef.current.getScreenshot();
@@ -161,17 +170,34 @@ const KioskCheckInOut = () => {
             } else if (payload.error && payload.error.includes("No appointment found")) {
                 setScanning(false);
                 setNoAppointment(true);
+            } else if (payload.error) {
+                setScanning(false);
+                setErrorMessage(payload.error);
             }
         } catch (err) {
-            console.log('Face not recognized yet...');
-            if (err.error && err.error.includes("No appointment found")) {
+            const message = getErrorMessage(err, '');
+            console.log('Face recognition result:', message || 'No match yet');
+            if (message.includes("No appointment found")) {
                 setScanning(false);
                 setNoAppointment(true);
+            } else if (message) {
+                setScanning(false);
+                setErrorMessage(message);
             }
         } finally {
             setIsProcessing(false);
         }
-    };
+    }, [isCheckOutMode, isProcessing, navigate]);
+
+    useEffect(() => {
+        let interval = null;
+        if (scanning && !isProcessing && !showSuccessModal && !profiles && !noAppointment) {
+            interval = setInterval(() => {
+                captureAndRecognize();
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [captureAndRecognize, scanning, isProcessing, showSuccessModal, profiles, noAppointment]);
 
     const handleSelectProfile = async (profile) => {
         setIsProcessing(true);
@@ -197,14 +223,18 @@ const KioskCheckInOut = () => {
                 } else if (response.error && response.error.includes("No appointment found")) {
                     setNoAppointment(true);
                     setProfiles(null);
+                } else if (response.error) {
+                    setErrorMessage(response.error);
+                    setProfiles(null);
                 }
             }
         } catch (err) {
-            if (err.error && err.error.includes("No appointment found")) {
+            const message = getErrorMessage(err);
+            if (message.includes("No appointment found")) {
                 setNoAppointment(true);
                 setProfiles(null);
             } else {
-                alert(err.error || 'Selection failed');
+                setErrorMessage(message);
             }
         } finally {
             setIsProcessing(false);
@@ -224,9 +254,11 @@ const KioskCheckInOut = () => {
                 saveSession(response.patient_id, response.patient_name, response.nic);
                 setCheckInData(response);
                 setShowSuccessModal(true);
+            } else if (response.error) {
+                setErrorMessage(response.error);
             }
         } catch (err) {
-            alert(err.error || 'Appointment selection failed.');
+            setErrorMessage(getErrorMessage(err, 'Appointment selection failed.'));
         } finally {
             setIsProcessing(false);
         }
@@ -366,6 +398,37 @@ const KioskCheckInOut = () => {
                                     </p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Error Modal */}
+            {errorMessage && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+                    <div className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl border border-white animate-scale-up overflow-hidden">
+                        <div className="bg-red-50 p-10 text-red-600 text-center border-b border-red-100">
+                            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                                <span className="material-symbols-outlined text-5xl">error</span>
+                            </div>
+                            <h2 className="text-3xl font-black font-headline">Check-In Error</h2>
+                            <p className="text-red-600/80 font-medium mt-2">{errorMessage}</p>
+                        </div>
+
+                        <div className="p-10 space-y-4">
+                            <button
+                                onClick={resetToScan}
+                                className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                            >
+                                <span className="material-symbols-outlined">refresh</span>
+                                Try Again
+                            </button>
+                            <button
+                                onClick={() => navigate('/')}
+                                className="w-full py-3 text-slate-400 font-bold text-xs hover:text-primary transition-colors"
+                            >
+                                Back to Home Screen
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -527,15 +590,17 @@ const KioskCheckInOut = () => {
                                 <p className="text-on-surface-variant text-sm">We've identified you as a guardian. Who is {isCheckOutMode ? 'checking out' : 'checking in'}?</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                {profiles.map(p => (
+                                {profiles.map((p) => {
+                                    const imageSrc = sanitizeImageSrc(p.image);
+                                    return (
                                     <button 
                                         key={p.id}
                                         onClick={() => handleSelectProfile(p)}
                                         className="flex items-center gap-4 p-5 bg-white rounded-3xl border border-slate-100 shadow-sm hover:border-primary hover:shadow-md transition-all text-left"
                                     >
                                         <div className="w-14 h-14 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center shrink-0">
-                                            {p.image ? (
-                                                <img src={p.image} alt="" className="w-full h-full object-cover" />
+                                            {imageSrc ? (
+                                                <img src={imageSrc} alt="" className="w-full h-full object-cover" />
                                             ) : (
                                                 <span className="material-symbols-outlined text-slate-400 text-3xl">person</span>
                                             )}
@@ -545,7 +610,8 @@ const KioskCheckInOut = () => {
                                             <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">{p.role}</p>
                                         </div>
                                     </button>
-                                ))}
+                                    );
+                                })}
                             </div>
                             <button onClick={() => { setProfiles(null); setScanning(true); }} className="py-3 text-slate-400 font-bold text-sm hover:text-primary transition-colors mt-2">
                                 ← Back to biometric scan

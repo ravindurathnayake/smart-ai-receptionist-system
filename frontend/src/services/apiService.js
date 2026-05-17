@@ -151,12 +151,16 @@ export const apiService = {
         return response.data.data;
     },
     faceCheckIn: async (faceImage, patientId = null, appointmentId = null) => {
-        const response = await api.post('/queue/face-check-in', { 
-            face_image: faceImage, 
-            patient_id: patientId,
-            appointment_id: appointmentId
-        });
-        return response.data;
+        try {
+            const response = await api.post('/queue/face-check-in', { 
+                face_image: faceImage, 
+                patient_id: patientId,
+                appointment_id: appointmentId
+            });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || { error: 'Face check-in failed.' };
+        }
     },
     loginPatientWithFace: async (faceImage) => {
         const response = await api.post('/patients/login-face', { face_image: faceImage });

@@ -32,15 +32,6 @@ const KioskPayment = () => {
     const [resolvedDoctor, setResolvedDoctor] = useState(initialDoctor || {});
 
     useEffect(() => {
-        if (initialAppointment && Object.keys(initialAppointment).length > 0) {
-            setResolvedAppointment(initialAppointment);
-        }
-        if (initialDoctor && Object.keys(initialDoctor).length > 0) {
-            setResolvedDoctor(initialDoctor);
-        }
-    }, [initialAppointment, initialDoctor]);
-
-    useEffect(() => {
         const healState = async () => {
             const apptId = resolvedAppointment?.appointment_id || resolvedAppointment?.id;
             if (apptId && (!resolvedDoctor?.name || resolvedDoctor?.name === '')) {
@@ -144,7 +135,6 @@ const KioskPayment = () => {
 
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [step, setStep] = useState('method'); // method, details, processing, success
-    const [isProcessing, setIsProcessing] = useState(false);
     
     const consultationFee = parseInt(resolvedDoctor?.consultation_fee) || 4500;
     const hospitalFee = 500;
@@ -153,7 +143,16 @@ const KioskPayment = () => {
     const [expiry, setExpiry] = useState('');
     const [cvv, setCvv] = useState('');
     const [transactionId, setTransactionId] = useState('');
-
+    const [notificationStatus, setNotificationStatus] = useState({ email: 'skipped', whatsapp: 'skipped' });
+    const [notificationWarnings, setNotificationWarnings] = useState([]);
+    const isCounterPayment = paymentMethod === 'counter';
+    const receiptTitle = isCounterPayment ? 'Counter Payment Ticket' : 'Official Receipt';
+    const receiptBadge = isCounterPayment ? 'Payment Pending' : 'Payment Successful!';
+    const receiptStamp = isCounterPayment ? 'UNPAID' : 'PAID';
+    const referenceLabel = isCounterPayment ? 'Ticket Reference' : 'Transaction ID';
+    const totalLabel = isCounterPayment ? 'Amount Due' : 'Total Paid';
+    const notificationLabel = isCounterPayment ? 'Ticket Sent' : 'Email Sent';
+    const whatsappLabel = isCounterPayment ? 'Counter Notice' : 'WhatsApp';
     useEffect(() => {
         if (!resolvedAppointment || !resolvedDoctor) {
             // navigate('/doctors');
@@ -161,15 +160,14 @@ const KioskPayment = () => {
     }, [resolvedAppointment, resolvedDoctor, navigate]);
 
     const handlePayment = async () => {
-        setIsProcessing(true);
         setStep('processing');
 
-        const txnId = `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        const txnPrefix = paymentMethod === 'card' ? 'TXN' : 'TKT';
+        const txnId = `${txnPrefix}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         setTransactionId(txnId);
 
         if (!resolvedAppointment?.appointment_id && !resolvedAppointment?.id) {
             alert(`No appointment information found. Debug: navKeys=${Object.keys(navState || {}).join(',')}. Please try booking again.`);
-            setIsProcessing(false);
             setStep('method');
             return;
         }
@@ -184,6 +182,8 @@ const KioskPayment = () => {
             });
 
             if (response) {
+                setNotificationStatus(response.data?.notifications || { email: 'skipped', whatsapp: 'skipped' });
+                setNotificationWarnings(response.data?.warnings || []);
                 localStorage.removeItem('paymentState');
                 setStep('success');
             }
@@ -191,8 +191,6 @@ const KioskPayment = () => {
             console.error("Payment confirmation failed", error);
             setStep('method');
             alert("Failed to process payment. Please contact assistance.");
-        } finally {
-            setIsProcessing(false);
         }
     };
 
@@ -203,6 +201,10 @@ const KioskPayment = () => {
 
     const patient = JSON.parse(localStorage.getItem('activePatient') || '{}');
     const patientName = resolvedAppointment?.patient_name || resolvedAppointment?.patient || patient.full_name || patient.name || 'Patient';
+    const emailBadgeLabel = notificationStatus.email === 'sent' ? notificationLabel : notificationStatus.email === 'failed' ? 'Email Failed' : 'Email Pending';
+    const whatsappBadgeLabel = notificationStatus.whatsapp === 'sent' ? `${whatsappLabel} Sent` : notificationStatus.whatsapp === 'failed' ? `${whatsappLabel} Failed` : `${whatsappLabel} Pending`;
+    const emailBadgeTone = notificationStatus.email === 'failed' ? 'bg-rose-50 border-rose-100 text-rose-700' : notificationStatus.email === 'sent' ? `${isCounterPayment ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-green-50 border-green-100 text-green-700'}` : 'bg-slate-50 border-slate-100 text-slate-600';
+    const whatsappBadgeTone = notificationStatus.whatsapp === 'failed' ? 'bg-rose-50 border-rose-100 text-rose-700' : notificationStatus.whatsapp === 'sent' ? `${isCounterPayment ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-green-50 border-green-100 text-green-700'}` : 'bg-slate-50 border-slate-100 text-slate-600';
 
     if (step === 'success') {
         return (
@@ -211,26 +213,35 @@ const KioskPayment = () => {
                 <div className="ambient-blob blob-2" />
                 
                 <div className="payment-card p-6 md:p-8 rounded-[2.5rem] max-w-md w-full relative z-10 animate-fade-in my-auto">
-                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 payment-success-check">
-                        <span className="material-symbols-outlined text-4xl font-bold">check</span>
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 payment-success-check ${isCounterPayment ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}`}>
+                        <span className="material-symbols-outlined text-4xl font-bold">{isCounterPayment ? 'receipt_long' : 'check'}</span>
                     </div>
-                    <h2 className="text-2xl font-black text-on-surface font-headline mb-2">Payment Successful!</h2>
+                    <h2 className="text-2xl font-black text-on-surface font-headline mb-2">{receiptBadge}</h2>
                     
                     {/* Notification Status Badges */}
                     <div className="flex justify-center gap-3 mb-4">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 rounded-full border border-green-100">
-                            <span className="material-symbols-outlined text-green-600 text-xs">mail</span>
-                            <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">Email Sent</span>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${emailBadgeTone}`}>
+                            <span className="material-symbols-outlined text-xs">mail</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">{emailBadgeLabel}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 rounded-full border border-green-100">
-                            <span className="material-symbols-outlined text-green-600 text-xs">chat</span>
-                            <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">WhatsApp Sent</span>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${whatsappBadgeTone}`}>
+                            <span className="material-symbols-outlined text-xs">chat</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">{whatsappBadgeLabel}</span>
                         </div>
                     </div>
 
                     <p className="text-slate-500 font-semibold text-xs mb-4 max-w-sm mx-auto">
-                        Your appointment with <span className="font-bold text-primary">{resolvedDoctor?.name}</span> is confirmed. Digital receipts sent.
+                        Your appointment with <span className="font-bold text-primary">{resolvedDoctor?.name || 'the selected doctor'}</span> is confirmed.
+                        {isCounterPayment ? ' Show this provisional ticket at the billing counter to complete payment.' : ' Digital receipts sent.'}
                     </p>
+
+                    {notificationWarnings.length > 0 && (
+                        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-[11px] font-bold leading-relaxed text-amber-800">
+                            {notificationWarnings.map((warning, index) => (
+                                <p key={`${warning}-${index}`}>{warning}</p>
+                            ))}
+                        </div>
+                    )}
                     
                     <div className="bg-slate-50 rounded-2xl p-5 mb-5 text-left border border-slate-100 relative overflow-hidden">
                         {/* Receipt Header */}
@@ -239,16 +250,16 @@ const KioskPayment = () => {
                         {/* Paid / Unpaid Stamp */}
                         {paymentMethod === 'counter' ? (
                             <div className="absolute -right-4 -top-4 w-24 h-24 border-4 border-dashed border-rose-500/30 rounded-full flex items-center justify-center rotate-[15deg] pointer-events-none select-none">
-                                <span className="text-rose-500/30 font-black text-xs tracking-widest uppercase">UNPAID</span>
+                                <span className="text-rose-500/30 font-black text-xs tracking-widest uppercase">{receiptStamp}</span>
                             </div>
                         ) : (
                             <div className="absolute -right-4 -top-4 w-24 h-24 border-4 border-dashed border-emerald-500/30 rounded-full flex items-center justify-center rotate-[15deg] pointer-events-none select-none">
-                                <span className="text-emerald-500/30 font-black text-xs tracking-widest uppercase">PAID</span>
+                                <span className="text-emerald-500/30 font-black text-xs tracking-widest uppercase">{receiptStamp}</span>
                             </div>
                         )}
                         
                         <div className="text-center mb-4 border-b border-slate-200 pb-2">
-                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Official Receipt</h3>
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">{receiptTitle}</h3>
                             <p className="text-[10px] text-slate-400">MediAssist Healthcare</p>
                         </div>
                         
@@ -285,16 +296,26 @@ const KioskPayment = () => {
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hospital Fee</span>
                                 <span className="text-xs font-bold text-on-surface">Rs. 500</span>
                             </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payment Method</span>
+                                <span className="text-xs font-bold text-on-surface">{isCounterPayment ? 'Cash at Counter' : 'Card'}</span>
+                            </div>
                         </div>
+
+                        {isCounterPayment && (
+                            <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] font-bold leading-relaxed text-amber-800">
+                                This ticket reserves your appointment. Please pay at the reception or billing counter before the consultation starts.
+                            </div>
+                        )}
 
                         <div className="border-t border-slate-200 pt-3 flex justify-between items-end">
                             <div>
-                                <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Transaction ID</span>
+                                <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{referenceLabel}</span>
                                 <span className="text-[10px] font-mono font-bold text-slate-500">{transactionId}</span>
                             </div>
                             <div className="text-right">
-                                <span className="block text-[9px] font-bold text-primary uppercase tracking-widest mb-0.5">Total Paid</span>
-                                <span className="text-lg font-black text-primary">Rs. {totalAmount.toLocaleString()}</span>
+                                <span className={`block text-[9px] font-bold uppercase tracking-widest mb-0.5 ${isCounterPayment ? 'text-amber-600' : 'text-primary'}`}>{totalLabel}</span>
+                                <span className={`text-lg font-black ${isCounterPayment ? 'text-amber-600' : 'text-primary'}`}>Rs. {totalAmount.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>

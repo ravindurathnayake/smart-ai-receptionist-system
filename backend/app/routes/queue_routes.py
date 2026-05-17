@@ -12,6 +12,7 @@ from app.services.queue_service import (
     get_all_sessions_queues
 )
 from app.services import find_patient_by_face
+from app.services.face_service import normalize_profile_image
 
 queue_bp = Blueprint('queue', __name__, url_prefix='/api/queue')
 
@@ -104,6 +105,8 @@ def face_check_in():
     
     if patient_id:
         result = check_in_patient(patient_id, appointment_id)
+        if "error" in result:
+            return jsonify(result), 400
         return jsonify(result), 200
 
     if not face_image:
@@ -127,7 +130,7 @@ def face_check_in():
             "name": patient.full_name,
             "age": patient.age,
             "role": "Self",
-            "image": patient.profile_image
+            "image": normalize_profile_image(patient.profile_image)
         }]
         for child in linked:
             profiles.append({
@@ -135,10 +138,12 @@ def face_check_in():
                 "name": child.full_name,
                 "age": child.age,
                 "role": "Family Member",
-                "image": child.profile_image
+                "image": normalize_profile_image(child.profile_image)
             })
         return jsonify({"success": True, "profiles": profiles}), 200
 
     # Trigger check-in for the identified patient
     result = check_in_patient(patient.id, appointment_id)
+    if "error" in result:
+        return jsonify(result), 400
     return jsonify(result), 200

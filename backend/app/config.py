@@ -8,6 +8,8 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173").rstrip("/")
+    PATIENT_PORTAL_PATH = os.getenv("PATIENT_PORTAL_PATH", "/patient-login")
     
     # Mail settings
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")

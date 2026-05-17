@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 import KioskTopBar from '../../components/kiosk/KioskTopBar';
 import './KioskSearchDoctors.css';
 
@@ -106,46 +107,69 @@ const KioskSearchDoctors = () => {
     const [dateFilter, setDateFilter] = useState('');
     const [loading, setLoading] = useState(true);
 
+    const fetchDoctors = useCallback(async () => {
+        try {
+            const response = await apiService.getSpecialists();
+            if (response) {
+                const mapped = response.map(d => ({
+                    id: d.id,
+                    name: d.name ? (d.title ? `${d.title} ${d.name}` : `Dr. ${d.name}`) : 'Unknown Doctor',
+                    specialty: d.specialization || d.department || 'General Practice',
+                    rating: d.rating || 4.8,
+                    reviews: 42, 
+                    nextSlot: d.sessions && d.sessions.length > 0 ? `${d.sessions[0].day_of_week} ${d.sessions[0].start_time}` : 'Not Available',
+                    featured: d.rating >= 4.8,
+                    photo: d.profile_image || null,
+                    bio: d.bio || '',
+                    languages: d.languages || 'English',
+                    consultation_fee: d.consultation_fee || 0.0,
+                    sessions: d.sessions || []
+                }));
+                setDoctors(mapped);
+            }
+        } catch (err) {
+            console.error('Failed to fetch doctors:', err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
         if (savedPatient) {
             setPatient(JSON.parse(savedPatient));
         }
 
-        const fetchDoctors = async () => {
-            try {
-                const response = await apiService.getSpecialists();
-                if (response) {
-                    const mapped = response.map(d => ({
-                        id: d.id,
-                        name: d.title ? `${d.title} ${d.name}` : `Dr. ${d.name}`,
-                        specialty: d.specialization || d.department,
-                        rating: d.rating || 4.8,
-                        reviews: 42, 
-                        nextSlot: d.sessions && d.sessions.length > 0 ? `${d.sessions[0].day_of_week} ${d.sessions[0].start_time}` : 'Not Available',
-                        featured: d.rating >= 4.8,
-                        photo: d.profile_image || null,
-                        bio: d.bio,
-                        languages: d.languages,
-                        consultation_fee: d.consultation_fee,
-                        sessions: d.sessions
-                    }));
-                    setDoctors(mapped);
-                }
-            } catch (err) {
-                console.error('Failed to fetch doctors:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchDoctors();
-    }, []);
+
+        // Connect to Socket.IO and listen for real-time updates
+        socketService.connect();
+
+        const handleUpdate = () => {
+            fetchDoctors();
+        };
+
+        socketService.on('specialist_updated', handleUpdate);
+        socketService.on('appointment_booked', handleUpdate);
+        socketService.on('appointment_rescheduled', handleUpdate);
+        socketService.on('queue_updated', handleUpdate);
+
+        return () => {
+            socketService.off('specialist_updated', handleUpdate);
+            socketService.off('appointment_booked', handleUpdate);
+            socketService.off('appointment_rescheduled', handleUpdate);
+            socketService.off('queue_updated', handleUpdate);
+        };
+    }, [fetchDoctors]);
 
     const filtered = doctors.filter((d) => {
-        const matchName = d.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const nameStr = d.name || '';
+        const specStr = d.specialty || '';
+        
+        const matchName = nameStr.toLowerCase().includes(searchQuery.toLowerCase());
         const matchSpec = activeSpecialty === 'All' || 
-                         d.specialty.toLowerCase().includes(activeSpecialty.toLowerCase().replace('ist', '')) ||
-                         activeSpecialty.toLowerCase().includes(d.specialty.toLowerCase().replace('ology', ''));
+                         specStr.toLowerCase().includes(activeSpecialty.toLowerCase().replace('ist', '')) ||
+                         activeSpecialty.toLowerCase().includes(specStr.toLowerCase().replace('ology', ''));
         
         let matchDate = true;
         if (dateFilter) {

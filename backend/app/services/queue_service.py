@@ -2,7 +2,16 @@ from datetime import datetime, timezone, date
 from app.extensions import db, socketio
 from app.models import Patient, Appointment, Queue
 from app.services.email_service import send_checkin_notification, send_checkout_notification
-from app.services.whatsapp_service import send_checkin_whatsapp, send_checkout_whatsapp
+from app.services.whatsapp_service import (
+    send_checkin_whatsapp,
+    send_checkout_whatsapp,
+    get_patient_whatsapp_numbers,
+)
+from app.services.face_service import normalize_profile_image
+
+
+def _active_queue_status_filter():
+    return db.func.upper(Queue.status).in_(["WAITING", "ACTIVE"])
 
 def check_in_patient(patient_id, appointment_id=None):
     """
@@ -32,7 +41,7 @@ def check_in_patient(patient_id, appointment_id=None):
     active_queue = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status.in_(["WAITING", "ACTIVE"])
+        _active_queue_status_filter()
     ).first()
     
     if active_queue:
@@ -70,7 +79,12 @@ def check_in_patient(patient_id, appointment_id=None):
                     "session_status": sess.status if sess else "ACTIVE",
                     "priority": appt.priority_level
                 })
-            return {"success": True, "requires_selection": True, "appointments": appt_list}
+            return {
+                "success": True,
+                "requires_selection": True,
+                "patient_id": patient_id,
+                "appointments": appt_list
+            }
             
         appointment = appointments[0]
 
@@ -151,8 +165,9 @@ def check_in_patient(patient_id, appointment_id=None):
         if patient.email:
             email_sent = send_checkin_notification(patient.email, full_name, next_num, next_num * 5, doctor_full)
             notifications["email"] = "sent" if email_sent else "failed"
-        if patient.phone_number:
-            wa_sent = send_checkin_whatsapp(patient.phone_number, full_name, next_num, next_num * 5, doctor_full)
+        whatsapp_numbers = get_patient_whatsapp_numbers(patient)
+        if whatsapp_numbers:
+            wa_sent = send_checkin_whatsapp(whatsapp_numbers, full_name, next_num, next_num * 5, doctor_full)
             notifications["whatsapp"] = "sent" if wa_sent else "failed"
     
     session_num = session.session_number if session else 1
@@ -201,7 +216,7 @@ def manual_check_in(identifier, patient_id=None, appointment_id=None):
             "age": primary.age,
             "nic": primary.nic,
             "role": "Self",
-            "image": primary.profile_image
+            "image": normalize_profile_image(primary.profile_image)
         }]
         for child in linked:
             profiles.append({
@@ -209,7 +224,7 @@ def manual_check_in(identifier, patient_id=None, appointment_id=None):
                 "name": child.full_name,
                 "age": child.age,
                 "role": "Family Member",
-                "image": child.profile_image
+                "image": normalize_profile_image(child.profile_image)
             })
         return {"success": True, "profiles": profiles}
     
@@ -243,9 +258,19 @@ def check_out_patient(patient_id):
     queue_entry = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status.in_(["WAITING", "Active"])
+        _active_queue_status_filter()
     ).first()
     
+    if queue_entry:
+        # Check doctor session status
+        session = queue_entry.appointment.session if queue_entry.appointment else None
+        if session and session.status == "NOT_STARTED":
+            return {"error": "Your doctor session has not started yet. You cannot check out at this time."}
+            
+        # Reject if they are still in the queue (WAITING or ACTIVE)
+        if queue_entry.status in ["WAITING", "ACTIVE"]:
+            return {"error": "You are still in the queue. You can only check out after your consultation has been completed by the doctor."}
+            
     if not queue_entry:
         # Check if they already checked out
         already_done = Queue.query.join(Appointment).filter(
@@ -279,8 +304,9 @@ def check_out_patient(patient_id):
         if patient.email:
             email_sent = send_checkout_notification(patient.email, patient.full_name)
             notifications["email"] = "sent" if email_sent else "failed"
-        if patient.phone_number:
-            wa_sent = send_checkout_whatsapp(patient.phone_number, patient.full_name)
+        whatsapp_numbers = get_patient_whatsapp_numbers(patient)
+        if whatsapp_numbers:
+            wa_sent = send_checkout_whatsapp(whatsapp_numbers, patient.full_name)
             notifications["whatsapp"] = "sent" if wa_sent else "failed"
             
     return {
@@ -313,7 +339,7 @@ def get_patient_queue_status(patient_id):
     queue_entry = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status.in_(["ACTIVE", "WAITING"])
+        _active_queue_status_filter()
     ).first()
     
     if not queue_entry:
@@ -357,8 +383,8 @@ def get_all_queues_status():
     # Filter by appointment date and ensure we only get entries that have a session
     active_queues = Queue.query.join(Appointment).filter(
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status.in_(["ACTIVE", "WAITING"])
-    ).order_by(db.case({ "ACTIVE": 0, "WAITING": 1 }, value=Queue.status), Queue.check_in_time.asc()).all()
+        _active_queue_status_filter()
+    ).order_by(db.case({ "ACTIVE": 0, "WAITING": 1 }, value=db.func.upper(Queue.status)), Queue.check_in_time.asc()).all()
     
     status_map = {}
     
@@ -385,7 +411,7 @@ def get_all_queues_status():
             }
         
         # If we found an ACTIVE patient for this session, they take priority as "NOW SERVING"
-        if qe.status == "ACTIVE":
+        if qe.status and qe.status.upper() == "ACTIVE":
             token = f"S{session_num}-{qe.queue_number:02d}"
             status_map[session_id].update({
                 "token": token,
@@ -442,7 +468,7 @@ def call_next_patient(doctor_session_id):
     # 1. Complete the currently active patient for this session
     active_qe = Queue.query.join(Appointment).filter(
         Appointment.doctor_session_id == doctor_session_id,
-        Queue.status == "ACTIVE"
+        db.func.upper(Queue.status) == "ACTIVE"
     ).first()
     
     if active_qe:
@@ -579,7 +605,7 @@ def get_all_sessions_queues():
         active_qe = Queue.query.join(Appointment).filter(
             Appointment.doctor_session_id == session.id,
             db.func.date(Appointment.appointment_date) == today,
-            Queue.status == "ACTIVE"
+            db.func.upper(Queue.status) == "ACTIVE"
         ).first()
         
         # Get waiting list

@@ -146,7 +146,7 @@ const KioskCheckOut = () => {
     const handleCheckOut = async (patientId) => {
         try {
             const response = await queueService.checkOut(patientId);
-            if (response.error && response.error.includes("No active check-in")) {
+            if (response.error) {
                 setNoCheckIn(true);
                 setErrorMsg(response.error);
             } else {
@@ -154,10 +154,9 @@ const KioskCheckOut = () => {
             }
         } catch (err) {
             console.error('Check-Out Failed:', err);
-            if (err.error && err.error.includes("No active check-in")) {
-                setNoCheckIn(true);
-                setErrorMsg(err.error);
-            }
+            const msg = err.error || err.message || "An unexpected error occurred.";
+            setNoCheckIn(true);
+            setErrorMsg(msg);
         }
     };
 
@@ -242,14 +241,21 @@ const KioskCheckOut = () => {
                                 <span className="material-symbols-outlined text-warning text-6xl z-10">running_with_errors</span>
                             </div>
                             <div className="text-center space-y-3 max-w-md">
-                                <h2 className="font-headline text-4xl font-black text-on-surface tracking-tight">No Active Check-In</h2>
+                                <h2 className="font-headline text-4xl font-black text-on-surface tracking-tight">
+                                    {errorMsg && errorMsg.includes("still in the queue") ? "Still in Queue" :
+                                     errorMsg && errorMsg.includes("not started") ? "Session Not Started" : "No Active Check-In"}
+                                </h2>
                                 <p className="text-on-surface-variant text-lg font-medium leading-relaxed">
-                                    We couldn't find an active check-in record for <span className="text-primary font-bold">{patientName}</span> today.
+                                    {errorMsg || `We couldn't find an active check-in record for ${patientName} today.`}
                                 </p>
                                 <div className="p-5 bg-surface-container rounded-2xl border border-outline-variant/30 text-left mt-6">
                                     <p className="text-sm text-on-surface-variant flex gap-3">
                                         <span className="material-symbols-outlined text-primary text-xl">info</span>
-                                        You must check in first before you can check out. If you believe this is an error, please see a receptionist.
+                                        {errorMsg && errorMsg.includes("still in the queue") 
+                                            ? "Please wait until the doctor calls your token and completes your consultation before checking out."
+                                            : errorMsg && errorMsg.includes("not started")
+                                            ? "Please wait until the doctor starts the session. You can only check out after your consultation is complete."
+                                            : "You must check in first before you can check out. If you believe this is an error, please see a receptionist."}
                                     </p>
                                 </div>
                             </div>

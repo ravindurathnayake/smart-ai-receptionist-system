@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
 import queueService from '../../services/queueService';
+import { sanitizeImageSrc } from '../../utils/imageUtils';
 import './KioskManualCheckIn.css';
 
 // ─── Form field component ─────────────────────────────────────────────────────
@@ -54,6 +55,7 @@ const KioskManualCheckIn = () => {
     const [appointmentsList, setAppointmentsList] = useState(null);
     const [sessionEndedData, setSessionEndedData] = useState(null);
     const [selectedProfileId, setSelectedProfileId] = useState(null);
+    const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
         const savedPatient = localStorage.getItem('activePatient');
@@ -80,6 +82,25 @@ const KioskManualCheckIn = () => {
             full_name: name,
             nic: nic
         }));
+    };
+
+    const getErrorMessage = (error, fallback = 'Identification failed. Please try again.') => {
+        if (!error) return fallback;
+        if (typeof error === 'string') return error;
+        if (typeof error.error === 'string' && error.error.trim()) return error.error;
+        if (typeof error.message === 'string' && error.message.trim()) return error.message;
+        return fallback;
+    };
+
+    const resetFlow = () => {
+        setProfiles(null);
+        setAppointmentsList(null);
+        setSessionEndedData(null);
+        setSelectedProfileId(null);
+        setSubmitted(false);
+        setBookingData(null);
+        setNoAppointment(false);
+        setErrorMessage('');
     };
 
     const handleSubmit = async (e) => {
@@ -124,14 +145,17 @@ const KioskManualCheckIn = () => {
                     setSubmitted(true);
                 } else if (response.error && response.error.includes("No appointment found")) {
                     setNoAppointment(true);
+                } else if (response.error) {
+                    setErrorMessage(response.error);
                 }
             }
         } catch (err) {
             console.error('Identification error:', err);
-            if (err.error && err.error.includes("No appointment found")) {
+            const message = getErrorMessage(err);
+            if (message.includes("No appointment found")) {
                 setNoAppointment(true);
             } else {
-                alert(err.error || 'Identification failed. Please try again.');
+                setErrorMessage(message);
             }
         } finally {
             setLoading(false);
@@ -162,14 +186,18 @@ const KioskManualCheckIn = () => {
                 } else if (response.error && response.error.includes("No appointment found")) {
                     setNoAppointment(true);
                     setProfiles(null);
+                } else if (response.error) {
+                    setErrorMessage(response.error);
+                    setProfiles(null);
                 }
             }
         } catch (err) {
-            if (err.error && err.error.includes("No appointment found")) {
+            const message = getErrorMessage(err);
+            if (message.includes("No appointment found")) {
                 setNoAppointment(true);
                 setProfiles(null);
             } else {
-                alert(err.error || 'Selection failed');
+                setErrorMessage(message);
             }
         } finally {
             setLoading(false);
@@ -190,9 +218,11 @@ const KioskManualCheckIn = () => {
                 saveSession(response.patient_id, response.patient_name, form.nic);
                 setBookingData(response);
                 setSubmitted(true);
+            } else if (response.error) {
+                setErrorMessage(response.error);
             }
         } catch (err) {
-            alert(err.error || 'Appointment selection failed.');
+            setErrorMessage(getErrorMessage(err, 'Appointment selection failed.'));
         } finally {
             setLoading(false);
         }
@@ -413,6 +443,32 @@ const KioskManualCheckIn = () => {
                                     </div>
                                 </div>
                             </div>
+                        ) : errorMessage ? (
+                            <div className="animate-scale-up w-full max-w-xl mx-auto bg-white rounded-[3rem] shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
+                                <div className="bg-red-50 p-10 text-red-600 text-center border-b border-red-100">
+                                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                                        <span className="material-symbols-outlined text-5xl">error</span>
+                                    </div>
+                                    <h2 className="text-3xl font-black font-headline">Check-In Error</h2>
+                                    <p className="text-red-600/80 font-medium mt-2">{errorMessage}</p>
+                                </div>
+
+                                <div className="p-10 space-y-4">
+                                    <button
+                                        onClick={resetFlow}
+                                        className="w-full py-4 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                    >
+                                        <span className="material-symbols-outlined">refresh</span>
+                                        Try Again
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/')}
+                                        className="w-full py-3 text-slate-400 font-bold text-xs hover:text-primary transition-colors"
+                                    >
+                                        Back to Home Screen
+                                    </button>
+                                </div>
+                            </div>
                         ) : noAppointment ? (
                             <div className="animate-scale-up w-full max-w-xl mx-auto bg-white rounded-[3rem] shadow-2xl border border-slate-100 flex flex-col overflow-hidden">
                                 <div className="bg-warning-container p-10 text-on-warning-container text-center">
@@ -524,15 +580,17 @@ const KioskManualCheckIn = () => {
                                 <p className="text-on-surface-variant text-sm">Multiple accounts found for this identifier. Who is {isCheckOutMode ? 'checking out' : 'checking in'}?</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    {profiles.map(p => (
+                                    {profiles.map((p) => {
+                                        const imageSrc = sanitizeImageSrc(p.image);
+                                        return (
                                         <button 
                                             key={p.id}
                                             onClick={() => handleSelectProfile(p)}
                                             className="flex items-center gap-4 p-5 bg-white rounded-3xl border border-slate-100 shadow-sm hover:border-primary hover:shadow-md transition-all text-left"
                                         >
                                             <div className="w-14 h-14 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center shrink-0">
-                                                {p.image ? (
-                                                    <img src={p.image} alt="" className="w-full h-full object-cover" />
+                                                {imageSrc ? (
+                                                    <img src={imageSrc} alt="" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <span className="material-symbols-outlined text-slate-400 text-3xl">person</span>
                                                 )}
@@ -542,7 +600,8 @@ const KioskManualCheckIn = () => {
                                                 <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">{p.role}</p>
                                             </div>
                                         </button>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                                 <button onClick={() => setProfiles(null)} className="py-3 text-slate-400 font-bold text-sm hover:text-primary transition-colors mt-2">
                                     ← Back to entry form

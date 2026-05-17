@@ -67,11 +67,19 @@ def system_health_check():
         results["email"]["reason"] = "MAIL_USERNAME or MAIL_PASSWORD missing in .env"
 
     # 4. WhatsApp Service Check (Twilio)
+    twilio_number = os.getenv('TWILIO_WHATSAPP_NUMBER')
     if os.getenv('TWILIO_ACCOUNT_SID') and os.getenv('TWILIO_AUTH_TOKEN'):
-        results["whatsapp"]["status"] = "Connected"
-        results["whatsapp"]["reason"] = None
+        if twilio_number:
+            results["whatsapp"]["status"] = "Connected"
+            results["whatsapp"]["reason"] = None
+            if "14155238886" in twilio_number:
+                results["whatsapp"]["status"] = "Degraded"
+                results["whatsapp"]["reason"] = "Twilio sandbox sender in use; each recipient must join the sandbox before receiving messages"
+        else:
+            results["whatsapp"]["status"] = "Degraded"
+            results["whatsapp"]["reason"] = "TWILIO_WHATSAPP_NUMBER missing"
         
-        if is_diagnostic and not os.getenv('TWILIO_WHATSAPP_NUMBER'):
+        if is_diagnostic and not twilio_number:
             results["whatsapp"]["status"] = "Degraded"
             results["whatsapp"]["reason"] = "Twilio WhatsApp Number not configured"
     else:

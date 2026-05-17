@@ -3,6 +3,10 @@ from app.extensions import db, socketio
 from app.models import Patient, Appointment, Queue, Specialist
 
 
+def _active_queue_status_filter():
+    return db.func.upper(Queue.status).in_(["ACTIVE", "WAITING"])
+
+
 def move_appointment(appointment_id, new_date, new_doctor_session_id=None):
     appt = Appointment.query.get(appointment_id)
     if not appt:
@@ -160,8 +164,8 @@ def get_queue_status():
     # Filter by entries created today (Include WAITING to show who is next)
     today_active = Queue.query.join(Appointment).filter(
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status.in_(["ACTIVE", "WAITING"])
-    ).order_by(db.case({ "ACTIVE": 0, "WAITING": 1 }, value=Queue.status), Queue.check_in_time.asc()).all()
+        _active_queue_status_filter()
+    ).order_by(db.case({ "ACTIVE": 0, "WAITING": 1 }, value=db.func.upper(Queue.status)), Queue.check_in_time.asc()).all()
 
     # Format the list for the frontend
     queue_list = []
@@ -221,7 +225,7 @@ def get_patient_queue_info(patient_id):
     queue_entry = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
         db.func.date(Appointment.appointment_date) == today,
-        Queue.status.in_(["Active", "WAITING"])
+        _active_queue_status_filter()
     ).first()
 
     if queue_entry:
