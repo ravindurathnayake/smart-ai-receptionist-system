@@ -15,6 +15,8 @@ def chat():
             return jsonify({"error": "Message is required"}), 400
 
         reply_data = process_message(message, patient_id)
+        import sys
+        print(f"CHATBOT REPLY: {reply_data}", file=sys.stderr)
 
         return jsonify({
             "reply": reply_data.get("reply"),

@@ -5,7 +5,7 @@ from app.ai_models.recommendation.model import predict_specialist
 def recommend_specialist(message):
     dept, confidence = predict_specialist(message)
 
-    if confidence < 0.5:
+    if confidence < 0.15:
         return None
 
     specialist = Specialist.query.filter_by(department=dept).first()

@@ -251,16 +251,16 @@ def process_message(message, patient_id=None):
                             "data": {
                                 "appointment": {
                                     **booking,
-                                    "full_name": data.get("patient_name"),
+                                    "full_name": data.get("full_name"),
                                     "phone_number": data.get("phone_number"),
                                     "appointment_date": dt_obj.strftime('%Y-%m-%d %I:%M %p'),
                                     "session_id": data.get("doctor_session_id")
                                 },
                                 "doctor": {
                                     "id": doc.id,
-                                    "name": f"{doc.title} {doc.name}",
-                                    "specialty": doc.specialization,
-                                    "consultation_fee": doc.consultation_fee
+                                    "name": f"{doc.title} {doc.name}" if doc.title else (f"Dr. {doc.name}" if not doc.name.startswith("Dr.") else doc.name),
+                                    "specialty": doc.specialization or "General Practice",
+                                    "consultation_fee": doc.consultation_fee or 4500
                                 }
                             }
                         },

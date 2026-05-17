@@ -7,33 +7,167 @@ import './KioskPayment.css';
 const KioskPayment = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { appointment, doctor } = location.state || { appointment: {}, doctor: {} };
+    
+    let navState = location.state;
+    if (!navState || Object.keys(navState).length === 0) {
+        try {
+            const savedState = localStorage.getItem('paymentState');
+            if (savedState) {
+                navState = JSON.parse(savedState);
+            } else {
+                const lastAppt = localStorage.getItem('last_appointment');
+                if (lastAppt) {
+                    const parsedAppt = JSON.parse(lastAppt);
+                    navState = { appointment: parsedAppt, doctor: parsedAppt.doctor || {} };
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse payment state from localStorage", e);
+        }
+    }
+    
+    const { appointment: initialAppointment, doctor: initialDoctor } = navState || { appointment: {}, doctor: {} };
+
+    const [resolvedAppointment, setResolvedAppointment] = useState(initialAppointment || {});
+    const [resolvedDoctor, setResolvedDoctor] = useState(initialDoctor || {});
+
+    useEffect(() => {
+        if (initialAppointment && Object.keys(initialAppointment).length > 0) {
+            setResolvedAppointment(initialAppointment);
+        }
+        if (initialDoctor && Object.keys(initialDoctor).length > 0) {
+            setResolvedDoctor(initialDoctor);
+        }
+    }, [initialAppointment, initialDoctor]);
+
+    useEffect(() => {
+        const healState = async () => {
+            const apptId = resolvedAppointment?.appointment_id || resolvedAppointment?.id;
+            if (apptId && (!resolvedDoctor?.name || resolvedDoctor?.name === '')) {
+                try {
+                    console.log("Self-healing state for appointment ID:", apptId);
+                    const appointments = await apiService.getAllAppointments();
+                    const apptIdNum = parseInt(apptId) || apptId;
+                    
+                    const matchingApt = appointments.find(a => 
+                        a.raw_id === apptIdNum || 
+                        a.id === apptId || 
+                        a.id === `#APT-${String(apptIdNum).padStart(4, '0')}`
+                    );
+                    
+                    if (matchingApt) {
+                        console.log("Found matching appointment for self-healing:", matchingApt);
+                        
+                        let doctorDetails = null;
+                        try {
+                            if (matchingApt.specialist_id) {
+                                doctorDetails = await apiService.getSpecialistDetails(matchingApt.specialist_id);
+                            }
+                        } catch (docErr) {
+                            console.error("Failed to fetch doctor details during self-healing:", docErr);
+                        }
+                        
+                        setResolvedDoctor({
+                            id: matchingApt.specialist_id,
+                            name: doctorDetails?.name 
+                                ? (doctorDetails.name.startsWith('Dr.') ? doctorDetails.name : `Dr. ${doctorDetails.name}`) 
+                                : (matchingApt.dr.startsWith('Dr.') ? matchingApt.dr : `Dr. ${matchingApt.dr}`),
+                            specialty: doctorDetails?.specialization || matchingApt.department || 'General Practice',
+                            consultation_fee: doctorDetails?.consultation_fee || 4500
+                        });
+                        
+                        setResolvedAppointment(prev => ({
+                            ...prev,
+                            appointment_date: matchingApt.date,
+                            session_time: matchingApt.time,
+                            session_id: matchingApt.session
+                        }));
+                    }
+                } catch (err) {
+                    console.error("Failed to self-heal payment state:", err);
+                }
+            }
+        };
+
+        healState();
+    }, [resolvedAppointment?.appointment_id, resolvedAppointment?.id, resolvedDoctor?.name]);
+
+    const getAppointmentDateTime = () => {
+        const rawDate = resolvedAppointment?.appointment_date || resolvedAppointment?.date || '';
+        const rawTime = resolvedAppointment?.session_time || resolvedAppointment?.time || '';
+        
+        let dateStr = String(rawDate).trim();
+        let timeStr = String(rawTime).trim() || 'Scheduled';
+        
+        if (dateStr.includes(' ')) {
+            const parts = dateStr.split(' ');
+            dateStr = parts[0];
+            const potentialTime = parts.slice(1).join(' ');
+            if (potentialTime && potentialTime !== '00:00:00') {
+                timeStr = potentialTime;
+            }
+        }
+        
+        try {
+            if (dateStr) {
+                const dateObj = new Date(dateStr);
+                if (!isNaN(dateObj.getTime())) {
+                    dateStr = dateObj.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Failed to format date:", e);
+        }
+        
+        if (timeStr && /^\d{2}:\d{2}(:\d{2})?$/.test(timeStr)) {
+            try {
+                const [hh, mm] = timeStr.split(':');
+                const hour = parseInt(hh, 10);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const formattedHour = hour % 12 || 12;
+                timeStr = `${String(formattedHour).padStart(2, '0')}:${mm} ${ampm}`;
+            } catch (e) {
+                console.error("Failed to format time:", e);
+            }
+        }
+        
+        return { date: dateStr || 'TBD', time: timeStr || 'Scheduled' };
+    };
+    
+    const { date: displayDate, time: displayTime } = getAppointmentDateTime();
 
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [step, setStep] = useState('method'); // method, details, processing, success
     const [isProcessing, setIsProcessing] = useState(false);
     
-    const consultationFee = parseInt(doctor?.consultation_fee) || 4500;
+    const consultationFee = parseInt(resolvedDoctor?.consultation_fee) || 4500;
     const hospitalFee = 500;
     const totalAmount = consultationFee + hospitalFee;
     const [cardNumber, setCardNumber] = useState('');
     const [expiry, setExpiry] = useState('');
     const [cvv, setCvv] = useState('');
+    const [transactionId, setTransactionId] = useState('');
 
     useEffect(() => {
-        if (!appointment || !doctor) {
+        if (!resolvedAppointment || !resolvedDoctor) {
             // navigate('/doctors');
         }
-    }, [appointment, doctor, navigate]);
+    }, [resolvedAppointment, resolvedDoctor, navigate]);
 
     const handlePayment = async () => {
         setIsProcessing(true);
         setStep('processing');
 
         const txnId = `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        setTransactionId(txnId);
 
-        if (!appointment?.appointment_id && !appointment?.id) {
-            alert("No appointment information found. Please try booking again.");
+        if (!resolvedAppointment?.appointment_id && !resolvedAppointment?.id) {
+            alert(`No appointment information found. Debug: navKeys=${Object.keys(navState || {}).join(',')}. Please try booking again.`);
             setIsProcessing(false);
             setStep('method');
             return;
@@ -42,13 +176,14 @@ const KioskPayment = () => {
         try {
             // Call the real confirmation API which also triggers the email
             const response = await apiService.confirmPayment({
-                appointment_id: appointment.appointment_id || appointment.id,
+                appointment_id: resolvedAppointment.appointment_id || resolvedAppointment.id,
                 amount: totalAmount,
                 payment_method: paymentMethod === 'card' ? 'Card' : 'Cash at Counter',
                 transaction_id: txnId
             });
 
             if (response) {
+                localStorage.removeItem('paymentState');
                 setStep('success');
             }
         } catch (error) {
@@ -70,49 +205,92 @@ const KioskPayment = () => {
 
     if (step === 'success') {
         return (
-            <div className="w-screen h-screen flex flex-col items-center justify-center bg-slate-50 p-10 text-center payment-container">
+            <div className="w-screen h-screen flex flex-col items-center justify-center bg-slate-50 p-4 text-center payment-container overflow-y-auto">
                 <div className="ambient-blob blob-1" />
                 <div className="ambient-blob blob-2" />
                 
-                <div className="payment-card p-12 rounded-[3rem] max-w-lg w-full relative z-10 animate-fade-in">
-                    <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 payment-success-check">
-                        <span className="material-symbols-outlined text-5xl font-bold">check</span>
+                <div className="payment-card p-6 md:p-8 rounded-[2.5rem] max-w-md w-full relative z-10 animate-fade-in my-auto">
+                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 payment-success-check">
+                        <span className="material-symbols-outlined text-4xl font-bold">check</span>
                     </div>
-                    <h2 className="text-3xl font-black text-on-surface font-headline mb-4">Payment Successful!</h2>
+                    <h2 className="text-2xl font-black text-on-surface font-headline mb-2">Payment Successful!</h2>
                     
                     {/* Notification Status Badges */}
-                    <div className="flex justify-center gap-3 mb-6">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
-                            <span className="material-symbols-outlined text-green-600 text-sm">mail</span>
-                            <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">Email Sent</span>
+                    <div className="flex justify-center gap-3 mb-4">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 rounded-full border border-green-100">
+                            <span className="material-symbols-outlined text-green-600 text-xs">mail</span>
+                            <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">Email Sent</span>
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
-                            <span className="material-symbols-outlined text-green-600 text-sm">chat</span>
-                            <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">WhatsApp Sent</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 rounded-full border border-green-100">
+                            <span className="material-symbols-outlined text-green-600 text-xs">chat</span>
+                            <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">WhatsApp Sent</span>
                         </div>
                     </div>
 
-                    <p className="text-slate-500 font-medium mb-10">
-                        Your appointment with <span className="font-bold text-primary">{doctor?.name}</span> is confirmed. 
-                        Digital receipts have been sent to your registered contact details.
+                    <p className="text-slate-500 font-semibold text-xs mb-4 max-w-sm mx-auto">
+                        Your appointment with <span className="font-bold text-primary">{resolvedDoctor?.name}</span> is confirmed. Digital receipts sent.
                     </p>
                     
-                    <div className="bg-slate-50 rounded-3xl p-6 mb-10 text-left border border-slate-100">
-                        <div className="flex justify-between mb-3">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Amount Paid</span>
-                            <span className="text-lg font-black text-primary">Rs. {totalAmount.toLocaleString()}</span>
+                    <div className="bg-slate-50 rounded-2xl p-5 mb-5 text-left border border-slate-100 relative overflow-hidden">
+                        {/* Receipt Header */}
+                        <div className="absolute top-0 left-0 w-full h-1 bg-primary/20"></div>
+                        <div className="text-center mb-4 border-b border-slate-200 pb-2">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Official Receipt</h3>
+                            <p className="text-[10px] text-slate-400">MediAssist Healthcare</p>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Transaction ID</span>
-                            <span className="text-xs font-mono font-bold text-on-surface">TXN-{Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
+                        
+                        <div className="space-y-2.5 mb-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-500">Patient</span>
+                                <span className="text-xs font-black text-on-surface">{patientName}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-500">Specialist</span>
+                                <div className="text-right">
+                                    <span className="text-xs font-black text-on-surface">{resolvedDoctor?.name || "General"}</span>
+                                    {resolvedDoctor?.specialty && (
+                                        <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{resolvedDoctor.specialty}</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-500">Date</span>
+                                <span className="text-xs font-black text-on-surface">{displayDate}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-500">Session Time</span>
+                                <span className="text-xs font-black text-on-surface">{displayTime}</span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-dashed border-slate-300 pt-3 mb-3 space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Consultation Fee</span>
+                                <span className="text-xs font-bold text-on-surface">Rs. {(parseInt(resolvedDoctor?.consultation_fee) || 4500).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hospital Fee</span>
+                                <span className="text-xs font-bold text-on-surface">Rs. 500</span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-slate-200 pt-3 flex justify-between items-end">
+                            <div>
+                                <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Transaction ID</span>
+                                <span className="text-[10px] font-mono font-bold text-slate-500">{transactionId}</span>
+                            </div>
+                            <div className="text-right">
+                                <span className="block text-[9px] font-bold text-primary uppercase tracking-widest mb-0.5">Total Paid</span>
+                                <span className="text-lg font-black text-primary">Rs. {totalAmount.toLocaleString()}</span>
+                            </div>
                         </div>
                     </div>
 
                     <button 
-                        onClick={() => navigate('/queue')}
-                        className="w-full py-5 bg-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        onClick={() => navigate('/')}
+                        className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-base shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
                     >
-                        View My Ticket
+                        Done
                     </button>
                 </div>
             </div>
@@ -138,8 +316,9 @@ const KioskPayment = () => {
                                 <span className="material-symbols-outlined">medical_information</span>
                             </div>
                             <div>
-                                <p className="text-xs font-black text-on-surface leading-tight">{doctor?.name}</p>
-                                <p className="text-[10px] font-bold text-slate-500 mt-1">{doctor?.specialty}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Specialist</p>
+                                <p className="text-xs font-black text-on-surface leading-tight">{resolvedDoctor?.name}</p>
+                                <p className="text-[10px] font-bold text-slate-500 mt-1">{resolvedDoctor?.specialty}</p>
                             </div>
                         </div>
 
@@ -148,8 +327,21 @@ const KioskPayment = () => {
                                 <span className="material-symbols-outlined">calendar_today</span>
                             </div>
                             <div>
-                                <p className="text-xs font-black text-on-surface leading-tight">{appointment?.appointment_date}</p>
-                                <p className="text-[10px] font-bold text-slate-500 mt-1">Session {appointment?.session_id}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Appointment Date</p>
+                                <p className="text-xs font-black text-on-surface leading-tight">{displayDate}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                                <span className="material-symbols-outlined">schedule</span>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Session Time</p>
+                                <p className="text-xs font-black text-on-surface leading-tight">{displayTime}</p>
+                                {resolvedAppointment?.session_id && (
+                                    <p className="text-[10px] font-bold text-slate-500 mt-1">Session ID: {resolvedAppointment.session_id}</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -202,6 +394,27 @@ const KioskPayment = () => {
                 <div className="px-12 py-8 max-w-3xl">
                     {step === 'method' && (
                         <div className="space-y-8 animate-fade-in">
+                            {/* Premium Mobile/Tablet Order Summary Banner */}
+                            <div className="md:hidden bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Appointment Details</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Specialist</p>
+                                        <p className="text-xs font-black text-on-surface leading-tight">{resolvedDoctor?.name || "General"}</p>
+                                        <p className="text-[10px] font-bold text-slate-500 mt-1">{resolvedDoctor?.specialty}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Schedule</p>
+                                        <p className="text-xs font-black text-on-surface leading-tight">{displayDate}</p>
+                                        <p className="text-[10px] font-bold text-slate-500 mt-1">{displayTime}</p>
+                                    </div>
+                                </div>
+                                <div className="border-t border-slate-100 pt-3 flex justify-between items-center text-xs">
+                                    <span className="font-bold text-slate-400 uppercase tracking-widest">Total Amount</span>
+                                    <span className="font-black text-primary text-sm">Rs. {totalAmount.toLocaleString()}</span>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-6">
                                 <button 
                                     onClick={() => setPaymentMethod('card')}

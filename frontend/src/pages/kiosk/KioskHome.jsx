@@ -520,8 +520,18 @@ const KioskHome = () => {
                               <button
                                 key={aidx}
                                 onClick={() => {
-                                  if (action.type === 'navigate') navigate(action.payload);
-                                  else handleSend(action.payload);
+                                  if (action.type === 'navigate') {
+                                    if (action.data) {
+                                      localStorage.setItem('paymentState', JSON.stringify(action.data));
+                                      localStorage.setItem('last_appointment', JSON.stringify({
+                                        ...action.data.appointment,
+                                        doctor: action.data.doctor
+                                      }));
+                                    }
+                                    navigate(action.payload, { state: action.data });
+                                  } else {
+                                    handleSend(action.payload);
+                                  }
                                 }}
                                 className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-colors border border-primary/20"
                               >

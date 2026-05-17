@@ -253,17 +253,17 @@ def confirm_payment_route():
             patient = appointment.patient
             specialist = appointment.specialist
             
+            doctor_details = {
+                "name": specialist.name if specialist.name.startswith("Dr.") else f"Dr. {specialist.name}" if specialist else "General Doctor",
+                "specialty": specialist.specialization or specialist.department or "General" if specialist else "General",
+                "consultation_fee": amount
+            }
+            appointment_details = {
+                "appointment_date": appointment.appointment_date.strftime("%Y-%m-%d %H:%M") if appointment and appointment.appointment_date else "N/A",
+                "doctor_session_id": appointment.doctor_session_id if appointment else None
+            }
+            
             if patient and patient.email:
-                doctor_details = {
-                    "name": specialist.name if specialist.name.startswith("Dr.") else f"Dr. {specialist.name}",
-                    "specialty": specialist.specialization or specialist.department or "General",
-                    "consultation_fee": amount
-                }
-                appointment_details = {
-                    "appointment_date": appointment.appointment_date.strftime("%Y-%m-%d %H:%M") if appointment.appointment_date else "N/A",
-                    "doctor_session_id": appointment.doctor_session_id
-                }
-                
                 send_appointment_confirmation(
                     patient_email=patient.email,
                     patient_name=patient.full_name,

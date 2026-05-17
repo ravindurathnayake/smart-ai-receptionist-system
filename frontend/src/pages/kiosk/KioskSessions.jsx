@@ -894,7 +894,9 @@ const SessionPanel = ({ doctor, selectedDate, onDateSelect, selectedSlot, onSlot
                 const appointmentData = {
                     ...response,
                     appointment_date: selectedDate,
-                    doctor_session_id: selectedSlot?.id || selectedSlot?.start_time
+                    doctor_session_id: selectedSlot?.id || selectedSlot?.start_time,
+                    session_time: selectedSlot ? `${selectedSlot.start_time} - ${selectedSlot.end_time}` : '',
+                    doctor: doctor
                 };
                 localStorage.setItem('last_appointment', JSON.stringify(appointmentData));
                 navigate('/payment', { state: { appointment: appointmentData, doctor: doctor } });

@@ -111,8 +111,8 @@ const AdminDoctors = () => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(doc =>
-        doc.name.toLowerCase().includes(q) ||
-        doc.specialty.toLowerCase().includes(q)
+        (doc.name || '').toLowerCase().includes(q) ||
+        (doc.specialty || '').toLowerCase().includes(q)
       );
     }
     setFilteredDoctors(result);

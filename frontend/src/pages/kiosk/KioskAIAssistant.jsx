@@ -82,6 +82,9 @@ const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping,
                                                     if (btn.handler) {
                                                         btn.handler();
                                                     } else if (btn.type === 'navigate') {
+                                                        if (btn.data) {
+                                                            localStorage.setItem('paymentState', JSON.stringify(btn.data));
+                                                        }
                                                         navigate(btn.payload, { state: btn.data });
                                                     } else if (btn.type === 'message' || !btn.type) {
                                                         onSendMessage(btn.payload || btn.label);
@@ -230,6 +233,13 @@ const KioskAIAssistant = () => {
                     payload: action.payload,
                     handler: () => {
                         if (action.type === 'navigate') {
+                            if (action.data) {
+                                localStorage.setItem('paymentState', JSON.stringify(action.data));
+                                localStorage.setItem('last_appointment', JSON.stringify({
+                                    ...action.data.appointment,
+                                    doctor: action.data.doctor
+                                }));
+                            }
                             navigate(action.payload, { state: action.data });
                         } else if (action.type === 'message') {
                             // Auto-send secondary actions or specific keywords
