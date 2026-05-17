@@ -80,7 +80,8 @@ const KioskPayment = () => {
                             ...prev,
                             appointment_date: matchingApt.date,
                             session_time: matchingApt.time,
-                            session_id: matchingApt.session
+                            session_id: matchingApt.session,
+                            patient_name: matchingApt.patient
                         }));
                     }
                 } catch (err) {
@@ -201,7 +202,7 @@ const KioskPayment = () => {
     };
 
     const patient = JSON.parse(localStorage.getItem('activePatient') || '{}');
-    const patientName = patient.full_name || patient.name || 'Patient';
+    const patientName = resolvedAppointment?.patient_name || resolvedAppointment?.patient || patient.full_name || patient.name || 'Patient';
 
     if (step === 'success') {
         return (
@@ -234,6 +235,18 @@ const KioskPayment = () => {
                     <div className="bg-slate-50 rounded-2xl p-5 mb-5 text-left border border-slate-100 relative overflow-hidden">
                         {/* Receipt Header */}
                         <div className="absolute top-0 left-0 w-full h-1 bg-primary/20"></div>
+                        
+                        {/* Paid / Unpaid Stamp */}
+                        {paymentMethod === 'counter' ? (
+                            <div className="absolute -right-4 -top-4 w-24 h-24 border-4 border-dashed border-rose-500/30 rounded-full flex items-center justify-center rotate-[15deg] pointer-events-none select-none">
+                                <span className="text-rose-500/30 font-black text-xs tracking-widest uppercase">UNPAID</span>
+                            </div>
+                        ) : (
+                            <div className="absolute -right-4 -top-4 w-24 h-24 border-4 border-dashed border-emerald-500/30 rounded-full flex items-center justify-center rotate-[15deg] pointer-events-none select-none">
+                                <span className="text-emerald-500/30 font-black text-xs tracking-widest uppercase">PAID</span>
+                            </div>
+                        )}
+                        
                         <div className="text-center mb-4 border-b border-slate-200 pb-2">
                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Official Receipt</h3>
                             <p className="text-[10px] text-slate-400">MediAssist Healthcare</p>
@@ -287,7 +300,13 @@ const KioskPayment = () => {
                     </div>
 
                     <button 
-                        onClick={() => navigate('/')}
+                        onClick={() => {
+                            if (patient && patient.id) {
+                                navigate('/patient-dashboard');
+                            } else {
+                                navigate('/');
+                            }
+                        }}
                         className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-base shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all"
                     >
                         Done

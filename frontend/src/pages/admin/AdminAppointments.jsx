@@ -18,6 +18,11 @@ const AdminAppointments = () => {
   const [aptToCancel, setAptToCancel] = useState(null);
   const [isLive, setIsLive] = useState(false);
   
+  // Drawer & Rescheduling States
+  const [activeDetailsApt, setActiveDetailsApt] = useState(null);
+  const [isReschedulingInline, setIsReschedulingInline] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  
   // New Appointment Form State
   const [newAptForm, setNewAptForm] = useState({
     patient_id: '',
@@ -375,7 +380,15 @@ const AdminAppointments = () => {
             ) : filteredAppointments.length === 0 ? (
               <tr><td colSpan="6" className="text-center py-10">No appointments found.</td></tr>
             ) : filteredAppointments.map((apt, idx) => (
-              <tr key={idx} className="group">
+              <tr 
+                key={idx} 
+                className="group hover:bg-slate-50/50 transition-all duration-200 cursor-pointer"
+                onClick={() => {
+                  setActiveDetailsApt(apt);
+                  setIsReschedulingInline(false);
+                  setRescheduleDate(apt.date);
+                }}
+              >
                 <td className="px-8 py-6">
                   <p className="font-bold text-on-surface text-sm">{apt.id}</p>
                   <p className="text-xs text-outline font-bold mt-1 uppercase tracking-tighter">{apt.date}</p>
@@ -383,7 +396,7 @@ const AdminAppointments = () => {
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center font-bold text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                      {apt.patient[0]}
+                      {apt.patient ? apt.patient[0] : 'P'}
                     </div>
                     <div>
                       <p className="font-bold text-on-surface text-sm">{apt.patient}</p>
@@ -406,12 +419,20 @@ const AdminAppointments = () => {
                     {apt.status !== 'Cancelled' && apt.status !== 'Completed' && (
                       <>
                         <button 
-                          onClick={() => { setSelectedApt(apt); setShowRescheduleModal(true); }}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setSelectedApt(apt); 
+                            setRescheduleDate(apt.date);
+                            setShowRescheduleModal(true); 
+                          }}
                           className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-all" title="Reschedule">
                           <span className="material-symbols-rounded text-xl">calendar_clock</span>
                         </button>
                         <button 
-                          onClick={() => handleCancelClick(apt.raw_id)}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handleCancelClick(apt.raw_id); 
+                          }}
                           className="p-2.5 bg-surface-container rounded-xl text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all" title="Cancel">
                           <span className="material-symbols-rounded text-xl">cancel</span>
                         </button>
@@ -722,6 +743,282 @@ const AdminAppointments = () => {
         onCancel={() => setShowCancelConfirm(false)}
         type="warning"
       />
+
+      {/* Top-Level Reschedule Modal */}
+      {showRescheduleModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-on-surface mb-2 font-display">Reschedule Appointment</h3>
+            <p className="text-xs text-outline mb-6">Change the scheduled date for appointment {selectedApt?.id}</p>
+            
+            <div className="space-y-4 mb-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline">New Appointment Date</label>
+                <input 
+                  type="date"
+                  className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-4 py-3 rounded-xl outline-none font-bold"
+                  value={rescheduleDate}
+                  onChange={(e) => setRescheduleDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowRescheduleModal(false)}
+                className="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-all text-sm"
+              >
+                Discard
+              </button>
+              <button 
+                onClick={() => handleRescheduleSubmit(rescheduleDate)}
+                className="flex-1 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/10 hover:scale-[1.01] transition-all text-sm"
+              >
+                Confirm Date
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Sliding Details Drawer */}
+      {activeDetailsApt && (
+        <div className="details-drawer-overlay" onClick={() => setActiveDetailsApt(null)}>
+          <div className="details-drawer animate-in slide-in-from-right duration-300" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Drawer Header */}
+            <div className="p-8 border-b border-slate-100 bg-primary/5 flex justify-between items-center shrink-0">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-bold text-on-surface font-display">{activeDetailsApt.id}</h3>
+                  <div className={`status-badge ${getStatusStyle(activeDetailsApt.status)}`}>
+                    {activeDetailsApt.status}
+                  </div>
+                </div>
+                <p className="text-xs text-outline font-semibold mt-1">Appointment Registration Profile</p>
+              </div>
+              <button 
+                onClick={() => setActiveDetailsApt(null)} 
+                className="w-10 h-10 rounded-full hover:bg-slate-200 transition-all flex items-center justify-center"
+              >
+                <span className="material-symbols-rounded">close</span>
+              </button>
+            </div>
+
+            {/* Drawer Body */}
+            <div className="details-drawer-body">
+              
+              {/* Patient Profile Card */}
+              <div className="details-card-section">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-outline mb-4">Patient Profile</h4>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center font-bold text-lg shadow-md shadow-primary/10">
+                    {activeDetailsApt.patient ? activeDetailsApt.patient[0] : 'P'}
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-on-surface text-base">{activeDetailsApt.patient}</h5>
+                    <p className="text-[10px] font-bold text-outline uppercase tracking-wider mt-0.5">ID: #PAT-{activeDetailsApt.patient_id || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 border-t border-slate-200/50 pt-3">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-outline">NIC / Identity:</span>
+                    <span className="font-black text-on-surface">{activeDetailsApt.patient_nic || 'Unregistered Walk-in'}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-outline">Phone Number:</span>
+                    <span className="font-black text-on-surface">{activeDetailsApt.patient_phone || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-outline">Email Address:</span>
+                    <span className="font-black text-on-surface">{activeDetailsApt.patient_email || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Consultation Details */}
+              <div className="details-card-section">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-outline mb-4">Consultation & Doctor</h4>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-rounded text-primary text-lg mt-0.5">medical_information</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-outline uppercase tracking-wider leading-none mb-1">Consultant</p>
+                      <p className="text-xs font-black text-on-surface">{activeDetailsApt.dr}</p>
+                      <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase">{activeDetailsApt.department} Wing</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-rounded text-secondary text-lg mt-0.5">calendar_today</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-outline uppercase tracking-wider leading-none mb-1">Schedule & Slot</p>
+                      <p className="text-xs font-black text-on-surface">{activeDetailsApt.date} at {activeDetailsApt.time}</p>
+                      <p className="text-[10px] font-bold text-slate-500 mt-1">{activeDetailsApt.session} • {activeDetailsApt.room}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-rounded text-amber-500 text-lg mt-0.5">psychology</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-outline uppercase tracking-wider leading-none mb-1">Stated Reason / Symptom</p>
+                      <p className="text-xs font-bold text-slate-600 italic bg-white px-3 py-2 rounded-xl border border-slate-100 mt-1 leading-relaxed">{activeDetailsApt.type}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Official Payment Receipt Card */}
+              <div className="official-receipt-box">
+                {activeDetailsApt.payment_status === 'Paid' ? (
+                  <div className="receipt-stamp-paid">
+                    <span>PAID</span>
+                  </div>
+                ) : (
+                  <div className="receipt-stamp-unpaid">
+                    <span>UNPAID</span>
+                  </div>
+                )}
+                
+                <div className="text-center mb-4 border-b border-slate-200 pb-2">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Official Payment Receipt</h4>
+                  <p className="text-[9px] text-slate-400">MediAssist Healthcare Systems</p>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500">Transaction Status:</span>
+                    <span className={`font-black uppercase tracking-wider ${activeDetailsApt.payment_status === 'Paid' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                      {activeDetailsApt.payment_status || 'Unpaid'}
+                    </span>
+                  </div>
+                  {activeDetailsApt.payment_status === 'Paid' && (
+                    <>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-500">Payment Method:</span>
+                        <span className="font-black text-on-surface">{activeDetailsApt.payment_method || 'Card'}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-500">Transaction ID:</span>
+                        <span className="font-mono font-bold text-slate-600">{activeDetailsApt.payment_txn_id || 'TXN-N/A'}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-500">Payment Date:</span>
+                        <span className="font-black text-on-surface">{activeDetailsApt.payment_date}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="border-t border-dashed border-slate-300 pt-3 mb-3 space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Consultation Fee:</span>
+                    <span className="font-bold text-on-surface">Rs. {(activeDetailsApt.payment_amount ? activeDetailsApt.payment_amount - 500 : 4500).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Hospital Service Charge:</span>
+                    <span className="font-bold text-on-surface">Rs. 500</span>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 pt-3 flex justify-between items-end">
+                  <div>
+                    <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Billing Currency</span>
+                    <span className="text-[10px] font-bold text-slate-500">LKR (Lankan Rupee)</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-[8px] font-bold text-primary uppercase tracking-widest mb-0.5">Total Amount</span>
+                    <span className="text-base font-black text-primary">Rs. {(activeDetailsApt.payment_amount || 5000).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Inline Rescheduling Form inside drawer */}
+              {isReschedulingInline && (
+                <div className="mt-6 p-5 bg-primary/5 rounded-[2rem] border border-primary/20 animate-in slide-in-from-top-4 duration-300">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-primary mb-3">Reschedule Date</h4>
+                  <div className="space-y-3">
+                    <input 
+                      type="date"
+                      className="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-primary"
+                      value={rescheduleDate}
+                      onChange={(e) => setRescheduleDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={async () => {
+                          if (!rescheduleDate) return;
+                          try {
+                            setLoading(true);
+                            await apiService.rescheduleAppointment(activeDetailsApt.raw_id, rescheduleDate);
+                            fetchAppointments();
+                            setActiveDetailsApt(prev => ({ ...prev, date: rescheduleDate }));
+                            setIsReschedulingInline(false);
+                          } catch (e) {
+                            alert("Failed to reschedule appointment.");
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        className="flex-1 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-md"
+                      >
+                        Confirm Reschedule
+                      </button>
+                      <button 
+                        onClick={() => setIsReschedulingInline(false)}
+                        className="px-4 py-2 bg-slate-200 text-slate-600 text-xs font-bold rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Drawer Footer Actions */}
+            <div className="p-8 border-t border-slate-100 bg-slate-50 flex gap-3 shrink-0">
+              {activeDetailsApt.status !== 'Cancelled' && activeDetailsApt.status !== 'Completed' && (
+                <>
+                  <button 
+                    onClick={() => {
+                      setRescheduleDate(activeDetailsApt.date);
+                      setIsReschedulingInline(true);
+                    }}
+                    className="flex-1 py-3 border border-primary/30 text-primary hover:bg-primary/5 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <span className="material-symbols-rounded text-sm">calendar_clock</span>
+                    Reschedule
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleCancelClick(activeDetailsApt.raw_id);
+                      setActiveDetailsApt(null);
+                    }}
+                    className="flex-1 py-3 border border-red-200 text-red-500 hover:bg-red-50 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <span className="material-symbols-rounded text-sm">cancel</span>
+                    Cancel Appt
+                  </button>
+                </>
+              )}
+              {activeDetailsApt.payment_status === 'Paid' && (
+                <button 
+                  onClick={() => {
+                    alert(`Printing Receipt for Transaction ${activeDetailsApt.payment_txn_id}...`);
+                    window.print();
+                  }}
+                  className="flex-1 py-3 bg-slate-900 text-white hover:bg-slate-800 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5"
+                >
+                  <span className="material-symbols-rounded text-sm">print</span>
+                  Print Receipt
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };

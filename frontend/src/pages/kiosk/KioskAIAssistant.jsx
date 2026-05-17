@@ -7,7 +7,7 @@ import './KioskAIAssistant.css';
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 /** AI response / chat bubble panel */
-const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping, scrollRef }) => {
+const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping, scrollRef, onClearChat }) => {
     const suggestions = [
         '"What is my next appointment?"',
         '"Show my prescriptions"',
@@ -21,8 +21,9 @@ const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping,
             <div className="absolute top-8 left-8 w-32 h-32 bg-primary/10 blur-[60px] rounded-full pointer-events-none" />
 
             {/* AI identity row */}
-            <div className="relative z-10 flex items-center gap-5 mb-7">
-                <div className="relative">
+            <div className="relative z-10 flex items-center justify-between mb-7">
+                <div className="flex items-center gap-5">
+                    <div className="relative">
                     <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center shadow-lg ai-pulse-glow">
                         <span
                             className="material-symbols-outlined text-white text-3xl"
@@ -45,6 +46,15 @@ const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping,
                         </p>
                     </div>
                 </div>
+            </div>
+                <button 
+                    onClick={onClearChat}
+                    className="px-4 py-2 bg-slate-50 text-slate-500 rounded-xl font-bold text-xs hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all flex items-center gap-2 border border-slate-100 shadow-sm"
+                    title="Clear Conversation"
+                >
+                    <span className="material-symbols-outlined text-base">delete_sweep</span>
+                    Clear Chat
+                </button>
             </div>
 
             {/* AI message bubble */}
@@ -87,7 +97,7 @@ const AIChatPanel = ({ inputValue, setInputValue, chatHistory, onSend, isTyping,
                                                         }
                                                         navigate(btn.payload, { state: btn.data });
                                                     } else if (btn.type === 'message' || !btn.type) {
-                                                        onSendMessage(btn.payload || btn.label);
+                                                        onSend(btn.payload || btn.label);
                                                     }
                                                 }}
                                                 className={btnClass}
@@ -241,13 +251,8 @@ const KioskAIAssistant = () => {
                                 }));
                             }
                             navigate(action.payload, { state: action.data });
-                        } else if (action.type === 'message') {
-                            // Auto-send secondary actions or specific keywords
-                            if (action.variant === 'secondary' || (action.payload && action.payload.toLowerCase().includes("i don't know"))) {
-                                handleSend(action.payload);
-                            } else {
-                                setInputValue(action.payload);
-                            }
+                        } else if (action.type === 'message' || !action.type) {
+                            handleSend(action.payload || action.label);
                         }
                     },
                     data: action.data // Explicitly include data for fallback navigation
@@ -260,6 +265,17 @@ const KioskAIAssistant = () => {
             setChatHistory(prev => [...prev, { role: 'bot', text: "Error connecting to AI service. Please try again." }]);
         } finally {
             setIsTyping(false);
+        }
+    };
+
+    const handleClearChat = () => {
+        const patientName = patient?.full_name || patient?.name || 'Patient';
+        const initialChat = [
+            { role: 'bot', text: `I've recognized you, ${patientName.split(' ')[0]}. I've retrieved your medical profile. How can I assist you with your health today?` }
+        ];
+        setChatHistory(initialChat);
+        if (patient?.id) {
+            localStorage.setItem(`chatHistory_${patient.id}`, JSON.stringify(initialChat));
         }
     };
 
@@ -396,6 +412,7 @@ const KioskAIAssistant = () => {
                             onSend={handleSend}
                             isTyping={isTyping}
                             scrollRef={scrollRef}
+                            onClearChat={handleClearChat}
                         />
                     </div>
                     <p className="mt-5 text-slate-400 text-xs font-semibold tracking-wide text-center">Hospital Kiosk #42 • Colombo General Medical Center</p>

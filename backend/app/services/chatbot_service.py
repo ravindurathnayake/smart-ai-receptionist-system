@@ -49,7 +49,21 @@ def parse_date_simple(text):
     return now
 
 def process_message(message, patient_id=None):
-    user_key = patient_id if patient_id else "anonymous"
+    # Safely sanitize and normalize patient_id
+    if patient_id is not None:
+        try:
+            if isinstance(patient_id, str):
+                pid_str = patient_id.strip().lower()
+                if pid_str in ("undefined", "null", ""):
+                    patient_id = None
+                else:
+                    patient_id = int(patient_id)
+            else:
+                patient_id = int(patient_id)
+        except (ValueError, TypeError):
+            patient_id = None
+
+    user_key = str(patient_id) if patient_id else "anonymous"
     message = message.lower().strip()
     # Ensure state exists for this user
     if user_key not in user_states:
@@ -62,7 +76,8 @@ def process_message(message, patient_id=None):
     if state["step"] == "booking_department_selection":
         # Get all departments for matching
         all_depts = Department.query.all()
-        selected_dept = next((d for d in all_depts if d.name.lower() in message or message in d.name.lower()), None)
+        # Check for exact word or full match to avoid matching substrings like "ent" in "gastroenterology"
+        selected_dept = next((d for d in all_depts if d.name.lower() == message or f" {d.name.lower()} " in f" {message} "), None)
         
         if selected_dept:
             dept_name = selected_dept.name
@@ -124,7 +139,7 @@ def process_message(message, patient_id=None):
             return {"reply": "Understood. I'm here if you have any other questions about our services or hospital navigation.", "actions": []}
 
     if state["step"] == "booking_select_doctor":
-        doctors = Specialist.query.filter(Specialist.id.in_(state["doctors"])).all()
+        doctors = Specialist.query.filter(Specialist.id.in_(state.get("doctors", []))).all()
         selected_doctor = next((d for d in doctors if d.name.lower() in message or message in d.name.lower()), None)
         if selected_doctor:
             # Check sessions for this doctor
@@ -151,6 +166,22 @@ def process_message(message, patient_id=None):
         return {"reply": "I didn't quite catch the doctor's name. Please choose one of these specialists:", "actions": [{"label": d.name, "type": "message", "payload": d.name} for d in doctors[:3]]}
 
     elif state["step"] == "booking_collect_info":
+        if patient_id and state.get("last_asked") != "datetime":
+            patient = Patient.query.get(patient_id)
+            if patient:
+                data.update({
+                    "full_name": patient.full_name,
+                    "phone_number": patient.phone_number,
+                    "nic": patient.nic
+                })
+                state["last_asked"] = "datetime"
+                doctor_id = data.get("doctor_id")
+                buttons = get_session_buttons(doctor_id) if doctor_id else []
+                return {
+                    "reply": f"Welcome back, {patient.full_name.split(' ')[0]}. I found these available sessions for Dr. {data.get('doctor_name', 'your doctor')}. Please choose one:",
+                    "actions": buttons
+                }
+
         if state["last_asked"] == "nic":
             # Simple NIC validation (usually 9 digits + V or 12 digits)
             nic_clean = message.replace(" ", "").upper()
@@ -171,15 +202,16 @@ def process_message(message, patient_id=None):
         elif state["last_asked"] == "name":
             data["full_name"] = message.title()
             state["last_asked"] = "phone"
-            return {"reply": f"Thank you, {data['full_name']}. May I have your contact phone number?", "actions": []}
+            return {"reply": f"Thank you, {data.get('full_name')}. May I have your contact phone number?", "actions": []}
             
         elif state["last_asked"] == "phone":
             if re.match(r'^\+?1?\d{9,15}$', message.replace(" ", "").replace("-", "")):
                 data["phone_number"] = message
                 state["last_asked"] = "datetime"
-                buttons = get_session_buttons(data["doctor_id"])
+                doctor_id = data.get("doctor_id")
+                buttons = get_session_buttons(doctor_id) if doctor_id else []
                 return {
-                    "reply": f"Thank you. I found these available sessions for Dr. {data['doctor_name']}. Please choose one:", 
+                    "reply": f"Thank you. I found these available sessions for Dr. {data.get('doctor_name', 'your doctor')}. Please choose one:", 
                     "actions": buttons
                 }
             return {"reply": "I'm sorry, that doesn't seem to be a valid phone number. Could you please re-enter it?", "actions": []}
@@ -201,7 +233,7 @@ def process_message(message, patient_id=None):
                 
                 summary = (
                     f"Please confirm your appointment details:\n\n"
-                    f"Doctor: Dr. {data['doctor_name']}\n"
+                    f"Doctor: Dr. {data.get('doctor_name', 'your doctor')}\n"
                     f"Date: {dt_obj.strftime('%Y-%m-%d')}\n"
                     f"Time: {dt_obj.strftime('%I:%M %p')}\n"
                     f"Patient: {data.get('full_name')}\n"
@@ -351,16 +383,16 @@ def process_message(message, patient_id=None):
             return {"reply": "Could you please describe your symptoms in more detail so I can recommend the right specialist for you?", "actions": []}
 
     if intent == "book_appointment":
-        # Check for specific doctor name in message
+        # Check for specific doctor name in message (using word boundaries)
         all_docs = Specialist.query.all()
-        doc = next((d for d in all_docs if d.name.lower() in message), None)
+        doc = next((d for d in all_docs if d.name.lower() == message or f" {d.name.lower()} " in f" {message} "), None)
         if doc:
             user_states[user_key] = {"step": "booking_select_doctor", "data": {"dept": doc.department}, "doctors": [doc.id]}
             return process_message(doc.name, patient_id)
         
-        # Check for department
+        # Check for department (using word boundaries to avoid matching substrings like "ent" in "appointment")
         all_depts = Department.query.all()
-        selected_dept = next((d for d in all_depts if d.name.lower() in message), None)
+        selected_dept = next((d for d in all_depts if d.name.lower() == message or f" {d.name.lower()} " in f" {message} "), None)
         if selected_dept:
             user_states[user_key] = {"step": "booking_department_selection"}
             return process_message(selected_dept.name, patient_id)

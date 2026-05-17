@@ -79,6 +79,19 @@ def book_appointment(full_name, phone_number, specialist_id, symptom, appointmen
 
     # 1️⃣ Find or Create Patient
     patient = None
+    if patient_id is not None:
+        try:
+            if isinstance(patient_id, str):
+                pid_str = patient_id.strip().lower()
+                if pid_str in ("undefined", "null", ""):
+                    patient_id = None
+                else:
+                    patient_id = int(patient_id)
+            else:
+                patient_id = int(patient_id)
+        except (ValueError, TypeError):
+            patient_id = None
+
     if patient_id:
         patient = Patient.query.get(patient_id)
     
@@ -342,7 +355,11 @@ def get_all_appointments():
         result.append({
             "id": f"#APT-{apt.id:04d}",
             "raw_id": apt.id,
+            "patient_id": apt.patient_id,
             "patient": apt.patient.full_name if apt.patient else "Unknown",
+            "patient_phone": apt.patient.phone_number if apt.patient else "",
+            "patient_nic": apt.patient.nic if apt.patient else "",
+            "patient_email": apt.patient.email if apt.patient else "",
             "dr": apt.specialist.name if apt.specialist and apt.specialist.name.startswith('Dr.') else f"Dr. {apt.specialist.name}" if apt.specialist else "Unknown",
             "time": apt.appointment_date.strftime("%I:%M %p"),
             "date": apt.appointment_date.strftime("%Y-%m-%d"),
@@ -351,7 +368,12 @@ def get_all_appointments():
             "room": apt.session.room_number if apt.session else "Room 04",
             "session": f"Session {apt.session.session_number}" if apt.session else "Active Session",
             "department": apt.specialist.department if apt.specialist else "General",
-            "specialist_id": apt.specialist_id
+            "specialist_id": apt.specialist_id,
+            "payment_status": apt.payment.status if apt.payment else "Unpaid",
+            "payment_amount": apt.payment.amount if apt.payment else 0,
+            "payment_method": apt.payment.payment_method if apt.payment else "",
+            "payment_txn_id": apt.payment.transaction_id if apt.payment else "",
+            "payment_date": apt.payment.created_at.strftime("%Y-%m-%d %I:%M %p") if apt.payment else ""
         })
     return result
 

@@ -9,6 +9,22 @@ def check_in_patient(patient_id, appointment_id=None):
     Checks in a patient for their appointment today.
     Enforces single active check-in, handles multiple appointments, and handles ended sessions.
     """
+    if patient_id is not None:
+        try:
+            if isinstance(patient_id, str):
+                pid_str = patient_id.strip().lower()
+                if pid_str in ("undefined", "null", ""):
+                    patient_id = None
+                else:
+                    patient_id = int(patient_id)
+            else:
+                patient_id = int(patient_id)
+        except (ValueError, TypeError):
+            patient_id = None
+
+    if not patient_id:
+        return {"error": "Invalid patient ID."}
+
     today = date.today()
     
     # 1. Enforce Single Active Check-in
@@ -204,6 +220,22 @@ def check_out_patient(patient_id):
     """
     Marks the patient's active queue entry as completed.
     """
+    if patient_id is not None:
+        try:
+            if isinstance(patient_id, str):
+                pid_str = patient_id.strip().lower()
+                if pid_str in ("undefined", "null", ""):
+                    patient_id = None
+                else:
+                    patient_id = int(patient_id)
+            else:
+                patient_id = int(patient_id)
+        except (ValueError, TypeError):
+            patient_id = None
+
+    if not patient_id:
+        return {"error": "Invalid patient ID."}
+
     today = date.today()
     
     # Find active queue entry for this patient today
@@ -261,6 +293,22 @@ def get_patient_queue_status(patient_id):
     """
     Retrieves the active queue position and department for a patient.
     """
+    if patient_id is not None:
+        try:
+            if isinstance(patient_id, str):
+                pid_str = patient_id.strip().lower()
+                if pid_str in ("undefined", "null", ""):
+                    patient_id = None
+                else:
+                    patient_id = int(patient_id)
+            else:
+                patient_id = int(patient_id)
+        except (ValueError, TypeError):
+            patient_id = None
+
+    if not patient_id:
+        return None
+
     today = date.today()
     queue_entry = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
