@@ -108,6 +108,10 @@ export const apiService = {
         const response = await api.post('/confirm-payment', data);
         return response.data;
     },
+    getPayHereHash: async (appointmentId, amount) => {
+        const response = await api.post('/payment/payhere-hash', { appointment_id: appointmentId, amount });
+        return response.data;
+    },
     getAllAppointments: async () => {
         const response = await api.get('/appointments');
         return response.data.data;

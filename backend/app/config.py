@@ -11,6 +11,15 @@ class Config:
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173").rstrip("/")
     PATIENT_PORTAL_PATH = os.getenv("PATIENT_PORTAL_PATH", "/patient-login")
     
+    # PayHere settings
+    PAYHERE_MERCHANT_ID = os.getenv("PAYHERE_MERCHANT_ID", "1211149")
+    PAYHERE_MERCHANT_SECRET = os.getenv("PAYHERE_MERCHANT_SECRET", "4MjM2NTQ3MzE4MjQzMTkyNzI5MzQzMTM0NTc0MjgxMTk1MzYyMjk=")
+    PAYHERE_SANDBOX = os.getenv("PAYHERE_SANDBOX", "True").lower() == "true"
+    PAYHERE_CURRENCY = os.getenv("PAYHERE_CURRENCY", "LKR")
+    PAYHERE_RETURN_URL = os.getenv("PAYHERE_RETURN_URL")
+    PAYHERE_CANCEL_URL = os.getenv("PAYHERE_CANCEL_URL")
+    PAYHERE_NOTIFY_URL = os.getenv("PAYHERE_NOTIFY_URL")
+    
     # Mail settings
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
     MAIL_PORT = int(os.getenv("MAIL_PORT", 587))

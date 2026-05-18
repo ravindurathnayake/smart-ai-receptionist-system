@@ -133,41 +133,119 @@ const KioskPayment = () => {
     
     const { date: displayDate, time: displayTime } = getAppointmentDateTime();
 
-    const [paymentMethod, setPaymentMethod] = useState('card');
+    const [paymentMethod, setPaymentMethod] = useState('payhere'); // PayHere is default premium online method now
     const [step, setStep] = useState('method'); // method, details, processing, success
     
     const consultationFee = parseInt(resolvedDoctor?.consultation_fee) || 4500;
     const hospitalFee = 500;
     const totalAmount = consultationFee + hospitalFee;
-    const [cardNumber, setCardNumber] = useState('');
-    const [expiry, setExpiry] = useState('');
-    const [cvv, setCvv] = useState('');
     const [transactionId, setTransactionId] = useState('');
     const [notificationStatus, setNotificationStatus] = useState({ email: 'skipped', whatsapp: 'skipped' });
     const [notificationWarnings, setNotificationWarnings] = useState([]);
+    
     const isCounterPayment = paymentMethod === 'counter';
-    const receiptTitle = isCounterPayment ? 'Counter Payment Ticket' : 'Official Receipt';
+    const isPayHerePayment = paymentMethod === 'payhere';
+    
+    const receiptTitle = isCounterPayment ? 'Counter Payment Ticket' : isPayHerePayment ? 'PayHere Gateway Receipt' : 'Official Receipt';
     const receiptBadge = isCounterPayment ? 'Payment Pending' : 'Payment Successful!';
     const receiptStamp = isCounterPayment ? 'UNPAID' : 'PAID';
     const referenceLabel = isCounterPayment ? 'Ticket Reference' : 'Transaction ID';
     const totalLabel = isCounterPayment ? 'Amount Due' : 'Total Paid';
     const notificationLabel = isCounterPayment ? 'Ticket Sent' : 'Email Sent';
     const whatsappLabel = isCounterPayment ? 'Counter Notice' : 'WhatsApp';
+    
     useEffect(() => {
         if (!resolvedAppointment || !resolvedDoctor) {
             // navigate('/doctors');
         }
     }, [resolvedAppointment, resolvedDoctor, navigate]);
 
+    const handlePayHerePayment = async () => {
+        const appointmentId = resolvedAppointment.appointment_id || resolvedAppointment.id;
+        if (!appointmentId) {
+            alert(`No appointment information found. Please try booking again.`);
+            setStep('method');
+            return;
+        }
+
+        if (!window.payhere) {
+            alert("PayHere Secure payment library is loading. Please wait a moment or verify your internet connection.");
+            return;
+        }
+
+        setStep('processing');
+
+        try {
+            // 1. Fetch secure PayHere hash from the backend
+            const response = await apiService.getPayHereHash(appointmentId, totalAmount);
+            if (!response) {
+                throw new Error("Invalid checkout response from server.");
+            }
+            
+            const checkoutConfig = response.data || response;
+            
+            // 2. Set the redirect return/cancel/notify URLs dynamically based on kiosk browser with solid fallbacks
+            checkoutConfig.return_url = checkoutConfig.return_url || (window.location.origin + "/patient-dashboard");
+            checkoutConfig.cancel_url = checkoutConfig.cancel_url || window.location.href;
+            checkoutConfig.notify_url = checkoutConfig.notify_url || "http://localhost:5000/api/payment/payhere-notify";
+            
+            // 3. Configure PayHere callback handlers
+            window.payhere.onCompleted = async function onCompleted(orderId) {
+                console.log("PayHere payment completed securely. Order ID/Payment ID:", orderId);
+                setStep('processing');
+                
+                try {
+                    // Update our backend DB immediately to secure local/demo flow
+                    const confirmRes = await apiService.confirmPayment({
+                        appointment_id: appointmentId,
+                        amount: totalAmount,
+                        payment_method: 'Online (PayHere Sandbox)',
+                        transaction_id: orderId || `PH-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+                    });
+                    
+                    if (confirmRes) {
+                        setTransactionId(orderId || confirmRes.data?.transaction_id || `PH-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
+                        setNotificationStatus(confirmRes.data?.notifications || { email: 'sent', whatsapp: 'sent' });
+                        setNotificationWarnings(confirmRes.data?.warnings || []);
+                        localStorage.removeItem('paymentState');
+                        setStep('success');
+                    }
+                } catch (confirmErr) {
+                    console.error("Local payment confirmation after PayHere success failed:", confirmErr);
+                    alert("Payment succeeded, but receipt generation failed on the server. Please contact clinic reception.");
+                    setStep('method');
+                }
+            };
+            
+            window.payhere.onDismissed = function onDismissed() {
+                console.log("PayHere payment dismissed by user.");
+                setStep('method');
+            };
+            
+            window.payhere.onError = function onError(error) {
+                console.error("PayHere gateway error details:", error);
+                alert(`PayHere Gateway failed to load. Details: "${error}". Please try again or choose another payment method.`);
+                setStep('method');
+            };
+            
+            // 4. Start PayHere Payment Modal!
+            window.payhere.startPayment(checkoutConfig);
+            
+        } catch (err) {
+            console.error("Initiating PayHere payment failed:", err);
+            alert(err.message || "Failed to load PayHere secure payment portal. Please try again.");
+            setStep('method');
+        }
+    };
+
     const handlePayment = async () => {
         setStep('processing');
 
-        const txnPrefix = paymentMethod === 'card' ? 'TXN' : 'TKT';
-        const txnId = `${txnPrefix}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        const txnId = `TKT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         setTransactionId(txnId);
 
         if (!resolvedAppointment?.appointment_id && !resolvedAppointment?.id) {
-            alert(`No appointment information found. Debug: navKeys=${Object.keys(navState || {}).join(',')}. Please try booking again.`);
+            alert(`No appointment information found. Please try booking again.`);
             setStep('method');
             return;
         }
@@ -177,7 +255,7 @@ const KioskPayment = () => {
             const response = await apiService.confirmPayment({
                 appointment_id: resolvedAppointment.appointment_id || resolvedAppointment.id,
                 amount: totalAmount,
-                payment_method: paymentMethod === 'card' ? 'Card' : 'Cash at Counter',
+                payment_method: 'Cash at Counter',
                 transaction_id: txnId
             });
 
@@ -298,7 +376,7 @@ const KioskPayment = () => {
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payment Method</span>
-                                <span className="text-xs font-bold text-on-surface">{isCounterPayment ? 'Cash at Counter' : 'Card'}</span>
+                                <span className="text-xs font-bold text-on-surface">{isCounterPayment ? 'Cash at Counter' : 'Online (PayHere)'}</span>
                             </div>
                         </div>
 
@@ -455,94 +533,121 @@ const KioskPayment = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
-                                <button 
-                                    onClick={() => setPaymentMethod('card')}
-                                    className={`method-option p-8 rounded-[2.5rem] bg-white text-left ${paymentMethod === 'card' ? 'selected ring-4 ring-primary/10' : 'border-slate-100'}`}
-                                >
-                                    <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6">
-                                        <span className="material-symbols-outlined text-3xl">credit_card</span>
-                                    </div>
-                                    <h4 className="text-lg font-black text-on-surface mb-1">Credit / Debit Card</h4>
-                                    <p className="text-xs text-slate-500 font-medium leading-relaxed">Pay securely using your Visa, Mastercard or Amex</p>
-                                </button>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                 <button 
+                                     onClick={() => setPaymentMethod('payhere')}
+                                     className={`method-option p-6 rounded-[2rem] bg-white text-left flex flex-col justify-between min-h-[13.5rem] transition-all duration-300 relative overflow-hidden ${
+                                         paymentMethod === 'payhere' 
+                                             ? 'border-emerald-500 ring-4 ring-emerald-500/10 shadow-md shadow-emerald-500/5' 
+                                             : 'border-slate-100 hover:border-slate-300'
+                                     } border-2`}
+                                 >
+                                     <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-50/50 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+                                     
+                                     <div>
+                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
+                                             paymentMethod === 'payhere' ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600'
+                                         }`}>
+                                             <span className="material-symbols-outlined text-2xl">payments</span>
+                                         </div>
+                                         <h4 className="text-base font-black text-slate-800 mb-1.5 font-headline">Secure Online Checkout</h4>
+                                         <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                                             Activate your booking instantly by paying securely online using credit/debit cards or mobile wallets.
+                                         </p>
+                                     </div>
+                                     
+                                     <div className="flex gap-2.5 items-center mt-4">
+                                         <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded border border-emerald-100 text-[9px] font-black uppercase tracking-wider">
+                                             <span className="material-symbols-outlined text-[11px]">credit_card</span>
+                                             Card
+                                         </div>
+                                         <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded border border-emerald-100 text-[9px] font-black uppercase tracking-wider">
+                                             <span className="material-symbols-outlined text-[11px]">account_balance_wallet</span>
+                                             Wallet
+                                         </div>
+                                         <span className="text-[8px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 uppercase tracking-widest">PayHere Portal</span>
+                                     </div>
+                                 </button>
 
-                                <button 
-                                    onClick={() => setPaymentMethod('counter')}
-                                    className={`method-option p-8 rounded-[2.5rem] bg-white text-left ${paymentMethod === 'counter' ? 'selected ring-4 ring-primary/10' : 'border-slate-100'}`}
-                                >
-                                    <div className="w-14 h-14 bg-secondary/10 text-secondary rounded-2xl flex items-center justify-center mb-6">
-                                        <span className="material-symbols-outlined text-3xl">payments</span>
-                                    </div>
-                                    <h4 className="text-lg font-black text-on-surface mb-1">Pay at Counter</h4>
-                                    <p className="text-xs text-slate-500 font-medium leading-relaxed">Confirm appointment and pay in cash at the reception</p>
-                                </button>
-                            </div>
+                                 <button 
+                                     onClick={() => setPaymentMethod('counter')}
+                                     className={`method-option p-6 rounded-[2rem] bg-white text-left flex flex-col justify-between min-h-[13.5rem] transition-all duration-300 relative overflow-hidden ${
+                                         paymentMethod === 'counter' 
+                                             ? 'border-amber-500 ring-4 ring-amber-500/10 shadow-md shadow-amber-500/5' 
+                                             : 'border-slate-100 hover:border-slate-300'
+                                     } border-2`}
+                                 >
+                                     <div className="absolute top-0 right-0 w-28 h-28 bg-amber-50/50 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+                                     
+                                     <div>
+                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
+                                             paymentMethod === 'counter' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600'
+                                         }`}>
+                                             <span className="material-symbols-outlined text-2xl">point_of_sale</span>
+                                         </div>
+                                         <h4 className="text-base font-black text-slate-800 mb-1.5 font-headline">Pay at Hospital Counter</h4>
+                                         <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                                             Confirm your appointment immediately and settle the consultation fees in cash or card at the reception counter.
+                                         </p>
+                                     </div>
+                                     
+                                     <div className="flex items-center gap-1.5 mt-4">
+                                         <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                         <span className="text-[8px] font-black text-amber-700 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Provisional Ticket Issued</span>
+                                     </div>
+                                 </button>
+                             </div>
+ 
+                             <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative overflow-hidden">
+                                 <div className="absolute top-0 left-0 w-full h-1 bg-slate-100" />
+                                 <h3 className="text-xs font-black text-on-surface mb-4 uppercase tracking-wider text-slate-400">Payment Summary & Details</h3>
+                                 
+                                 {paymentMethod === 'payhere' && (
+                                     <div className="py-2 text-center animate-fade-in">
+                                         <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2.5">
+                                             <span className="material-symbols-outlined text-2xl text-emerald-600">verified_user</span>
+                                         </div>
+                                         <h4 className="text-sm font-extrabold text-emerald-950 mb-1">Secure Sandbox Gateway</h4>
+                                         <p className="text-[11px] font-semibold text-slate-500 max-w-sm mx-auto leading-relaxed">
+                                             Click the button below to launch the official PayHere secure portal popup. Sandbox allows you to simulate successful online payments.
+                                         </p>
+                                         <div className="mt-4 flex justify-center gap-3">
+                                             <span className="text-[8px] font-black text-emerald-600 bg-emerald-50/50 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-wider">Sandbox Mode Active</span>
+                                             <span className="text-[8px] font-black text-emerald-600 bg-emerald-50/50 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-wider">Currency: LKR</span>
+                                         </div>
+                                     </div>
+                                 )}
 
-                            <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm">
-                                <h3 className="text-lg font-black text-on-surface mb-8">Payment Details</h3>
-                                
-                                {paymentMethod === 'card' ? (
-                                    <div className="space-y-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Card Number</label>
-                                            <div className="relative">
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="0000 0000 0000 0000"
-                                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/10 focus:bg-white px-6 py-4 rounded-2xl outline-none transition-all font-bold card-number-input"
-                                                    value={cardNumber}
-                                                    onChange={(e) => setCardNumber(e.target.value)}
-                                                />
-                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 flex gap-2">
-                                                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4 opacity-50" alt="Visa" />
-                                                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-6 opacity-50" alt="Mastercard" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Expiry Date</label>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="MM / YY"
-                                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/10 focus:bg-white px-6 py-4 rounded-2xl outline-none transition-all font-bold"
-                                                    value={expiry}
-                                                    onChange={(e) => setExpiry(e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CVV</label>
-                                                <input 
-                                                    type="password" 
-                                                    placeholder="•••"
-                                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/10 focus:bg-white px-6 py-4 rounded-2xl outline-none transition-all font-bold"
-                                                    value={cvv}
-                                                    onChange={(e) => setCvv(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="py-6 text-center">
-                                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                            <span className="material-symbols-outlined text-4xl text-slate-300">point_of_sale</span>
-                                        </div>
-                                        <p className="text-sm font-medium text-slate-500 max-w-sm mx-auto">
-                                            You will be issued a provisional ticket. Please proceed to the main reception to complete your payment and activate your session.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <button 
-                                onClick={handlePayment}
-                                className="w-full py-6 bg-primary text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-3"
-                            >
-                                <span className="material-symbols-outlined">lock</span>
-                                {paymentMethod === 'card' ? `Securely Pay Rs. ${totalAmount.toLocaleString()}` : 'Confirm & Generate Ticket'}
-                            </button>
+                                 {paymentMethod === 'counter' && (
+                                     <div className="py-2 text-center animate-fade-in">
+                                         <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2.5">
+                                             <span className="material-symbols-outlined text-2xl text-amber-600">storefront</span>
+                                         </div>
+                                         <h4 className="text-sm font-extrabold text-amber-950 mb-1">Physical Counter Checkout</h4>
+                                         <p className="text-[11px] font-semibold text-slate-500 max-w-sm mx-auto leading-relaxed">
+                                             You will be issued a provisional ticket. Please proceed to the main reception counter to complete your payment and activate your session.
+                                         </p>
+                                         <div className="mt-4 flex justify-center gap-3">
+                                             <span className="text-[8px] font-black text-amber-600 bg-amber-50/50 px-3 py-1 rounded-full border border-amber-100 uppercase tracking-wider">Pay at Desk</span>
+                                             <span className="text-[8px] font-black text-amber-600 bg-amber-50/50 px-3 py-1 rounded-full border border-amber-100 uppercase tracking-wider">Supports Cash/Card</span>
+                                         </div>
+                                     </div>
+                                 )}
+                             </div>
+ 
+                             <button 
+                                 onClick={paymentMethod === 'payhere' ? handlePayHerePayment : handlePayment}
+                                 className={`w-full py-5 text-white rounded-[1.5rem] font-black text-lg shadow-2xl transition-all duration-300 flex items-center justify-center gap-3 ${
+                                     paymentMethod === 'payhere' 
+                                         ? 'bg-emerald-600 shadow-emerald-600/20 hover:bg-emerald-700 hover:scale-[1.01] active:scale-[0.99]' 
+                                         : 'bg-amber-600 shadow-amber-600/20 hover:bg-amber-700 hover:scale-[1.01] active:scale-[0.99]'
+                                 }`}
+                             >
+                                 <span className="material-symbols-outlined text-xl font-bold">
+                                     {paymentMethod === 'payhere' ? 'lock' : 'receipt_long'}
+                                 </span>
+                                 {paymentMethod === 'payhere' ? 'Pay Now Securely' : 'Confirm & Generate Ticket'}
+                             </button>
                         </div>
                     )}
 

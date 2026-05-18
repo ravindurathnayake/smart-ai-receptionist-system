@@ -8,3 +8,4 @@ from .department_routes import department_bp
 from .admin_routes import admin_bp
 from .patient_routes import patient_bp
 from .queue_routes import queue_bp
+from .payment_routes import payment_bp
