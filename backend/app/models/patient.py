@@ -27,6 +27,10 @@ class Patient(db.Model):
     guardian_relationship = db.Column(db.String(50), nullable=True)
     guardian_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=True)
     
+    # Emergency contact details
+    emergency_contact_name = db.Column(db.String(150), nullable=True)
+    emergency_contact_phone = db.Column(db.String(20), nullable=True)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationship

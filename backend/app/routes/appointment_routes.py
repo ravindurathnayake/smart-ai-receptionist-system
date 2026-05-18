@@ -162,7 +162,9 @@ def check_in_patient_route(patient_id):
 @appointment_bp.route("/check-out/<int:patient_id>", methods=["POST"])
 def check_out_patient_route(patient_id):
     try:
-        result = check_out_patient(patient_id)
+        data = request.get_json(silent=True) or {}
+        appointment_id = data.get("appointment_id") or request.args.get("appointment_id", type=int)
+        result = check_out_patient(patient_id, appointment_id)
         if result.get("error"):
             return error_response(result["error"], 400)
             

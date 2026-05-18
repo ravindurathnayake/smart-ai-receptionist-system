@@ -34,11 +34,53 @@ export const apiService = {
     // Specialists & Departments
     getSpecialists: async () => {
         const response = await api.get('/specialists/');
-        return response.data.data;
+        const data = response.data.data || [];
+        return data.map(specialist => {
+            if (specialist.sessions) {
+                specialist.sessions = specialist.sessions.map(sess => {
+                    let day = sess.day_of_week;
+                    if (!day && sess.session_date) {
+                        try {
+                            const dObj = new Date(sess.session_date);
+                            if (!isNaN(dObj.getTime())) {
+                                day = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(dObj);
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                    return {
+                        ...sess,
+                        day_of_week: day || 'Session'
+                    };
+                });
+            }
+            return specialist;
+        });
     },
     getSpecialistDetails: async (id) => {
         const response = await api.get(`/specialists/${id}`);
-        return response.data.data;
+        const specialist = response.data.data;
+        if (specialist && specialist.sessions) {
+            specialist.sessions = specialist.sessions.map(sess => {
+                let day = sess.day_of_week;
+                if (!day && sess.session_date) {
+                    try {
+                        const dObj = new Date(sess.session_date);
+                        if (!isNaN(dObj.getTime())) {
+                            day = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(dObj);
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+                return {
+                    ...sess,
+                    day_of_week: day || 'Session'
+                };
+            });
+        }
+        return specialist;
     },
     getDepartments: async () => {
         const response = await api.get('/departments/');

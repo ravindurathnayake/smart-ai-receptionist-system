@@ -51,11 +51,12 @@ def manual_check_in_route():
 def check_out():
     data = request.json
     patient_id = data.get('patient_id')
+    appointment_id = data.get('appointment_id')
     
     if not patient_id:
         return jsonify({"error": "patient_id is required"}), 400
         
-    result = check_out_patient(patient_id)
+    result = check_out_patient(patient_id, appointment_id)
     if "error" in result:
         return jsonify(result), 400
         

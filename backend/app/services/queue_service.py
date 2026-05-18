@@ -36,16 +36,15 @@ def check_in_patient(patient_id, appointment_id=None):
 
     today = date.today()
     
-    # 1. Enforce Single Active Check-in
-    # Check if patient already has an active queue entry
-    active_queue = Queue.query.join(Appointment).filter(
-        Appointment.patient_id == patient_id,
-        db.func.date(Appointment.appointment_date) == today,
-        _active_queue_status_filter()
-    ).first()
-    
-    if active_queue:
-        return {"error": "You already have an active check-in. Please complete or check out of your current session before checking in again."}
+    # 1. Enforce Single Active Check-in per Appointment
+    if appointment_id:
+        active_queue = Queue.query.filter(
+            Queue.appointment_id == appointment_id,
+            _active_queue_status_filter()
+        ).first()
+        if active_queue:
+            return {"error": "You are already checked in for this appointment."}
+
     
     # 2. Handle Appointment Selection
     if appointment_id:
@@ -231,9 +230,9 @@ def manual_check_in(identifier, patient_id=None, appointment_id=None):
     # Only one profile found, proceed with check-in
     return check_in_patient(primary.id, appointment_id)
 
-def check_out_patient(patient_id):
+def check_out_patient(patient_id, appointment_id=None):
     """
-    Marks the patient's active queue entry as completed.
+    Marks the patient's active queue entry as completed or checks out a completed queue entry.
     """
     if patient_id is not None:
         try:
@@ -253,41 +252,42 @@ def check_out_patient(patient_id):
 
     today = date.today()
     
-    # Find active queue entry for this patient today
-    # Try multiple status values to be safe during migration/transition
-    queue_entry = Queue.query.join(Appointment).filter(
+    # Query any queue entry for this patient today (could be WAITING, ACTIVE, or COMPLETED)
+    query = Queue.query.join(Appointment).filter(
         Appointment.patient_id == patient_id,
-        db.func.date(Appointment.appointment_date) == today,
-        _active_queue_status_filter()
-    ).first()
-    
-    if queue_entry:
-        # Check doctor session status
-        session = queue_entry.appointment.session if queue_entry.appointment else None
-        if session and session.status == "NOT_STARTED":
-            return {"error": "Your doctor session has not started yet. You cannot check out at this time."}
-            
-        # Reject if they are still in the queue (WAITING or ACTIVE)
-        if queue_entry.status in ["WAITING", "ACTIVE"]:
-            return {"error": "You are still in the queue. You can only check out after your consultation has been completed by the doctor."}
-            
-    if not queue_entry:
-        # Check if they already checked out
-        already_done = Queue.query.join(Appointment).filter(
-            Appointment.patient_id == patient_id,
-            db.func.date(Appointment.appointment_date) == today,
-            Queue.status == "COMPLETED"
-        ).first()
+        db.func.date(Appointment.appointment_date) == today
+    )
+    if appointment_id:
+        query = query.filter(Appointment.id == appointment_id)
         
-        if already_done:
+    queue_entry = query.first()
+    
+    if not queue_entry:
+        return {"error": "No active check-in found for this patient today."}
+        
+    # Check doctor session status
+    session = queue_entry.appointment.session if queue_entry.appointment else None
+    if session and session.status == "NOT_STARTED":
+        return {"error": "Your doctor session has not started yet. You cannot check out at this time."}
+        
+    # Reject checkout if they are still waiting or active in the queue
+    if queue_entry.status in ["WAITING", "ACTIVE"]:
+        return {"error": "You are still in the queue. You can only check out after your consultation has been completed by the doctor."}
+        
+    # If the doctor already completed their session (status is COMPLETED)
+    if queue_entry.status == "COMPLETED":
+        # Check if they already checked out (check_out_time is set)
+        if queue_entry.check_out_time is not None:
             return {"success": True, "message": "Already checked out."}
             
-        return {"error": "No active check-in found for this patient today."}
-    
+    # Perform checkout: record check-out time and ensure it is COMPLETED/Completed
     queue_entry.status = "COMPLETED"
     queue_entry.check_out_time = datetime.now(timezone.utc)
-    queue_entry.completed_at = datetime.now(timezone.utc)
-    queue_entry.appointment.status = "Completed"
+    if not queue_entry.completed_at:
+        queue_entry.completed_at = datetime.now(timezone.utc)
+    if queue_entry.appointment:
+        queue_entry.appointment.status = "Completed"
+        
     db.session.commit()
     
     # EMIT REAL-TIME UPDATE

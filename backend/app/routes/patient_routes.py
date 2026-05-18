@@ -7,6 +7,8 @@ from ..services.face_service import normalize_profile_image
 
 patient_bp = Blueprint("patient_bp", __name__)
 
+patient_bp = Blueprint("patient_bp", __name__)
+
 @patient_bp.route("/", methods=["GET"])
 def get_patients():
     try:
@@ -31,6 +33,8 @@ def get_patients():
                 "guardian_email": p.guardian_email,
                 "guardian_relationship": p.guardian_relationship,
                 "guardian_id": p.guardian_id,
+                "emergency_contact_name": p.emergency_contact_name,
+                "emergency_contact_phone": p.emergency_contact_phone,
                 "last_visit": p.created_at.strftime("%Y-%m-%d") if p.created_at else "N/A",
                 "created_at": p.created_at.strftime("%Y-%m-%d") if p.created_at else "N/A"
             })
@@ -64,7 +68,9 @@ def create_patient():
             guardian_phone=get_val("guardian_phone"),
             guardian_email=get_val("guardian_email"),
             guardian_relationship=get_val("guardian_relationship"),
-            guardian_id=get_val("guardian_id")
+            guardian_id=get_val("guardian_id"),
+            emergency_contact_name=get_val("emergency_contact_name"),
+            emergency_contact_phone=get_val("emergency_contact_phone")
         )
         
         # Handle face capture
@@ -116,6 +122,8 @@ def update_patient(patient_id):
         patient.guardian_email = data.get("guardian_email", patient.guardian_email)
         patient.guardian_relationship = data.get("guardian_relationship", patient.guardian_relationship)
         patient.guardian_id = data.get("guardian_id", patient.guardian_id)
+        patient.emergency_contact_name = data.get("emergency_contact_name", patient.emergency_contact_name)
+        patient.emergency_contact_phone = data.get("emergency_contact_phone", patient.emergency_contact_phone)
         
         db.session.commit()
         return success_response("Patient updated successfully")
@@ -175,6 +183,8 @@ def get_patient_history(patient_id):
                 "session_name": f"Session {appt.session.session_number}" if appt.session else "Active Session",
                 "specialist_id": appt.specialist_id,
                 "has_review": appt.review is not None,
+                "queue_status": appt.queue.status if appt.queue else None,
+                "check_out_time": appt.queue.check_out_time.isoformat() if (appt.queue and appt.queue.check_out_time) else None,
                 "review": {
                     "rating": appt.review.rating,
                     "comment": appt.review.review_text,
@@ -231,6 +241,8 @@ def nic_login(nic):
                 "guardian_email": p.guardian_email,
                 "guardian_relationship": p.guardian_relationship,
                 "guardian_id": p.guardian_id,
+                "emergency_contact_name": p.emergency_contact_name,
+                "emergency_contact_phone": p.emergency_contact_phone,
                 "face_embedding": True if p.face_embedding else False
             })
             
@@ -293,7 +305,9 @@ def find_patient_by_nic(nic):
             "guardian_name": patient.guardian_name,
             "guardian_nic": patient.guardian_nic,
             "guardian_phone": patient.guardian_phone,
-            "guardian_relationship": patient.guardian_relationship
+            "guardian_relationship": patient.guardian_relationship,
+            "emergency_contact_name": patient.emergency_contact_name,
+            "emergency_contact_phone": patient.emergency_contact_phone
         })
     except Exception as e:
         return error_response(str(e), 500)
@@ -361,7 +375,9 @@ def login_face():
             "guardian_phone": patient.guardian_phone,
             "guardian_email": patient.guardian_email,
             "guardian_relationship": patient.guardian_relationship,
-            "guardian_id": patient.guardian_id
+            "guardian_id": patient.guardian_id,
+            "emergency_contact_name": patient.emergency_contact_name,
+            "emergency_contact_phone": patient.emergency_contact_phone
         })
     except Exception as e:
         return error_response(str(e), 500)

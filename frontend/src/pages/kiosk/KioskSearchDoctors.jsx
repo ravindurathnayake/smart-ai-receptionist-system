@@ -74,7 +74,7 @@ const DoctorCard = ({ doctor }) => {
                     {doctor.sessions && doctor.sessions.length > 0 ? (
                         doctor.sessions.slice(0, 3).map((sess, idx) => (
                             <div key={idx} className="bg-white/60 px-2 py-1 rounded-lg border border-slate-100 text-[10px] font-bold text-on-surface">
-                                {sess.day_of_week.slice(0,3)} • {sess.start_time}
+                                {(sess.day_of_week || 'N/A').slice(0,3)} • {sess.start_time}
                             </div>
                         ))
                     ) : (
@@ -117,7 +117,7 @@ const KioskSearchDoctors = () => {
                     specialty: d.specialization || d.department || 'General Practice',
                     rating: d.rating || 4.8,
                     reviews: 42, 
-                    nextSlot: d.sessions && d.sessions.length > 0 ? `${d.sessions[0].day_of_week} ${d.sessions[0].start_time}` : 'Not Available',
+                    nextSlot: d.sessions && d.sessions.length > 0 ? `${d.sessions[0].day_of_week || 'Session'} ${d.sessions[0].start_time}` : 'Not Available',
                     featured: d.rating >= 4.8,
                     photo: d.profile_image || null,
                     bio: d.bio || '',

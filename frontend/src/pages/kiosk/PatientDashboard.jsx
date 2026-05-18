@@ -4,19 +4,20 @@ import Logo from '../../components/common/Logo';
 import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
 import KioskTopBar from '../../components/kiosk/KioskTopBar';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import './PatientDashboard.css';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 /** SideNav — EXACT match to KioskSearchDoctors style */
-const SideNav = () => {
+const SideNav = ({ onCheckInOutClick }) => {
     const navigate = useNavigate();
     const navItems = [
         { icon: 'account_circle',   label: 'Personal Dashboard',   path: '/patient-dashboard', active: true },
         { icon: 'smart_toy',        label: 'AI Assistant',         path: '/assistant' },
         { icon: 'hourglass_empty',  label: 'Queue Status',         path: '/queue' },
         { icon: 'calendar_month',   label: 'Find Doctors',         path: '/doctors' },
-        { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '/checkin-out' },
+        { icon: 'how_to_reg',       label: 'Check-In / Check-Out', path: '#' },
         { icon: 'map',              label: 'Hospital Map',         path: '/hospital-map' },
     ];
 
@@ -37,7 +38,13 @@ const SideNav = () => {
                 {navItems.map(({ icon, label, path, active }) => (
                     <div
                         key={label}
-                        onClick={() => path !== '#' && navigate(path)}
+                        onClick={() => {
+                            if (label === 'Check-In / Check-Out') {
+                                if (onCheckInOutClick) onCheckInOutClick();
+                            } else if (path !== '#') {
+                                navigate(path);
+                            }
+                        }}
                         className={`flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-semibold text-sm cursor-pointer ${
                             active ? 'nav-item-active' : 'text-primary hover:bg-slate-50'
                         }`}
@@ -98,7 +105,9 @@ const PatientDashboard = () => {
         email: '', 
         dob: '', 
         address: '', 
-        blood_type: '' 
+        blood_type: '',
+        emergency_contact_name: '',
+        emergency_contact_phone: ''
     });
     const [showPresModal, setShowPresModal] = useState(false);
     const [showLabModal, setShowLabModal] = useState(false);
@@ -107,6 +116,214 @@ const PatientDashboard = () => {
 
     const [medicalSummary, setMedicalSummary] = useState({ prescriptions_count: 0, lab_reports_count: 0 });
     const [aiInsight, setAiInsight] = useState("Your AI Assistant is ready to summarize your medical history or answer health queries.");
+
+    // Reschedule & Cancel States
+    const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
+    const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [selectedRescheduleAppt, setSelectedRescheduleAppt] = useState(null);
+    const [apptToCancel, setApptToCancel] = useState(null);
+    const [newDate, setNewDate] = useState('');
+    const [selectedNewSessionId, setSelectedNewSessionId] = useState(null);
+    const [availableSessions, setAvailableSessions] = useState([]);
+    const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+    const [toast, setToast] = useState(null);
+
+    // Check-In / Check-Out Selection Modal States
+    const [showCheckInOutModal, setShowCheckInOutModal] = useState(false);
+    const [checkInOutAction, setCheckInOutAction] = useState('select'); // 'select' | 'checkin' | 'checkout' | 'no_appointments' | 'success_checkin' | 'success_checkout'
+    const [checkInOutError, setCheckInOutError] = useState(null);
+    const [checkInOutLoading, setCheckInOutLoading] = useState(false);
+    const [checkInOutResult, setCheckInOutResult] = useState(null);
+
+    const handleCheckInOutClick = () => {
+        setCheckInOutError(null);
+        setCheckInOutResult(null);
+
+        const isToday = (dateStr) => {
+            const today = new Date();
+            const apptDate = new Date(dateStr);
+            return today.getFullYear() === apptDate.getFullYear() &&
+                   today.getMonth() === apptDate.getMonth() &&
+                   today.getDate() === apptDate.getDate();
+        };
+
+        const todayAppts = history.filter(appt => isToday(appt.date));
+        
+        if (todayAppts.length === 0) {
+            setCheckInOutAction('no_appointments');
+            setShowCheckInOutModal(true);
+            return;
+        }
+
+        const checkedInAppts = todayAppts.filter(appt => 
+            appt.queue_status !== null && appt.queue_status !== undefined
+        );
+
+        const checkInReadyAppts = todayAppts.filter(appt => 
+            !appt.queue_status && ['booked', 'scheduled', 'confirmed'].includes(appt.status?.toLowerCase())
+        );
+
+        if (checkedInAppts.length > 0 && checkInReadyAppts.length > 0) {
+            setCheckInOutAction('select');
+        } else if (checkedInAppts.length > 0 && checkInReadyAppts.length === 0) {
+            setCheckInOutAction('checkout');
+        } else if (checkInReadyAppts.length > 0) {
+            setCheckInOutAction('checkin');
+        } else {
+            setCheckInOutAction('no_appointments');
+        }
+        
+        setShowCheckInOutModal(true);
+    };
+
+    const handleSelectCheckIn = async (apptId) => {
+        setCheckInOutLoading(true);
+        setCheckInOutError(null);
+        try {
+            const response = await apiService.faceCheckIn(null, patient.id, apptId);
+            if (response.success) {
+                setCheckInOutResult(response);
+                setCheckInOutAction('success_checkin');
+                fetchData();
+                showToast("Check-In Successful", "You have successfully checked in.", "success");
+            } else {
+                setCheckInOutError(response.error || 'Failed to check in.');
+            }
+        } catch (err) {
+            setCheckInOutError(err.error || err.message || 'Check-in failed.');
+        } finally {
+            setCheckInOutLoading(false);
+        }
+    };
+
+    const handleSelectCheckOut = async (apptId) => {
+        setCheckInOutLoading(true);
+        setCheckInOutError(null);
+        try {
+            const response = await apiService.checkOutPatient(patient.id, apptId);
+            if (response.success || !response.error) {
+                setCheckInOutResult(response);
+                setCheckInOutAction('success_checkout');
+                fetchData();
+                showToast("Check-Out Successful", "You have successfully checked out.", "success");
+            } else {
+                setCheckInOutError(response.error || 'Failed to check out.');
+            }
+        } catch (err) {
+            setCheckInOutError(err.error || err.message || 'Check-out failed.');
+        } finally {
+            setCheckInOutLoading(false);
+        }
+    };
+
+    const showToast = (title, message, type = 'success') => {
+        setToast({ title, message, type });
+        setTimeout(() => setToast(null), 6000);
+    };
+
+    const handleCancelAppointment = (apptId) => {
+        setApptToCancel(apptId);
+        setShowCancelConfirm(true);
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!apptToCancel) return;
+        try {
+            await apiService.cancelAppointment(apptToCancel);
+            showToast(
+                "Appointment Cancelled",
+                "Your appointment has been successfully cancelled.",
+                "success"
+            );
+
+            try {
+                await apiService.createNotification({
+                    patient_id: patient.id,
+                    type: "Cancelled",
+                    message: "Your appointment has been cancelled successfully."
+                });
+            } catch (nErr) {
+                console.error("Failed to create database notification:", nErr);
+            }
+
+            setShowCancelConfirm(false);
+            setApptToCancel(null);
+            fetchData();
+        } catch (err) {
+            console.error("Cancel failed:", err);
+            showToast("Cancel Failed", "Unable to cancel your appointment. Please try again.", "error");
+        }
+    };
+
+    const handleReschedule = (appt) => {
+        setSelectedRescheduleAppt(appt);
+        setNewDate(appt.date || new Date().toISOString().split('T')[0]);
+        setSelectedNewSessionId(null);
+        setAvailableSessions([]);
+        setShowRescheduleModal(true);
+    };
+
+    const checkAvailability = async (date) => {
+        if (!selectedRescheduleAppt) return;
+        setIsCheckingAvailability(true);
+        try {
+            const specialistId = selectedRescheduleAppt?.specialist_id;
+            if (!specialistId) {
+                const specialists = await apiService.getSpecialists();
+                const spec = specialists.find(s => s.name === selectedRescheduleAppt.doctor || s.name === selectedRescheduleAppt.specialist);
+                if (spec) {
+                    const sessions = await apiService.getSpecialistAvailability(spec.id, date);
+                    setAvailableSessions(sessions);
+                }
+            } else {
+                const sessions = await apiService.getSpecialistAvailability(specialistId, date);
+                setAvailableSessions(sessions);
+            }
+        } catch (err) {
+            console.error("Failed to check availability:", err);
+        } finally {
+            setIsCheckingAvailability(false);
+        }
+    };
+
+    useEffect(() => {
+        if (showRescheduleModal && newDate) {
+            checkAvailability(newDate);
+        }
+    }, [newDate, showRescheduleModal]);
+
+    const submitReschedule = async () => {
+        if (!selectedNewSessionId) {
+            showToast("Selection Required", "Please select a session to proceed.", "error");
+            return;
+        }
+        try {
+            await apiService.rescheduleAppointment(selectedRescheduleAppt.appointment_id || selectedRescheduleAppt.id, newDate, selectedNewSessionId);
+            
+            showToast(
+                "Appointment Rescheduled",
+                `Successfully rescheduled appointment with ${selectedRescheduleAppt.doctor || selectedRescheduleAppt.specialist || 'your specialist'} to ${newDate}.`,
+                "success"
+            );
+            
+            try {
+                await apiService.createNotification({
+                    patient_id: patient.id,
+                    type: "Rescheduled",
+                    message: `Appointment with ${selectedRescheduleAppt.doctor || selectedRescheduleAppt.specialist || 'specialist'} has been rescheduled to ${newDate}.`
+                });
+            } catch (nErr) {
+                console.error("Failed to create database notification:", nErr);
+            }
+            
+            setShowRescheduleModal(false);
+            fetchData();
+        } catch (err) {
+            console.error("Reschedule failed:", err);
+            showToast("Reschedule Failed", "Unable to reschedule your appointment. Please try again.", "error");
+        }
+    };
 
     const fetchData = async () => {
         const savedPatient = localStorage.getItem('activePatient');
@@ -190,7 +407,7 @@ const PatientDashboard = () => {
             fetchData();
         } catch (err) {
             console.error("Failed to submit review:", err);
-            alert("Failed to submit review. You may have already reviewed this session.");
+            showToast("Review Failed", "You may have already submitted a review or feedback for this session.", "error");
         } finally {
             setSubmittingReview(false);
         }
@@ -208,7 +425,9 @@ const PatientDashboard = () => {
         return age;
     };
 
-    const isMinor = patient ? calculateAge(patient.dob || patient.date_of_birth) < 18 : false;
+    const isMinor = patient 
+        ? (patient.age ? Number(patient.age) < 18 : calculateAge(patient.dob || patient.date_of_birth) < 18) 
+        : false;
 
     const handleEditProfile = () => {
         setEditData({ 
@@ -217,20 +436,26 @@ const PatientDashboard = () => {
             email: patient?.email || '',
             dob: patient?.dob || '',
             address: patient?.address || '',
-            blood_type: patient?.blood_type || ''
+            blood_type: patient?.blood_type || '',
+            emergency_contact_name: patient?.emergency_contact_name || '',
+            emergency_contact_phone: patient?.emergency_contact_phone || ''
         });
         setIsEditModalOpen(true);
     };
 
     const handleSaveProfile = async () => {
         try {
+            const calculatedAge = editData.dob ? calculateAge(editData.dob) : patient.age;
             await apiService.updatePatient(patient.id, {
                 full_name: editData.name,
                 phone_number: editData.phone,
                 email: editData.email,
                 dob: editData.dob,
+                age: calculatedAge,
                 address: editData.address,
-                blood_type: editData.blood_type
+                blood_type: editData.blood_type,
+                emergency_contact_name: editData.emergency_contact_name,
+                emergency_contact_phone: editData.emergency_contact_phone
             });
             
             const updatedPatient = { 
@@ -241,17 +466,20 @@ const PatientDashboard = () => {
                 phone: editData.phone,
                 email: editData.email,
                 dob: editData.dob,
+                age: calculatedAge,
                 address: editData.address,
-                blood_type: editData.blood_type
+                blood_type: editData.blood_type,
+                emergency_contact_name: editData.emergency_contact_name,
+                emergency_contact_phone: editData.emergency_contact_phone
             };
             
             localStorage.setItem('activePatient', JSON.stringify(updatedPatient));
             setPatient(updatedPatient);
             setIsEditModalOpen(false);
-            alert("Profile updated successfully!");
+            showToast("Profile Updated", "Your personal details have been updated successfully.", "success");
         } catch (err) {
             console.error("Failed to update profile:", err);
-            alert("Failed to update profile");
+            showToast("Update Failed", "We were unable to save your profile changes. Please try again.", "error");
         }
     };
 
@@ -285,7 +513,7 @@ const PatientDashboard = () => {
             window.open(url, '_blank');
         } catch (err) {
             console.error("Failed to open attachment:", err);
-            alert("Failed to open document. The file might be corrupted.");
+            showToast("Document Error", "Unable to open attachment. The file might be corrupted or incomplete.", "error");
         }
     };
 
@@ -293,7 +521,7 @@ const PatientDashboard = () => {
 
     return (
         <div className="w-screen h-screen overflow-hidden flex font-body bg-slate-50 text-on-surface dashboard-container">
-            <SideNav />
+            <SideNav onCheckInOutClick={handleCheckInOutClick} />
 
             <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
                 <KioskTopBar title="Personal Dashboard" patientName={patient?.full_name} />
@@ -361,6 +589,27 @@ const PatientDashboard = () => {
                                                     <div className="space-y-0.5">
                                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Emergency Contact</p>
                                                         <p className="text-sm font-bold text-on-surface">{patient.guardian_phone || 'N/A'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {!isMinor && (
+                                            <div className="mt-8 p-6 bg-red-50/50 rounded-[2rem] border border-red-100 flex items-center gap-8 animate-in fade-in slide-in-from-top-2 duration-500">
+                                                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-red-600 shadow-sm border border-red-100">
+                                                    <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>emergency</span>
+                                                </div>
+                                                <div className="grid grid-cols-3 flex-1 gap-6">
+                                                    <div className="space-y-0.5 text-left">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Emergency Contact</p>
+                                                        <p className="text-sm font-bold text-on-surface">{patient.emergency_contact_name || 'N/A'}</p>
+                                                    </div>
+                                                    <div className="space-y-0.5 text-left">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Relationship</p>
+                                                        <p className="text-sm font-bold text-red-600">Contact</p>
+                                                    </div>
+                                                    <div className="space-y-0.5 text-left">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Emergency Phone</p>
+                                                        <p className="text-sm font-bold text-on-surface">{patient.emergency_contact_phone || 'N/A'}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -438,7 +687,11 @@ const PatientDashboard = () => {
 
                                 <div className="space-y-3 max-h-[300px] overflow-y-auto no-scrollbar">
                                     {history.length > 0 ? history.map((appt, idx) => (
-                                        <div key={idx} className="history-item p-5 rounded-2xl bg-slate-50/50 flex items-center justify-between group">
+                                        <div 
+                                            key={idx} 
+                                            onClick={() => setSelectedHistoryItem(appt)}
+                                            className="history-item p-5 rounded-2xl bg-slate-50/50 flex items-center justify-between group cursor-pointer hover:bg-slate-100/70 transition-all hover:scale-[1.01]"
+                                        >
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex flex-col items-center justify-center border border-slate-100">
                                                     <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-1">{new Date(appt.date).toLocaleString('default', { month: 'short' })}</p>
@@ -706,6 +959,33 @@ const PatientDashboard = () => {
                                     ))}
                                 </select>
                             </div>
+                            
+                            <div className="border-t border-slate-100 pt-4 mt-2">
+                                <p className="text-[10px] font-black text-red-600 uppercase tracking-widest px-1 mb-3 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-xs">emergency</span>
+                                    Emergency Contact Details
+                                </p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Contact Name</label>
+                                        <input 
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 transition-all font-bold text-xs"
+                                            placeholder="e.g. John Doe"
+                                            value={editData.emergency_contact_name}
+                                            onChange={(e) => setEditData({...editData, emergency_contact_name: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Emergency Phone</label>
+                                        <input 
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 transition-all font-bold text-xs"
+                                            placeholder="e.g. +94771234567"
+                                            value={editData.emergency_contact_phone}
+                                            onChange={(e) => setEditData({...editData, emergency_contact_phone: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="flex gap-3 mt-8">
@@ -738,6 +1018,521 @@ const PatientDashboard = () => {
                     onClose={() => setShowLabModal(false)} 
                     onViewAttachment={handleViewAttachment}
                 />
+            )}
+
+            {/* History Details Modal */}
+            {selectedHistoryItem && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 no-print">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+                        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-primary/5">
+                            <div>
+                                <h3 className="text-2xl font-bold text-on-surface font-headline">Appointment Details</h3>
+                                <p className="text-sm text-on-surface-variant font-medium">Record for {selectedHistoryItem.date}</p>
+                            </div>
+                            <button onClick={() => setSelectedHistoryItem(null)} className="w-10 h-10 rounded-full hover:bg-slate-200 flex items-center justify-center transition-all">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <div className="p-8 space-y-6 text-left">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Specialist</label>
+                                    <p className="font-bold text-on-surface text-lg">{selectedHistoryItem.specialist}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Department</label>
+                                    <p className="font-bold text-on-surface text-lg">{selectedHistoryItem.department}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Time & Room</label>
+                                    <p className="font-bold text-on-surface">{selectedHistoryItem.time || 'N/A'} • {selectedHistoryItem.room || 'N/A'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Session</label>
+                                    <p className="font-bold text-on-surface">{selectedHistoryItem.session_name || 'N/A'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Status</label>
+                                    <div className="flex">
+                                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
+                                            selectedHistoryItem.status === 'Completed' ? 'bg-green-100 text-green-700' : 
+                                            selectedHistoryItem.status?.toLowerCase()?.includes('cancel') ? 'bg-red-100 text-red-700' : 'bg-primary/10 text-primary'
+                                        }`}>
+                                            {selectedHistoryItem.status}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-outline">Reference ID</label>
+                                    <p className="font-bold text-on-surface">#APT-{selectedHistoryItem.id.toString().padStart(4, '0')}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-outline">Symptoms / Reason</label>
+                                <p className="text-sm font-medium text-on-surface-variant leading-relaxed">
+                                    {selectedHistoryItem.symptom || "No specific symptoms recorded."}
+                                </p>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button 
+                                    onClick={() => setSelectedHistoryItem(null)}
+                                    className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-on-surface-variant hover:bg-slate-200 transition-all"
+                                >
+                                    Close
+                                </button>
+                                {!selectedHistoryItem.status?.toLowerCase()?.includes('cancel') && selectedHistoryItem.status?.toLowerCase() !== 'completed' && (
+                                    <>
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedHistoryItem(null);
+                                                handleReschedule({
+                                                    appointment_id: selectedHistoryItem.id,
+                                                    date: selectedHistoryItem.date,
+                                                    doctor: selectedHistoryItem.specialist,
+                                                    specialist_id: selectedHistoryItem.specialist_id
+                                                });
+                                            }}
+                                            className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">event_repeat</span>
+                                            Reschedule
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedHistoryItem(null);
+                                                handleCancelAppointment(selectedHistoryItem.id);
+                                            }}
+                                            className="flex-1 py-4 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-[1.02] hover:bg-red-600 transition-all flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">cancel</span>
+                                            Cancel
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reschedule Modal */}
+            {showRescheduleModal && selectedRescheduleAppt && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 no-print">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+                        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-primary/5">
+                            <div>
+                                <h3 className="text-2xl font-bold text-on-surface font-headline">Reschedule Appointment</h3>
+                                <p className="text-sm text-on-surface-variant font-medium">Select a new date and session</p>
+                            </div>
+                            <button onClick={() => setShowRescheduleModal(false)} className="w-10 h-10 rounded-full hover:bg-slate-200 flex items-center justify-center transition-all">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <div className="p-8 space-y-6 text-left">
+                            <div className="space-y-2">
+                                <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">1. Select Date</label>
+                                <input 
+                                    type="date"
+                                    min={new Date().toISOString().split('T')[0]}
+                                    value={newDate}
+                                    onChange={(e) => {
+                                        setNewDate(e.target.value);
+                                        setSelectedNewSessionId(null);
+                                    }}
+                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-4 rounded-2xl outline-none transition-all font-bold text-lg"
+                                />
+                            </div>
+
+                            <div className="space-y-3 text-left">
+                                <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">2. Choose Available Session</label>
+                                <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {isCheckingAvailability ? (
+                                        <div className="py-10 text-center animate-pulse">
+                                            <span className="material-symbols-outlined text-4xl text-primary/30 mb-2">event_repeat</span>
+                                            <p className="text-xs font-bold text-outline uppercase tracking-widest">Checking sessions...</p>
+                                        </div>
+                                    ) : availableSessions.length > 0 ? (
+                                        availableSessions.map(sess => (
+                                            <div 
+                                                key={sess.id}
+                                                onClick={() => setSelectedNewSessionId(sess.id)}
+                                                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
+                                                    selectedNewSessionId === sess.id 
+                                                    ? 'border-primary bg-primary/5 ring-4 ring-primary/5' 
+                                                    : 'border-slate-100 bg-slate-50 hover:border-primary/20'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
+                                                        selectedNewSessionId === sess.id ? 'bg-primary text-white' : 'bg-white text-primary border border-slate-100'
+                                                    }`}>
+                                                        <span className="material-symbols-outlined">alarm</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-on-surface">{sess.start_time} - {sess.end_time}</p>
+                                                        <p className="text-xs font-medium text-on-surface-variant uppercase tracking-tight">
+                                                            Session {sess.session_number} • Room {sess.room}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase ${
+                                                        sess.available_slots > 5 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                    }`}>
+                                                        {sess.available_slots} Slots Left
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="py-10 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                            <span className="material-symbols-outlined text-4xl text-outline/30 mb-2">event_busy</span>
+                                            <p className="text-xs font-bold text-outline uppercase tracking-widest">No sessions available on this date</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 pt-4">
+                                <button type="button" onClick={() => setShowRescheduleModal(false)} className="flex-1 py-4 rounded-2xl font-bold text-outline hover:bg-slate-100 transition-all">Cancel</button>
+                                <button 
+                                    onClick={submitReschedule}
+                                    disabled={!selectedNewSessionId}
+                                    className={`flex-[2] py-4 rounded-2xl font-bold transition-all shadow-lg ${
+                                        selectedNewSessionId 
+                                        ? 'bg-primary text-white shadow-primary/20 hover:scale-[1.02]' 
+                                        : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                                    }`}
+                                >
+                                    Confirm Reschedule
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmModal 
+                isOpen={showCancelConfirm}
+                title="Cancel Appointment?"
+                message="Are you sure you want to cancel your appointment? This action cannot be undone."
+                confirmText="Yes, Cancel"
+                cancelText="No, Keep It"
+                onConfirm={handleConfirmCancel}
+                onCancel={() => setShowCancelConfirm(false)}
+                type="warning"
+            />
+
+            {/* Check-In / Check-Out Selection Modal */}
+            {showCheckInOutModal && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in no-print">
+                    <div className="absolute inset-0" onClick={() => !checkInOutLoading && setShowCheckInOutModal(false)}></div>
+                    <div className="bg-white rounded-[3rem] w-full max-w-xl relative z-10 shadow-2xl overflow-hidden border border-white animate-scale-up flex flex-col max-h-[90vh]">
+                        <div className="p-10 pb-6 border-b border-slate-100 flex justify-between items-start">
+                            <div>
+                                <h2 className="text-3xl font-black text-on-surface font-headline tracking-tight">Check-In / Check-Out</h2>
+                                <p className="text-slate-500 font-bold text-sm mt-1">Manage your active appointments for today</p>
+                            </div>
+                            <button 
+                                onClick={() => !checkInOutLoading && setShowCheckInOutModal(false)} 
+                                className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="p-10 overflow-y-auto no-scrollbar space-y-6 flex-1 text-left">
+                            {checkInOutError && (
+                                <div className="p-5 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 animate-fade-in">
+                                    <span className="material-symbols-outlined text-red-500 shrink-0">error</span>
+                                    <div className="text-left">
+                                        <p className="text-sm font-black text-red-800">Action Failed</p>
+                                        <p className="text-xs font-bold text-red-600 mt-1 leading-relaxed">{checkInOutError}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {checkInOutAction === 'select' && (
+                                <div className="grid grid-cols-2 gap-6 py-4">
+                                    <button
+                                        onClick={() => setCheckInOutAction('checkin')}
+                                        className="flex flex-col items-center justify-center p-8 bg-green-50/50 hover:bg-green-50 border border-green-100 hover:border-green-300 rounded-[2.5rem] transition-all hover:scale-[1.02] active:scale-[0.98] group text-center"
+                                    >
+                                        <div className="w-16 h-16 bg-green-500 text-white rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-green-500/20 group-hover:scale-110 transition-transform">
+                                            <span className="material-symbols-outlined text-4xl">how_to_reg</span>
+                                        </div>
+                                        <h3 className="text-xl font-black text-green-900 font-headline">Check-In</h3>
+                                        <p className="text-green-700/80 text-xs font-bold mt-2 leading-relaxed">Check-in to another appointment scheduled for today</p>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCheckInOutAction('checkout')}
+                                        className="flex flex-col items-center justify-center p-8 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 hover:border-blue-300 rounded-[2.5rem] transition-all hover:scale-[1.02] active:scale-[0.98] group text-center"
+                                    >
+                                        <div className="w-16 h-16 bg-primary text-white rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                                            <span className="material-symbols-outlined text-4xl">logout</span>
+                                        </div>
+                                        <h3 className="text-xl font-black text-primary font-headline">Check-Out</h3>
+                                        <p className="text-primary/80 text-xs font-bold mt-2 leading-relaxed">Check-out of your completed consultation session</p>
+                                    </button>
+                                </div>
+                            )}
+
+                            {checkInOutAction === 'checkin' && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-2 text-xs font-black uppercase tracking-wider text-slate-400">
+                                        <span className="material-symbols-outlined text-sm">schedule</span>
+                                        Available Appointments for Check-In
+                                    </div>
+                                    {history.filter(appt => {
+                                        const today = new Date();
+                                        const apptDate = new Date(appt.date);
+                                        const isToday = today.getFullYear() === apptDate.getFullYear() &&
+                                                        today.getMonth() === apptDate.getMonth() &&
+                                                        today.getDate() === apptDate.getDate();
+                                        return isToday && !appt.queue_status && ['booked', 'scheduled', 'confirmed'].includes(appt.status?.toLowerCase());
+                                    }).length === 0 ? (
+                                        <div className="text-center py-10 bg-slate-50 rounded-3xl border border-slate-100">
+                                            <span className="material-symbols-outlined text-4xl text-slate-300 mb-2 block">event_busy</span>
+                                            <p className="text-slate-500 font-bold text-sm">No scheduled appointments left to check-in today.</p>
+                                        </div>
+                                    ) : (
+                                        history.filter(appt => {
+                                            const today = new Date();
+                                            const apptDate = new Date(appt.date);
+                                            const isToday = today.getFullYear() === apptDate.getFullYear() &&
+                                                            today.getMonth() === apptDate.getMonth() &&
+                                                            today.getDate() === apptDate.getDate();
+                                            return isToday && !appt.queue_status && ['booked', 'scheduled', 'confirmed'].includes(appt.status?.toLowerCase());
+                                        }).map((appt, idx) => (
+                                            <div key={idx} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between hover:bg-white hover:shadow-md transition-all">
+                                                <div>
+                                                    <h4 className="font-black text-on-surface text-base">{appt.specialist}</h4>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{appt.department} • {appt.time}</p>
+                                                </div>
+                                                <button
+                                                    disabled={checkInOutLoading}
+                                                    onClick={() => handleSelectCheckIn(appt.id)}
+                                                    className="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm disabled:opacity-50 flex items-center gap-1.5 font-bold"
+                                                >
+                                                    {checkInOutLoading ? (
+                                                        'Checking In...'
+                                                    ) : (
+                                                        <>
+                                                            <span className="material-symbols-outlined text-sm">how_to_reg</span>
+                                                            Check-In
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {checkInOutAction === 'checkout' && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-2 text-xs font-black uppercase tracking-wider text-slate-400">
+                                        <span className="material-symbols-outlined text-sm">hourglass_empty</span>
+                                        Active Sessions for Check-Out
+                                    </div>
+                                    {history.filter(appt => {
+                                        const today = new Date();
+                                        const apptDate = new Date(appt.date);
+                                        const isToday = today.getFullYear() === apptDate.getFullYear() &&
+                                                        today.getMonth() === apptDate.getMonth() &&
+                                                        today.getDate() === apptDate.getDate();
+                                        return isToday && appt.queue_status && !appt.check_out_time;
+                                    }).length === 0 ? (
+                                        <div className="text-center py-10 bg-slate-50 rounded-3xl border border-slate-100">
+                                            <span className="material-symbols-outlined text-4xl text-slate-300 mb-2 block">logout</span>
+                                            <p className="text-slate-500 font-bold text-sm">No active checked-in appointments to check-out today.</p>
+                                        </div>
+                                    ) : (
+                                        history.filter(appt => {
+                                            const today = new Date();
+                                            const apptDate = new Date(appt.date);
+                                            const isToday = today.getFullYear() === apptDate.getFullYear() &&
+                                                            today.getMonth() === apptDate.getMonth() &&
+                                                            today.getDate() === apptDate.getDate();
+                                            return isToday && appt.queue_status && !appt.check_out_time;
+                                        }).map((appt, idx) => (
+                                            <div key={idx} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between hover:bg-white hover:shadow-md transition-all">
+                                                <div>
+                                                    <h4 className="font-black text-on-surface text-base">{appt.specialist}</h4>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{appt.department} • {appt.time}</p>
+                                                </div>
+                                                <button
+                                                    disabled={checkInOutLoading}
+                                                    onClick={() => handleSelectCheckOut(appt.id)}
+                                                    className="px-5 py-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm disabled:opacity-50 flex items-center gap-1.5 font-bold"
+                                                >
+                                                    {checkInOutLoading ? (
+                                                        'Checking Out...'
+                                                    ) : (
+                                                        <>
+                                                            <span className="material-symbols-outlined text-sm">logout</span>
+                                                            Check-Out
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {checkInOutAction === 'no_appointments' && (
+                                <div className="text-center py-8">
+                                    <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span className="material-symbols-outlined text-3xl">calendar_today</span>
+                                    </div>
+                                    <h3 className="text-lg font-black text-on-surface font-headline">No Appointments Today</h3>
+                                    <p className="text-slate-500 text-sm font-bold mt-2 max-w-sm mx-auto leading-relaxed">
+                                        You don't have any appointments scheduled for today, or they have already been completed or cancelled.
+                                    </p>
+                                    <div className="flex gap-4 justify-center mt-8">
+                                        <button
+                                            onClick={() => { setShowCheckInOutModal(false); navigate('/doctors'); }}
+                                            className="px-6 py-3 bg-primary text-white rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
+                                        >
+                                            Book an Appointment
+                                        </button>
+                                        <button
+                                            onClick={() => setShowCheckInOutModal(false)}
+                                            className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold transition-all hover:bg-slate-200"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {checkInOutAction === 'success_checkin' && (
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                                        <span className="material-symbols-outlined text-4xl">check_circle</span>
+                                    </div>
+                                    <h3 className="text-2xl font-black text-on-surface font-headline">Check-In Successful!</h3>
+                                    <p className="text-slate-500 text-sm font-bold mt-2">
+                                        You have checked in successfully for your session with {checkInOutResult?.doctor}.
+                                    </p>
+                                    
+                                    {checkInOutResult?.queue_number && (
+                                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 my-6 max-w-sm mx-auto">
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] block mb-1">Queue Number</span>
+                                            <span className="text-5xl font-black text-primary tracking-tighter">
+                                                {checkInOutResult.queue_number.toString().padStart(2, '0')}
+                                            </span>
+                                            <div className="mt-4 flex justify-between items-center text-xs font-bold text-slate-500 pt-4 border-t border-slate-100">
+                                                <span>Est. Wait Time:</span>
+                                                <span className="text-on-surface font-black">{checkInOutResult.estimated_wait_time} min</span>
+                                            </div>
+                                            <div className="mt-2 flex justify-between items-center text-xs font-bold text-slate-500">
+                                                <span>Room Number:</span>
+                                                <span className="text-on-surface font-black">{checkInOutResult.room || 'TBD'}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-4 justify-center mt-6">
+                                        <button
+                                            onClick={() => { setShowCheckInOutModal(false); navigate('/queue'); }}
+                                            className="px-6 py-3 bg-primary text-white rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
+                                        >
+                                            View Queue Status
+                                        </button>
+                                        <button
+                                            onClick={() => setShowCheckInOutModal(false)}
+                                            className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold transition-all hover:bg-slate-200"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {checkInOutAction === 'success_checkout' && (
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-blue-100 text-primary rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                                        <span className="material-symbols-outlined text-4xl">verified</span>
+                                    </div>
+                                    <h3 className="text-2xl font-black text-on-surface font-headline">Check-Out Successful</h3>
+                                    <p className="text-slate-500 text-sm font-bold mt-2">
+                                        Your visit has been successfully completed. Thank you for choosing our services!
+                                    </p>
+                                    
+                                    <div className="flex gap-4 justify-center mt-8">
+                                        <button
+                                            onClick={() => {
+                                                setShowCheckInOutModal(false);
+                                                navigate('/checkout');
+                                            }}
+                                            className="px-8 py-3.5 bg-primary text-white rounded-xl text-sm font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-md shadow-primary/20"
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {(checkInOutAction === 'checkin' || checkInOutAction === 'checkout') && (
+                            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-start">
+                                <button
+                                    onClick={() => setCheckInOutAction('select')}
+                                    className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors text-xs font-bold"
+                                >
+                                    <span className="material-symbols-outlined text-sm">arrow_back</span>
+                                    Back to Options
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Premium Toast Overlay */}
+            {toast && (
+                <div className="fixed top-6 right-6 z-[9999] max-w-sm w-full bg-white/85 backdrop-blur-md rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100/50 overflow-hidden animate-in slide-in-from-top-10 slide-in-from-right-10 duration-300 no-print">
+                    <div className="p-4 flex gap-3.5 items-start">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border ${
+                            toast.type === 'success' 
+                            ? 'bg-green-50 border-green-100 text-green-600' 
+                            : 'bg-red-50 border-red-100 text-red-600'
+                        }`}>
+                            <span className="material-symbols-outlined text-xl">
+                                {toast.type === 'success' ? 'check_circle' : 'error'}
+                            </span>
+                        </div>
+                        
+                        <div className="flex-1 text-left min-w-0 font-headline">
+                            <h4 className="text-sm font-extrabold text-slate-800 leading-tight mb-0.5">
+                                {toast.title}
+                            </h4>
+                            <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                                {toast.message}
+                            </p>
+                        </div>
+
+                        <button 
+                            onClick={() => setToast(null)}
+                            className="text-slate-400 hover:text-slate-600 p-0.5 rounded-lg hover:bg-slate-100/50 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-lg">close</span>
+                        </button>
+                    </div>
+                    <div className="h-1 w-full bg-slate-100/80">
+                        <div 
+                            className={`h-full ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'} animate-toast-progress`}
+                            style={{ animationDuration: '6000ms', animationTimingFunction: 'linear', animationFillMode: 'forwards' }}
+                        />
+                    </div>
+                </div>
             )}
         </div>
     );

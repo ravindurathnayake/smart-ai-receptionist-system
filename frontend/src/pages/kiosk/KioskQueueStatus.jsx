@@ -197,7 +197,7 @@ const AppointmentDetailsCard = ({ patientQueue, onCancel, onReschedule }) => (
                 <span className="material-symbols-outlined text-primary opacity-50">calendar_today</span>
             </div>
 
-            {patientQueue?.appointment_id && (
+            {patientQueue?.appointment_id && !patientQueue?.status?.toLowerCase()?.includes('cancel') && (
                 <div className="flex gap-2 pt-2">
                     <button 
                         onClick={() => onReschedule(patientQueue)}
@@ -282,6 +282,15 @@ const KioskQueueStatus = () => {
     });
 
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+    const [toast, setToast] = useState(null);
+    
+    const showToast = (title, message, type = 'success') => {
+        setToast({ title, message, type });
+        const timer = setTimeout(() => {
+            setToast(null);
+        }, 6000);
+        return () => clearTimeout(timer);
+    };
     const [selectedRescheduleAppt, setSelectedRescheduleAppt] = useState(null);
     const [selectedHistoryItem, setSelectedHistoryItem] = useState(null); // Detail modal for history
     const [availableSessions, setAvailableSessions] = useState([]);
@@ -362,12 +371,31 @@ const KioskQueueStatus = () => {
         if (!apptToCancel) return;
         try {
             await apiService.cancelAppointment(apptToCancel);
+            
+            // Premium dynamic toast notification
+            showToast(
+                "Appointment Cancelled",
+                "Your appointment has been successfully cancelled.",
+                "success"
+            );
+
+            // Create a persistent database notification that will appear in the bell icon in real-time
+            try {
+                await apiService.createNotification({
+                    patient_id: patient.id,
+                    type: "Cancelled",
+                    message: "Your appointment has been cancelled successfully."
+                });
+            } catch (nErr) {
+                console.error("Failed to create database notification:", nErr);
+            }
+
             setShowCancelConfirm(false);
             setApptToCancel(null);
             fetchQueue(patient);
         } catch (err) {
             console.error("Cancel failed:", err);
-            alert("Failed to cancel appointment.");
+            showToast("Cancel Failed", "Unable to cancel your appointment. Please try again.", "error");
         }
     };
 
@@ -415,17 +443,35 @@ const KioskQueueStatus = () => {
 
     const submitReschedule = async () => {
         if (!selectedNewSessionId) {
-            alert("Please select a session.");
+            showToast("Selection Required", "Please select a session to proceed.", "error");
             return;
         }
         try {
             await apiService.rescheduleAppointment(selectedRescheduleAppt.appointment_id, newDate, selectedNewSessionId);
-            alert("Appointment rescheduled successfully.");
+            
+            // Premium dynamic toast notification
+            showToast(
+                "Appointment Rescheduled",
+                `Successfully rescheduled appointment with ${selectedRescheduleAppt.doctor || 'your specialist'} to ${newDate}.`,
+                "success"
+            );
+            
+            // Create a persistent database notification that will appear in the bell icon in real-time
+            try {
+                await apiService.createNotification({
+                    patient_id: patient.id,
+                    type: "Rescheduled",
+                    message: `Appointment with ${selectedRescheduleAppt.doctor || 'specialist'} has been rescheduled to ${newDate}.`
+                });
+            } catch (nErr) {
+                console.error("Failed to create database notification:", nErr);
+            }
+            
             setShowRescheduleModal(false);
             fetchQueue(patient);
         } catch (err) {
             console.error("Reschedule failed:", err);
-            alert("Failed to reschedule appointment.");
+            showToast("Reschedule Failed", "Unable to reschedule your appointment. Please try again.", "error");
         }
     };
 
@@ -670,21 +716,34 @@ const KioskQueueStatus = () => {
                                 >
                                     Close
                                 </button>
-                                {selectedHistoryItem.status === 'Booked' && (
-                                    <button 
-                                        onClick={() => {
-                                            setSelectedHistoryItem(null);
-                                            handleReschedule({
-                                                appointment_id: selectedHistoryItem.id,
-                                                date: selectedHistoryItem.date,
-                                                doctor: selectedHistoryItem.specialist,
-                                                specialist_id: selectedHistoryItem.specialist_id
-                                            });
-                                        }}
-                                        className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
-                                    >
-                                        Reschedule
-                                    </button>
+                                {!selectedHistoryItem.status?.toLowerCase()?.includes('cancel') && selectedHistoryItem.status?.toLowerCase() !== 'completed' && (
+                                    <>
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedHistoryItem(null);
+                                                handleReschedule({
+                                                    appointment_id: selectedHistoryItem.id,
+                                                    date: selectedHistoryItem.date,
+                                                    doctor: selectedHistoryItem.specialist,
+                                                    specialist_id: selectedHistoryItem.specialist_id
+                                                });
+                                            }}
+                                            className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">event_repeat</span>
+                                            Reschedule
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedHistoryItem(null);
+                                                handleCancelAppointment(selectedHistoryItem.id);
+                                            }}
+                                            className="flex-1 py-4 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-[1.02] hover:bg-red-600 transition-all flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">cancel</span>
+                                            Cancel
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -752,6 +811,49 @@ const KioskQueueStatus = () => {
             onCancel={() => setShowCancelConfirm(false)}
             type="warning"
         />
+
+        {/* Premium Toast / Push Notification */}
+        {toast && (
+            <div className="fixed top-6 right-6 z-[9999] max-w-sm w-full bg-white/85 backdrop-blur-md rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100/50 overflow-hidden animate-in slide-in-from-top-10 slide-in-from-right-10 duration-300 no-print">
+                <div className="p-4 flex gap-3.5 items-start">
+                    {/* Status Icon */}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border ${
+                        toast.type === 'success' 
+                        ? 'bg-green-50 border-green-100 text-green-600' 
+                        : 'bg-red-50 border-red-100 text-red-600'
+                    }`}>
+                        <span className="material-symbols-outlined text-xl">
+                            {toast.type === 'success' ? 'check_circle' : 'error'}
+                        </span>
+                    </div>
+                    
+                    {/* Text Content */}
+                    <div className="flex-1 text-left min-w-0 font-headline">
+                        <h4 className="text-sm font-extrabold text-slate-800 leading-tight mb-0.5">
+                            {toast.title}
+                        </h4>
+                        <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                            {toast.message}
+                        </p>
+                    </div>
+
+                    {/* Close button */}
+                    <button 
+                        onClick={() => setToast(null)}
+                        className="text-slate-400 hover:text-slate-600 p-0.5 rounded-lg hover:bg-slate-100/50 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+                {/* Progress Bar */}
+                <div className="h-1 w-full bg-slate-100/80">
+                    <div 
+                        className={`h-full ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'} animate-toast-progress`}
+                        style={{ animationDuration: '6000ms', animationTimingFunction: 'linear', animationFillMode: 'forwards' }}
+                    />
+                </div>
+            </div>
+        )}
     </div>
     );
 };

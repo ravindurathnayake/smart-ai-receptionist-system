@@ -160,7 +160,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Emergency Alerts Section */}
-      {notifications.filter(n => n.status === 'Unread').length > 0 && (
+      {notifications.filter(n => n.status === 'Unread' && (n.type === 'Emergency' || n.type === 'Staff Assistance')).length > 0 && (
         <div className="mt-8 animate-in slide-in-from-top duration-500">
           <div className="bg-error/5 border-2 border-error/20 rounded-[2.5rem] p-8">
             <div className="flex items-center justify-between mb-6">
@@ -171,7 +171,7 @@ const AdminDashboard = () => {
               <span className="bg-error text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest animate-bounce shadow-lg shadow-error/20">Immediate Action Required</span>
             </div>
             <div className="space-y-4">
-              {notifications.filter(n => n.status === 'Unread').map((n, idx) => (
+              {notifications.filter(n => n.status === 'Unread' && (n.type === 'Emergency' || n.type === 'Staff Assistance')).map((n, idx) => (
                 <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border-l-8 border-error flex items-center justify-between group hover:shadow-md transition-all">
                   <div className="flex items-center gap-6">
                     <div className="w-14 h-14 rounded-2xl bg-error/10 flex items-center justify-center text-error shadow-inner">
