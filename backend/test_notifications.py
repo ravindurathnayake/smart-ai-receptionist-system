@@ -8,7 +8,7 @@ import sys
 app = create_app()
 
 with app.app_context():
-    pid = 23 # Ravindu
+    pid = 30 # R M R E Rathnayake (valid ID)
     patient = Patient.query.get(pid)
     print(f"--- Testing for Patient: {patient.full_name} (ID: {pid}) ---")
     

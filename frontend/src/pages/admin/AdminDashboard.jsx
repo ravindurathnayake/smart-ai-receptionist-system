@@ -18,16 +18,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'rescheduled', 'cancelled'
   const [selectedItem, setSelectedItem] = useState(null); // For details modal
-  const [kioskStatus, setKioskStatus] = useState('Offline');
 
   useEffect(() => {
-    // KIOSK HEARTBEAT LISTENER
-    socketService.on('kiosk_heartbeat', (data) => {
-      setKioskStatus('Online');
-      // Set a timeout to mark it offline if no heartbeat for 10 seconds
-      clearTimeout(window.kioskTimeout);
-      window.kioskTimeout = setTimeout(() => setKioskStatus('Offline'), 10000);
-    });
 
     // NEW NOTIFICATION LISTENER
     socketService.on('new_notification', (data) => {
@@ -53,7 +45,6 @@ const AdminDashboard = () => {
     socketService.on('patient_created', handleRefresh);
 
     return () => {
-      socketService.off('kiosk_heartbeat');
       socketService.off('new_notification');
       socketService.off('appointment_created', handleRefresh);
       socketService.off('appointment_booked', handleRefresh);
@@ -149,13 +140,6 @@ const AdminDashboard = () => {
               <span className="text-[10px] font-black uppercase tracking-widest">Live Dashboard</span>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-outline-variant/30 shadow-sm">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-black uppercase tracking-widest text-outline">Kiosk Status</span>
-            <span className={`text-xs font-bold ${kioskStatus === 'Online' ? 'text-secondary' : 'text-error'}`}>{kioskStatus}</span>
-          </div>
-          <div className={`w-3 h-3 rounded-full ${kioskStatus === 'Online' ? 'bg-secondary animate-pulse' : 'bg-error shadow-[0_0_10px_rgba(255,0,0,0.5)]'}`}></div>
         </div>
       </div>
 
