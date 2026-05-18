@@ -2,6 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
 import './AdminDashboard.css';
+const CLINIC_INSIGHTS = [
+  {
+    id: 1,
+    title: 'Resource Allocation',
+    description: 'High patient volume predicted for Orthopedics between 2 PM - 4 PM today. Recommend opening an extra consultation room.',
+    actionLabel: 'Assign Room 05 to Orthopedics',
+    loadingLabel: 'Allocating Room 05...',
+    successLabel: 'Room 05 Allocated',
+    impact: 'Est. Wait Time: -18 mins',
+    color: 'from-blue-600 to-indigo-900',
+    successToast: 'Room 05 has been successfully assigned to Orthopedics. Directional maps updated on Kiosks.'
+  },
+  {
+    id: 2,
+    title: 'Staff Deployment',
+    description: 'Pediatric queue has 8 active patients with only 1 specialist active. Wait times projected to exceed 45 minutes.',
+    actionLabel: 'Deploy Backup Specialist',
+    loadingLabel: 'Deploying Dr. De Silva...',
+    successLabel: 'Dr. De Silva Deployed',
+    impact: 'Staff Efficiency: +35%',
+    color: 'from-purple-600 to-indigo-800',
+    successToast: 'Dr. Sarah de Silva assigned as backup to Pediatrics. Notification sent to clinic staff.'
+  },
+  {
+    id: 3,
+    title: 'Queue Bottleneck',
+    description: 'General Practice queue is experiencing high inflow. Recommend activating AI Pre-consultation symptom screening.',
+    actionLabel: 'Activate AI Pre-Screening',
+    loadingLabel: 'Enabling AI Kiosk Check...',
+    successLabel: 'AI Pre-Screening Active',
+    impact: 'Processing Speed: +40%',
+    color: 'from-cyan-700 to-blue-900',
+    successToast: 'AI Pre-consultation symptom check-in activated on all Lobby Kiosk terminals.'
+  }
+];
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState([
@@ -18,6 +53,24 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'rescheduled', 'cancelled'
   const [selectedItem, setSelectedItem] = useState(null); // For details modal
+  
+  const [activeInsightIndex, setActiveInsightIndex] = useState(0);
+  const [insightsStatus, setInsightsStatus] = useState({ 1: 'pending', 2: 'pending', 3: 'pending' });
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 6000);
+  };
+
+  const handleApplyInsight = (insight) => {
+    setInsightsStatus(prev => ({ ...prev, [insight.id]: 'loading' }));
+    setTimeout(() => {
+      setInsightsStatus(prev => ({ ...prev, [insight.id]: 'applied' }));
+      showToast(insight.successToast, 'success');
+    }, 1800);
+  };
+
 
   useEffect(() => {
 
@@ -289,18 +342,79 @@ const AdminDashboard = () => {
         {/* Insights & Availability */}
         <div className="space-y-8">
           {/* Smart Insights */}
-          <div className="insight-card group">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="material-symbols-rounded text-white animate-pulse">auto_awesome</span>
-              <h3 className="font-bold font-display tracking-tight">MediAssist Smart Insights</h3>
-            </div>
-            <p className="text-sm leading-relaxed text-blue-100 mb-6 font-medium">
-              "High patient volume predicted for **Orthopedics** between 2 PM - 4 PM today. Recommend opening an extra consultation room."
-            </p>
-            <button className="w-full py-3.5 px-6 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all border border-white/20">
-              Apply Optimization
-            </button>
-          </div>
+          {(() => {
+            const activeInsight = CLINIC_INSIGHTS[activeInsightIndex];
+            const status = insightsStatus[activeInsight.id];
+            
+            return (
+              <div 
+                className={`insight-card group bg-gradient-to-br ${activeInsight.color}`}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-rounded text-white animate-pulse text-xl">auto_awesome</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-100">MediAssist AI Insight</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/10 rounded-full border border-white/10 shrink-0">
+                    <span className="material-symbols-rounded text-xs text-blue-200">query_stats</span>
+                    <span className="text-[9px] font-black text-white tracking-wider uppercase">{activeInsight.impact}</span>
+                  </div>
+                </div>
+
+                {/* Body */}
+                <h3 className="text-lg font-bold font-display tracking-tight text-white mb-2">{activeInsight.title}</h3>
+                
+                <p className="text-xs leading-relaxed text-blue-100 mb-6 font-medium min-h-[50px] transition-all duration-300">
+                  {activeInsight.description}
+                </p>
+
+                {/* Actions */}
+                <div className="space-y-4">
+                  {status === 'pending' && (
+                    <button 
+                      onClick={() => handleApplyInsight(activeInsight)}
+                      className="w-full py-3.5 px-6 bg-white text-blue-900 hover:bg-blue-50 hover:shadow-lg rounded-2xl text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98]"
+                    >
+                      {activeInsight.actionLabel}
+                    </button>
+                  )}
+                  {status === 'loading' && (
+                    <button 
+                      disabled
+                      className="w-full py-3.5 px-6 bg-white/20 backdrop-blur-md text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      {activeInsight.loadingLabel}
+                    </button>
+                  )}
+                  {status === 'applied' && (
+                    <div 
+                      className="w-full py-3.5 px-6 bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 animate-in fade-in duration-300"
+                    >
+                      <span className="material-symbols-rounded text-base text-emerald-300">check_circle</span>
+                      {activeInsight.successLabel}
+                    </div>
+                  )}
+
+                  {/* Pagination Slider Dots */}
+                  <div className="flex justify-center gap-2.5 pt-2">
+                    {CLINIC_INSIGHTS.map((insight, idx) => (
+                      <button 
+                        key={insight.id}
+                        onClick={() => setActiveInsightIndex(idx)}
+                        className={`insight-dot ${activeInsightIndex === idx ? 'active' : ''}`}
+                        title={insight.title}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Availability Card */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-outline-variant/30 shadow-sm flex-1">
@@ -401,6 +515,23 @@ const AdminDashboard = () => {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Toast System */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-[9999] no-print animate-in slide-in-from-top-10 slide-in-from-right-10 duration-500">
+          <div className="backdrop-blur-md bg-white/90 border border-slate-100/50 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-3xl p-5 flex items-center gap-4 max-w-sm">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+              <span className="material-symbols-rounded text-xl">check_circle</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">Optimization Active</h4>
+              <p className="text-xs text-slate-500 font-bold mt-0.5 leading-relaxed break-words">
+                {toast.message}
+              </p>
             </div>
           </div>
         </div>

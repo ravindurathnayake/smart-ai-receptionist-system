@@ -19,6 +19,20 @@ const AdminPatients = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState(null);
 
+  // Premium Toast and Check-In/Out states
+  const [toast, setToast] = useState(null);
+  const [showCheckInOutModal, setShowCheckInOutModal] = useState(false);
+  const [checkInOutAction, setCheckInOutAction] = useState('select'); // 'checkin' | 'checkout'
+  const [checkInOutPatient, setCheckInOutPatient] = useState(null);
+  const [checkInOutAppointments, setCheckInOutAppointments] = useState([]);
+  const [checkInOutLoading, setCheckInOutLoading] = useState(false);
+  const [checkInOutError, setCheckInOutError] = useState(null);
+
+  const showToast = (title, message, type = 'success') => {
+    setToast({ title, message, type });
+    setTimeout(() => setToast(null), 6000);
+  };
+
   useEffect(() => {
     const fetchPatients = async () => {
       try {
@@ -58,26 +72,64 @@ const AdminPatients = () => {
     };
   }, []);
 
-  const handleCheckIn = async (patient) => {
+  const handleCheckIn = async (patient, appointmentId = null) => {
+    setCheckInOutLoading(true);
+    setCheckInOutError(null);
     try {
-      const result = await apiService.checkInPatient(patient.id);
-      alert(`Successfully checked in ${patient.name}!\nQueue Number: A-${result.queue_number.toString().padStart(2, '0')}\nDoctor: ${result.doctor}`);
-      // Refresh to update badge/status if needed
-      apiService.getPatients().then(setPatients);
+      const result = await apiService.checkInPatient(patient.id, appointmentId);
+      
+      if (result.requires_selection) {
+        setCheckInOutPatient(patient);
+        setCheckInOutAppointments(result.appointments);
+        setCheckInOutAction('checkin');
+        setShowCheckInOutModal(true);
+      } else {
+        showToast(
+          "Check-In Successful",
+          `Successfully checked in ${patient.name}!\nQueue Token: ${result.token}\nDoctor: ${result.doctor}`,
+          "success"
+        );
+        setShowCheckInOutModal(false);
+        // Refresh to update badge/status if needed
+        apiService.getPatients().then(setPatients);
+      }
     } catch (err) {
       console.error("Check-in failed:", err);
-      alert(err.response?.data?.message || "Check-in failed. Patient might not have an appointment for today.");
+      const errMsg = err.response?.data?.message || err.error || err.message || "Check-in failed. Patient might not have today's appointments or already checked in.";
+      showToast("Check-In Failed", errMsg, "error");
+      setCheckInOutError(errMsg);
+    } finally {
+      setCheckInOutLoading(false);
     }
   };
 
-  const handleCheckOut = async (patient) => {
+  const handleCheckOut = async (patient, appointmentId = null) => {
+    setCheckInOutLoading(true);
+    setCheckInOutError(null);
     try {
-      await apiService.checkOutPatient(patient.id);
-      alert(`${patient.name} has been checked out successfully.`);
-      apiService.getPatients().then(setPatients);
+      const result = await apiService.checkOutPatient(patient.id, appointmentId);
+      
+      if (result.requires_selection) {
+        setCheckInOutPatient(patient);
+        setCheckInOutAppointments(result.appointments);
+        setCheckInOutAction('checkout');
+        setShowCheckInOutModal(true);
+      } else {
+        showToast(
+          "Check-Out Successful",
+          `${patient.name} has been checked out successfully.`,
+          "success"
+        );
+        setShowCheckInOutModal(false);
+        apiService.getPatients().then(setPatients);
+      }
     } catch (err) {
       console.error("Check-out failed:", err);
-      alert(err.response?.data?.message || "Check-out failed. No active session found.");
+      const errMsg = err.response?.data?.message || err.error || err.message || "Check-out failed. No active or completed session found.";
+      showToast("Check-Out Failed", errMsg, "error");
+      setCheckInOutError(errMsg);
+    } finally {
+      setCheckInOutLoading(false);
     }
   };
 
@@ -278,7 +330,16 @@ const AdminPatients = () => {
         <AppointmentModal 
           patient={selectedPatient}
           onClose={() => setShowApptModal(false)} 
-          onSuccess={() => setShowApptModal(false)}
+          onSuccess={(doctorName, visitDate) => {
+            setShowApptModal(false);
+            showToast(
+              "Appointment Booked!",
+              `Successfully scheduled appointment for ${selectedPatient.name} with Dr. ${doctorName} on ${visitDate}.`,
+              "success"
+            );
+            apiService.getPatients().then(setPatients);
+          }}
+          showToast={showToast}
         />
       )}
 
@@ -300,6 +361,170 @@ const AdminPatients = () => {
         onCancel={() => setShowDeleteConfirm(false)}
         type="danger"
       />
+
+      {showCheckInOutModal && checkInOutPatient && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in no-print">
+          <div className="absolute inset-0" onClick={() => !checkInOutLoading && setShowCheckInOutModal(false)}></div>
+          <div className="bg-white rounded-[3rem] w-full max-w-xl relative z-10 shadow-2xl overflow-hidden border border-white animate-scale-up flex flex-col max-h-[90vh]">
+            <div className="p-10 pb-6 border-b border-slate-100 flex justify-between items-start">
+              <div>
+                <h2 className="text-3xl font-black text-on-surface font-display tracking-tight">Check-In / Check-Out</h2>
+                <p className="text-sm text-on-surface-variant mt-1 font-medium">Manage active appointments for {checkInOutPatient.name}</p>
+              </div>
+              <button 
+                onClick={() => !checkInOutLoading && setShowCheckInOutModal(false)} 
+                className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-primary transition-colors hover:bg-slate-100"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="p-10 overflow-y-auto no-scrollbar space-y-6 flex-1 text-left">
+              {checkInOutError && (
+                <div className="p-5 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 animate-fade-in">
+                  <span className="material-symbols-outlined text-red-500 shrink-0">error</span>
+                  <div className="text-left">
+                    <p className="text-sm font-black text-red-800">Action Failed</p>
+                    <p className="text-xs font-bold text-red-600 mt-1 leading-relaxed">{checkInOutError}</p>
+                  </div>
+                </div>
+              )}
+
+              {checkInOutAction === 'checkin' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2 text-xs font-black uppercase tracking-wider text-slate-400">
+                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    Available Appointments for Check-In
+                  </div>
+                  {checkInOutAppointments.length === 0 ? (
+                    <div className="text-center py-10 bg-slate-50 rounded-3xl border border-slate-100">
+                      <span className="material-symbols-outlined text-4xl text-slate-300 mb-2 block">event_busy</span>
+                      <p className="text-slate-500 font-bold text-sm">No scheduled appointments left to check-in today.</p>
+                    </div>
+                  ) : (
+                    checkInOutAppointments.map((appt, idx) => (
+                      <div key={idx} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between hover:bg-white hover:shadow-md transition-all">
+                        <div>
+                          <h4 className="font-black text-on-surface text-base">{appt.doctor}</h4>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{appt.department} • {appt.time}</p>
+                        </div>
+                        <button
+                          disabled={checkInOutLoading}
+                          onClick={() => handleCheckIn(checkInOutPatient, appt.id)}
+                          className="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm disabled:opacity-50 flex items-center gap-1.5 font-bold"
+                        >
+                          {checkInOutLoading ? (
+                            'Checking In...'
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-sm">how_to_reg</span>
+                              Check-In
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {checkInOutAction === 'checkout' && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2 text-xs font-black uppercase tracking-wider text-slate-400">
+                    <span className="material-symbols-outlined text-sm">hourglass_empty</span>
+                    Active Sessions for Check-Out
+                  </div>
+                  {checkInOutAppointments.length === 0 ? (
+                    <div className="text-center py-10 bg-slate-50 rounded-3xl border border-slate-100">
+                      <span className="material-symbols-outlined text-4xl text-slate-300 mb-2 block">logout</span>
+                      <p className="text-slate-500 font-bold text-sm">No active checked-in appointments to check-out today.</p>
+                    </div>
+                  ) : (
+                    checkInOutAppointments.map((appt, idx) => {
+                      const isCompleted = appt.queue_status === 'COMPLETED';
+                      return (
+                        <div key={idx} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between hover:bg-white hover:shadow-md transition-all">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-black text-on-surface text-base">{appt.doctor}</h4>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                                isCompleted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {appt.queue_status || 'WAITING'}
+                              </span>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                              {appt.department} • Room {appt.room} • {appt.token}
+                            </p>
+                          </div>
+                          <button
+                            disabled={checkInOutLoading || !isCompleted}
+                            onClick={() => handleCheckOut(checkInOutPatient, appt.id)}
+                            className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm flex items-center gap-1.5 font-bold ${
+                              isCompleted 
+                                ? 'bg-primary hover:bg-primary/90 text-white hover:scale-105 active:scale-95 cursor-pointer' 
+                                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            }`}
+                            title={!isCompleted ? "Consultation must be completed by the doctor before checking out." : ""}
+                          >
+                            {checkInOutLoading ? (
+                              'Checking Out...'
+                            ) : (
+                              <>
+                                <span className="material-symbols-outlined text-sm">logout</span>
+                                Check-Out
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Toast / Push Notification */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-[9999] max-w-sm w-full bg-white/85 backdrop-blur-md rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100/50 overflow-hidden animate-in slide-in-from-top-10 slide-in-from-right-10 duration-300 no-print">
+          <div className="p-4 flex gap-3.5 items-start">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border ${
+              toast.type === 'success' 
+                ? 'bg-green-50 border-green-100 text-green-600' 
+                : 'bg-red-50 border-red-100 text-red-600'
+            }`}>
+              <span className="material-symbols-outlined text-xl">
+                {toast.type === 'success' ? 'check_circle' : 'error'}
+              </span>
+            </div>
+            
+            <div className="flex-1 text-left min-w-0 font-display">
+              <h4 className="text-sm font-extrabold text-slate-800 leading-tight mb-0.5">
+                {toast.title}
+              </h4>
+              <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                {toast.message}
+              </p>
+            </div>
+
+            <button 
+              onClick={() => setToast(null)}
+              className="text-slate-400 hover:text-slate-600 p-0.5 rounded-lg hover:bg-slate-100/50 transition-colors"
+            >
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
+          <div className="h-1 w-full bg-slate-100/80">
+            <div 
+              className={`h-full ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'} animate-toast-progress`}
+              style={{ animationDuration: '6000ms', animationTimingFunction: 'linear', animationFillMode: 'forwards' }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -331,7 +556,9 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
     guardian_name: patient?.guardian_name || '',
     guardian_nic: patient?.guardian_nic || '',
     guardian_phone: patient?.guardian_phone || '',
-    guardian_relationship: patient?.guardian_relationship || 'Father'
+    guardian_relationship: patient?.guardian_relationship || 'Father',
+    emergency_contact_name: patient?.emergency_contact_name || '',
+    emergency_contact_phone: patient?.emergency_contact_phone || ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -513,6 +740,33 @@ const PatientModal = ({ onClose, onSuccess, mode = 'create', patient = null }) =
                 </div>
               </div>
             )}
+
+            <div className="col-span-2 grid grid-cols-2 gap-6 bg-red-50/40 p-6 rounded-3xl border border-red-100/50 mt-2">
+              <div className="col-span-2">
+                <h4 className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-1 flex items-center gap-1.5">
+                  <span className="material-symbols-rounded text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>emergency</span>
+                  Emergency Contact Details
+                </h4>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Contact Person Name</label>
+                <input 
+                  className="w-full bg-white border-2 border-transparent focus:border-red-200 px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                  placeholder="e.g. Spouse, Parent, Friend"
+                  value={formData.emergency_contact_name}
+                  onChange={e => setFormData({...formData, emergency_contact_name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Emergency Contact Phone</label>
+                <input 
+                  className="w-full bg-white border-2 border-transparent focus:border-red-200 px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                  placeholder="Emergency Phone Number"
+                  value={formData.emergency_contact_phone}
+                  onChange={e => setFormData({...formData, emergency_contact_phone: e.target.value})}
+                />
+              </div>
+            </div>
 
             <div className="col-span-2 space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-outline ml-1">Address</label>
@@ -937,9 +1191,10 @@ const MedicalRecordsModal = ({ patient, onClose, onSuccess }) => {
   );
 };
 
-const AppointmentModal = ({ patient, onClose, onSuccess }) => {
+const AppointmentModal = ({ patient, onClose, onSuccess, showToast }) => {
   const [specialists, setSpecialists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [formData, setFormData] = useState({
     specialist_id: '',
     symptom: '',
@@ -949,72 +1204,172 @@ const AppointmentModal = ({ patient, onClose, onSuccess }) => {
   useEffect(() => {
     apiService.getSpecialists().then(data => {
       setSpecialists(data);
-      if (data.length > 0) setFormData(prev => ({ ...prev, specialist_id: data[0].id }));
+      if (data.length > 0) setFormData(prev => ({ ...prev, specialist_id: data[0].id.toString() }));
       setLoading(false);
     });
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.specialist_id) {
+      showToast("Validation Error", "Please select a doctor for the appointment.", "error");
+      return;
+    }
+    setSubmitLoading(true);
     try {
+      const selectedDoc = specialists.find(s => s.id.toString() === formData.specialist_id.toString());
+      const doctorName = selectedDoc ? `${selectedDoc.title || 'Dr.'} ${selectedDoc.name}` : "Specialist";
       await apiService.bookAppointment({
         patient_id: patient.id,
-        ...formData
+        specialist_id: parseInt(formData.specialist_id),
+        symptom: formData.symptom,
+        appointment_date: formData.appointment_date
       });
-      onSuccess();
+      onSuccess(doctorName, formData.appointment_date);
     } catch (err) {
       console.error("Booking error:", err);
-      alert("Failed to book appointment.");
+      showToast("Booking Failed", err.response?.data?.message || "Failed to book appointment. Please verify details.", "error");
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
+  const commonSymptoms = ["Fever", "Cough & Cold", "Body Ache", "Headache", "Routine Checkup"];
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col max-h-[90vh]">
-        <div className="p-8 border-b border-slate-100 bg-primary/5">
-          <h3 className="text-2xl font-bold text-on-surface font-display">Quick Booking</h3>
-          <p className="text-sm text-on-surface-variant font-medium">Schedule appointment for <strong>{patient.name}</strong></p>
+      <div className="bg-white rounded-[2.5rem] w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+        <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
+          <div className="text-left">
+            <h3 className="text-2xl font-bold text-on-surface font-display tracking-tight flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-2xl">calendar_month</span>
+              Book Appointment
+            </h3>
+            <p className="text-sm text-on-surface-variant font-medium mt-1">Schedule professional care for <strong>{patient.name}</strong></p>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-200 transition-colors flex items-center justify-center text-outline">
+            <span className="material-symbols-rounded">close</span>
+          </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto no-scrollbar">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Select Doctor</label>
-            <select 
-              className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm appearance-none"
-              value={formData.specialist_id}
-              onChange={e => setFormData({...formData, specialist_id: e.target.value})}
-            >
-              {specialists.map(s => (
-                <option key={s.id} value={s.id}>Dr. {s.name} ({s.department})</option>
-              ))}
-            </select>
+        {loading ? (
+          <div className="py-20 text-center flex-1">
+            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-outline font-bold uppercase tracking-widest text-xs">Fetching clinical specialists...</p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto no-scrollbar flex-1">
+            {/* Visit Date Selection */}
+            <div className="space-y-2 text-left">
+              <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Visit Date</label>
+              <div className="relative">
+                <input 
+                  type="date"
+                  required
+                  className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                  value={formData.appointment_date}
+                  onChange={e => setFormData({...formData, appointment_date: e.target.value})}
+                />
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Visit Date</label>
-            <input 
-              type="date"
-              className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm"
-              value={formData.appointment_date}
-              onChange={e => setFormData({...formData, appointment_date: e.target.value})}
-            />
-          </div>
+            {/* Doctor Selection list */}
+            <div className="space-y-2 text-left">
+              <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Select Attending Specialist</label>
+              <div className="space-y-3 max-h-56 overflow-y-auto pr-1 no-scrollbar">
+                {specialists.length === 0 ? (
+                  <p className="text-xs text-slate-400 font-bold text-center py-4 bg-slate-50 rounded-2xl">No specialists available currently.</p>
+                ) : (
+                  specialists.map(s => {
+                    const isSelected = formData.specialist_id.toString() === s.id.toString();
+                    return (
+                      <div 
+                        key={s.id} 
+                        onClick={() => setFormData({...formData, specialist_id: s.id.toString()})}
+                        className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between group ${
+                          isSelected 
+                            ? 'border-primary bg-primary/5 shadow-md shadow-primary/5' 
+                            : 'border-slate-100 bg-slate-50 hover:bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm transition-colors ${
+                            isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-600'
+                          }`}>
+                            {s.name.charAt(0)}
+                          </div>
+                          <div className="text-left">
+                            <h4 className="font-extrabold text-slate-800 text-sm">Dr. {s.name}</h4>
+                            <p className="text-[10px] font-bold text-slate-500 mt-0.5 uppercase tracking-wide">
+                              {s.department || s.specialization || 'General Clinical Practice'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <span className="text-[9px] font-black text-primary uppercase tracking-wider block">CONSULTATION FEE</span>
+                            <span className="font-extrabold text-slate-800 text-xs">LKR {s.consultation_fee ? s.consultation_fee.toLocaleString() : 'N/A'}</span>
+                          </div>
+                          {isSelected && (
+                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white animate-scale-up">
+                              <span className="material-symbols-outlined text-sm font-bold">check</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Primary Symptom</label>
-            <input 
-              placeholder="e.g. Fever, Routine checkup"
-              className="w-full bg-slate-50 border-none px-5 py-4 rounded-2xl outline-none font-bold text-sm"
-              value={formData.symptom}
-              onChange={e => setFormData({...formData, symptom: e.target.value})}
-            />
-          </div>
+            {/* Symptom Selection */}
+            <div className="space-y-2 text-left">
+              <label className="text-[10px] font-black uppercase tracking-widest text-outline ml-1">Primary Symptom / Reason for Visit</label>
+              <input 
+                placeholder="Describe symptom or clinical purpose..."
+                required
+                className="w-full bg-slate-50 border-2 border-transparent focus:border-primary/20 focus:bg-white px-5 py-3.5 rounded-2xl outline-none transition-all font-medium"
+                value={formData.symptom}
+                onChange={e => setFormData({...formData, symptom: e.target.value})}
+              />
+              <div className="flex flex-wrap gap-2 pt-1.5">
+                {commonSymptoms.map(sym => (
+                  <button
+                    key={sym}
+                    type="button"
+                    onClick={() => setFormData({...formData, symptom: sym})}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
+                      formData.symptom === sym 
+                        ? 'bg-primary border-primary text-white' 
+                        : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    {sym}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <div className="flex gap-4 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 rounded-2xl font-bold text-outline hover:bg-slate-100 transition-all">Cancel</button>
-            <button type="submit" className="flex-[2] py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Book Now</button>
-          </div>
-        </form>
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-4 shrink-0">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="flex-1 py-4 rounded-2xl font-bold text-outline hover:bg-slate-100 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={submitLoading || specialists.length === 0 || !formData.symptom.trim()}
+                className="flex-[2] py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {submitLoading ? 'Scheduling...' : 'Complete Appointment Booking'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

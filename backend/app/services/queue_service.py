@@ -253,17 +253,49 @@ def check_out_patient(patient_id, appointment_id=None):
     today = date.today()
     
     # Query any queue entry for this patient today (could be WAITING, ACTIVE, or COMPLETED)
-    query = Queue.query.join(Appointment).filter(
-        Appointment.patient_id == patient_id,
-        db.func.date(Appointment.appointment_date) == today
-    )
     if appointment_id:
-        query = query.filter(Appointment.id == appointment_id)
+        queue_entry = Queue.query.join(Appointment).filter(
+            Appointment.patient_id == patient_id,
+            Appointment.id == appointment_id,
+            db.func.date(Appointment.appointment_date) == today
+        ).first()
+        if not queue_entry:
+            return {"error": "No active check-in found for this appointment today."}
+    else:
+        # Query all active check-ins (i.e. check_out_time is None)
+        queue_entries = Queue.query.join(Appointment).filter(
+            Appointment.patient_id == patient_id,
+            db.func.date(Appointment.appointment_date) == today,
+            Queue.check_out_time == None
+        ).all()
         
-    queue_entry = query.first()
-    
-    if not queue_entry:
-        return {"error": "No active check-in found for this patient today."}
+        if not queue_entries:
+            return {"error": "No active check-in found for this patient today."}
+            
+        if len(queue_entries) > 1:
+            appt_list = []
+            for qe in queue_entries:
+                appt = qe.appointment
+                spec = appt.specialist
+                title = spec.title if (spec and spec.title) else "Dr."
+                sess = appt.session
+                appt_list.append({
+                    "id": appt.id,
+                    "doctor": f"{title} {spec.name}" if spec else "N/A",
+                    "department": spec.department if spec else "General",
+                    "time": appt.appointment_date.strftime("%I:%M %p") if appt.appointment_date else "N/A",
+                    "room": sess.room_number if sess and sess.room_number else "TBD",
+                    "queue_status": qe.status,
+                    "token": f"S{sess.session_number if sess else 1}-{qe.queue_number:02d}"
+                })
+            return {
+                "success": True,
+                "requires_selection": True,
+                "patient_id": patient_id,
+                "appointments": appt_list
+            }
+        
+        queue_entry = queue_entries[0]
         
     # Check doctor session status
     session = queue_entry.appointment.session if queue_entry.appointment else None

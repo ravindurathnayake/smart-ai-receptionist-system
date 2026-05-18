@@ -302,3 +302,31 @@
     background: #fee2e2;
     color: #ef4444;
 }
+
+/* =============================================
+   Toast & Modal Transitions and Animations
+   ============================================= */
+
+@keyframes toastProgress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+.animate-toast-progress {
+    animation-name: toastProgress;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.animate-fade-in {
+    animation: fadeIn 0.25s ease-out forwards;
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.animate-scale-up {
+    animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
