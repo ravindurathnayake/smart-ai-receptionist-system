@@ -14,7 +14,6 @@ const AdminQueue = () => {
   const [error, setError] = useState(null);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(voiceService.isVoiceEnabled);
-  const [voiceLang, setVoiceLang] = useState(voiceService.language);
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
   const [sessionToEnd, setSessionToEnd] = useState(null);
 
@@ -172,19 +171,7 @@ const AdminQueue = () => {
              </span>
            </button>
 
-           <button 
-             onClick={() => {
-               const newLang = voiceLang === 'en-US' ? 'si-LK' : 'en-US';
-               setVoiceLang(newLang);
-               voiceService.setLanguage(newLang);
-             }}
-             className="px-4 py-2 rounded-xl flex items-center gap-2 border border-outline-variant/10 bg-surface-container text-on-surface-variant hover:bg-primary/5 hover:text-primary transition-all"
-           >
-             <span className="material-symbols-rounded text-lg">language</span>
-             <span className="text-xs font-bold uppercase tracking-wider">
-               {voiceLang === 'en-US' ? 'EN' : 'SI'}
-             </span>
-           </button>
+
         </div>
       </div>
 

@@ -45,6 +45,7 @@ const AdminAppointments = () => {
   const { searchQuery } = useAdminSearch();
   const [activeFilter, setActiveFilter] = useState('All'); // All, Pending, Today
   const [sortBy, setSortBy] = useState('Recent First');
+  const [filterDate, setFilterDate] = useState('');
   
   const [stats, setStats] = useState({
     total: 0,
@@ -114,6 +115,11 @@ const AdminAppointments = () => {
       result = result.filter(apt => apt.status === 'Booked' || apt.status === 'Pending');
     }
 
+    // Apply Date Filter
+    if (filterDate) {
+      result = result.filter(apt => apt.date === filterDate);
+    }
+
     // Apply Search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -152,7 +158,7 @@ const AdminAppointments = () => {
       pending: appointments.filter(apt => apt.status === 'Booked' || apt.status === 'Pending').length,
       confirmed: appointments.filter(apt => apt.status === 'Confirmed' || apt.status === 'Checked-in').length
     });
-  }, [appointments, activeFilter, searchQuery, sortBy]);
+  }, [appointments, activeFilter, searchQuery, sortBy, filterDate]);
 
   const handleCancelClick = (aptId) => {
     setAptToCancel(aptId);
@@ -345,6 +351,27 @@ const AdminAppointments = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black text-outline uppercase tracking-widest">Filter Date:</span>
+            <div className="relative flex items-center">
+              <input 
+                type="date"
+                className="bg-white border border-outline-variant/30 rounded-xl pl-4 pr-10 py-2 text-sm font-bold outline-none focus:border-primary/30 transition-all text-on-surface"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+              />
+              {filterDate && (
+                <button 
+                  onClick={() => setFilterDate('')}
+                  className="absolute right-3 text-outline hover:text-primary transition-all flex items-center justify-center bg-transparent border-0 outline-none p-0 cursor-pointer"
+                  title="Clear Date"
+                >
+                  <span className="material-symbols-rounded text-sm">close</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-black text-outline uppercase tracking-widest">Sort:</span>
             <select 

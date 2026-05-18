@@ -67,3 +67,56 @@
     background: #00478d;
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Drawer Details Panel */
+.details-drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    justify-content: flex-end;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.details-drawer {
+    width: 100%;
+    max-width: 580px;
+    height: 100%;
+    background: #ffffff;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.details-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2.5rem;
+}
+
+.details-card-section {
+    background: #f8f9fa;
+    border-radius: 2rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    margin-bottom: 1.5rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
