@@ -16,6 +16,15 @@ import KioskPatientLogin from './pages/kiosk/KioskPatientLogin';
 import KioskPayment from './pages/kiosk/KioskPayment';
 import HospitalMap from './pages/kiosk/HospitalMap';
 
+// Remote Patient Web Pages
+import PatientLanding from './pages/patient/PatientLanding';
+import PatientLogin from './pages/patient/PatientLogin';
+import PatientRegister from './pages/patient/PatientRegister';
+import BookingPage from './pages/patient/BookingPage';
+import QueuePage from './pages/patient/QueuePage';
+import PatientAIChat from './pages/patient/PatientAIChat';
+import PatientMap from './pages/patient/PatientMap';
+
 // Admin Pages
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -53,6 +62,16 @@ function App() {
         <Route path="/patient-login" element={<KioskPatientLogin />} />
         <Route path="/payment" element={<KioskPayment />} />
         <Route path="/hospital-map" element={<HospitalMap />} />
+
+        {/* Remote Patient Web Routes */}
+        <Route path="/patient" element={<PatientLanding />} />
+        <Route path="/patient/login" element={<PatientLogin />} />
+        <Route path="/patient/register" element={<PatientRegister />} />
+        <Route path="/patient/dashboard" element={<PatientLanding />} />
+        <Route path="/patient/book" element={<BookingPage />} />
+        <Route path="/patient/queue" element={<QueuePage />} />
+        <Route path="/patient/chat" element={<PatientAIChat />} />
+        <Route path="/patient/map" element={<PatientMap />} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />

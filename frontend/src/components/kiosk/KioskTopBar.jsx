@@ -54,7 +54,7 @@ const KioskTopBar = ({ title, patientName, showHelp = true, showNotifications = 
                 <div className="flex gap-4 items-center">
                     {showNotifications && (
                         <div className="relative">
-                            <span 
+                            <span
                                 className={`material-symbols-outlined cursor-pointer transition-colors ${isNotificationsOpen ? 'text-primary' : 'text-slate-400 hover:text-primary'}`}
                                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                             >
@@ -63,7 +63,7 @@ const KioskTopBar = ({ title, patientName, showHelp = true, showNotifications = 
                             {unreadCount > 0 && (
                                 <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
                             )}
-                            
+
                             {isNotificationsOpen && (
                                 <div className="absolute top-10 right-0 w-80 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-outline-variant/20 overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                                     <div className="p-4 border-b border-outline-variant/10 flex justify-between items-center bg-slate-50/50">

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Logo = ({ size = 'md', showSubtitle = true, hideText = false, className = '' }) => {
+const Logo = ({ size = 'md', showSubtitle = true, hideText = false, className = '', dark = false }) => {
   // Size mapping
   const sizes = {
     sm: { icon: 'h-8',  title: 'text-xl',   subtitle: 'text-[9px]',  gap: 'gap-2' },
@@ -85,11 +85,11 @@ const Logo = ({ size = 'md', showSubtitle = true, hideText = false, className = 
       {!hideText && (
         <div className="flex flex-col justify-center leading-none">
           <div className={`${currentSize.title} font-extrabold tracking-tighter flex items-center`}>
-            <span className="text-[#1F365F] font-sans">MediAssist</span>
+            <span className={`${dark ? 'text-white' : 'text-[#1F365F]'} font-sans`}>MediAssist</span>
             <span className="text-[#86AE3A] ml-2 font-sans">AI</span>
           </div>
           {showSubtitle && (
-            <span className={`${currentSize.subtitle} font-extrabold text-[#5D708B] mt-1 space-x-1 tracking-tight uppercase opacity-90`}>
+            <span className={`${currentSize.subtitle} font-extrabold ${dark ? 'text-slate-400' : 'text-[#5D708B]'} mt-1 space-x-1 tracking-tight uppercase opacity-90`}>
               Smart Hospital Reception System
             </span>
           )}
