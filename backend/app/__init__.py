@@ -20,9 +20,23 @@ def create_app():
     from app.sockets import chat_socket
 
     # IMPORTANT: Import models so Flask-Migrate can detect them
-    from app.models import Specialist, Patient, Appointment, Queue, Department, DoctorSession, Payment, User, Review
+    from app.models import (
+        Specialist,
+        Patient,
+        Appointment,
+        Queue,
+        Department,
+        DoctorSession,
+        Payment,
+        User,
+        Review,
+        Prescription,
+        LabReport,
+        DoctorSessionRequest,
+        VitalRecord,
+    )
     
-    from app.routes import appointment_bp, specialist_bp, department_bp, admin_bp, patient_bp, queue_bp, payment_bp
+    from app.routes import appointment_bp, specialist_bp, department_bp, admin_bp, patient_bp, queue_bp, payment_bp, doctor_bp
     app.register_blueprint(appointment_bp, url_prefix="/api")
     app.register_blueprint(specialist_bp, url_prefix="/api/specialists")
     app.register_blueprint(department_bp, url_prefix="/api/departments")
@@ -30,6 +44,7 @@ def create_app():
     app.register_blueprint(patient_bp, url_prefix="/api/patients")
     app.register_blueprint(queue_bp)
     app.register_blueprint(payment_bp, url_prefix="/api/payment")
+    app.register_blueprint(doctor_bp, url_prefix="/api/doctor")
 
     from app.routes.review_routes import review_bp
     app.register_blueprint(review_bp)

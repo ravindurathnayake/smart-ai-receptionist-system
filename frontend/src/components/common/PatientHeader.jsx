@@ -35,7 +35,7 @@ const PatientHeader = () => {
         { name: 'Find Doctors', path: '/patient/book', icon: 'calendar_month' },
         { name: 'Hospital Map', path: '/patient/map', icon: 'map' }
     ];
-    const staffSignInPath = '/admin/login';
+    const staffSignInPath = '/staff/access';
 
     const handleNavClick = (path) => {
         setMobileMenuOpen(false);

@@ -9,3 +9,4 @@ from .admin_routes import admin_bp
 from .patient_routes import patient_bp
 from .queue_routes import queue_bp
 from .payment_routes import payment_bp
+from .doctor_routes import doctor_bp

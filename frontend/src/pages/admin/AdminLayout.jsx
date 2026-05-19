@@ -139,6 +139,7 @@ const AdminLayout = () => {
     {
       title: 'Operations',
       items: [
+        { name: 'Doctor Requests', icon: 'approval', path: '/admin/doctor-requests' },
         { name: 'Queue Control', icon: 'queue', path: '/admin/queue' },
         { name: 'System Health', icon: 'monitor_heart', path: '/admin/system-health' },
       ]

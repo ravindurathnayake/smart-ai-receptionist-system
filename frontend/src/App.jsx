@@ -24,12 +24,16 @@ import BookingPage from './pages/patient/BookingPage';
 import QueuePage from './pages/patient/QueuePage';
 import PatientAIChat from './pages/patient/PatientAIChat';
 import PatientMap from './pages/patient/PatientMap';
+import StaffAccess from './pages/staff/StaffAccess';
+import DoctorLogin from './pages/doctor/DoctorLogin';
+import DoctorDashboard from './pages/doctor/DoctorDashboard';
 
 // Admin Pages
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminAppointments from './pages/admin/AdminAppointments';
 import AdminDoctors from './pages/admin/AdminDoctors';
+import AdminDoctorRequests from './pages/admin/AdminDoctorRequests';
 import AdminQueue from './pages/admin/AdminQueue';
 import AdminPatients from './pages/admin/AdminPatients';
 import HospitalAnalytics from './pages/admin/HospitalAnalytics';
@@ -72,6 +76,9 @@ function App() {
         <Route path="/patient/queue" element={<QueuePage />} />
         <Route path="/patient/chat" element={<PatientAIChat />} />
         <Route path="/patient/map" element={<PatientMap />} />
+        <Route path="/staff/access" element={<StaffAccess />} />
+        <Route path="/doctor/login" element={<DoctorLogin />} />
+        <Route path="/doctor" element={<DoctorDashboard />} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -79,6 +86,7 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="appointments" element={<AdminAppointments />} />
           <Route path="doctors" element={<AdminDoctors />} />
+          <Route path="doctor-requests" element={<AdminDoctorRequests />} />
           <Route path="queue" element={<AdminQueue />} />
           <Route path="patients" element={<AdminPatients />} />
           <Route path="analytics" element={<HospitalAnalytics />} />

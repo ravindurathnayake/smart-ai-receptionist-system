@@ -9,3 +9,4 @@ from .user import User
 from .notification import Notification
 from .review import Review
 from .medical_record import Prescription, LabReport
+from .doctor_portal import DoctorSessionRequest, VitalRecord

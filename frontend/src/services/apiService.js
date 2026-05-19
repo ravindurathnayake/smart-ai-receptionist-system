@@ -11,7 +11,7 @@ const api = axios.create({
 
 // Request interceptor to add token if available
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('admin_token');
+    const token = localStorage.getItem('admin_token') || localStorage.getItem('doctor_token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -216,8 +216,10 @@ export const apiService = {
         const response = await api.get('/queue/status');
         return response.data;
     },
-    getSessionsQueues: async () => {
-        const response = await api.get('/queue/sessions-queues');
+    getSessionsQueues: async (specialistId = null) => {
+        const response = await api.get('/queue/sessions-queues', {
+            params: specialistId ? { specialist_id: specialistId } : undefined
+        });
         return response.data;
     },
     callNextPatient: async (sessionId) => {
@@ -295,6 +297,70 @@ export const apiService = {
     addLabReport: async (data) => {
         const response = await api.post('/medical/lab-reports', data);
         return response.data;
+    },
+
+    // Doctor Portal
+    getDoctorProfile: async (specialistId) => {
+        const response = await api.get('/doctor/profile', { params: { specialist_id: specialistId } });
+        return response.data.data;
+    },
+    getDoctorDashboard: async (specialistId) => {
+        const response = await api.get('/doctor/dashboard', { params: { specialist_id: specialistId } });
+        return response.data.data;
+    },
+    getDoctorSessionRequests: async (specialistId) => {
+        const response = await api.get('/doctor/session-requests', { params: { specialist_id: specialistId } });
+        return response.data.data;
+    },
+    createDoctorSessionRequest: async (specialistId, data) => {
+        const response = await api.post(`/doctor/session-requests?specialist_id=${specialistId}`, data);
+        return response.data.data;
+    },
+    getDoctorPatientRecords: async (patientId, specialistId) => {
+        const response = await api.get(`/doctor/patients/${patientId}/records`, { params: { specialist_id: specialistId } });
+        return response.data.data;
+    },
+    addDoctorPrescription: async (patientId, specialistId, data) => {
+        const response = await api.post(`/doctor/patients/${patientId}/prescriptions?specialist_id=${specialistId}`, data);
+        return response.data.data;
+    },
+    addVitalRecord: async (patientId, specialistId, data) => {
+        const response = await api.post(`/doctor/patients/${patientId}/vitals?specialist_id=${specialistId}`, data);
+        return response.data.data;
+    },
+    getDoctorQueue: async (specialistId) => {
+        const response = await api.get('/doctor/queue', { params: { specialist_id: specialistId } });
+        return response.data.data;
+    },
+    startDoctorQueueSession: async (sessionId, specialistId) => {
+        const response = await api.post(`/doctor/queue/${sessionId}/start?specialist_id=${specialistId}`);
+        return response.data.data;
+    },
+    callNextDoctorPatient: async (sessionId, specialistId) => {
+        const response = await api.post(`/doctor/queue/${sessionId}/call-next?specialist_id=${specialistId}`);
+        return response.data.data;
+    },
+    toggleDoctorQueuePause: async (sessionId, specialistId) => {
+        const response = await api.post(`/doctor/queue/${sessionId}/toggle-pause?specialist_id=${specialistId}`);
+        return response.data.data;
+    },
+    endDoctorQueueSession: async (sessionId, specialistId) => {
+        const response = await api.post(`/doctor/queue/${sessionId}/end?specialist_id=${specialistId}`);
+        return response.data.data;
+    },
+    skipDoctorQueuePatient: async (queueId, specialistId) => {
+        const response = await api.post(`/doctor/queue/patients/${queueId}/skip?specialist_id=${specialistId}`);
+        return response.data.data;
+    },
+    getAdminDoctorRequests: async (status = null) => {
+        const response = await api.get('/admin/doctor-requests', {
+            params: status ? { status } : undefined
+        });
+        return response.data.data;
+    },
+    reviewDoctorRequest: async (requestId, data) => {
+        const response = await api.patch(`/admin/doctor-requests/${requestId}`, data);
+        return response.data.data;
     },
     
     // Analytics

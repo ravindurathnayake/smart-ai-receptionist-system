@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/apiService';
 import { socketService } from '../../services/socketService';
 import './AdminDashboard.css';
@@ -38,7 +39,16 @@ const CLINIC_INSIGHTS = [
   }
 ];
 
+const formatDoctorRequestType = (value) => {
+  if (!value) return 'Doctor Request';
+  return value
+    .split('_')
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(' ');
+};
+
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState([
     { label: 'Total Patients Today', value: '0', subValue: 'Refreshing...', icon: 'person', color: 'primary' },
     { label: 'Active Queue', value: '0', subValue: 'Refreshing...', icon: 'queue', color: 'secondary' },
@@ -50,6 +60,7 @@ const AdminDashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [doctorRequests, setDoctorRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'rescheduled', 'cancelled'
   const [selectedItem, setSelectedItem] = useState(null); // For details modal
@@ -96,6 +107,8 @@ const AdminDashboard = () => {
     socketService.on('queue_updated', handleRefresh);
     socketService.on('stats_updated', handleRefresh);
     socketService.on('patient_created', handleRefresh);
+    socketService.on('doctor_request_created', handleRefresh);
+    socketService.on('doctor_request_updated', handleRefresh);
 
     return () => {
       socketService.off('new_notification');
@@ -106,17 +119,20 @@ const AdminDashboard = () => {
       socketService.off('queue_updated', handleRefresh);
       socketService.off('stats_updated', handleRefresh);
       socketService.off('patient_created', handleRefresh);
+      socketService.off('doctor_request_created', handleRefresh);
+      socketService.off('doctor_request_updated', handleRefresh);
     };
   }, []);
 
   const fetchData = async () => {
     try {
-      const [queueResponse, specialistsResponse, statsResponse, appointmentsResponse, notificationsResponse] = await Promise.all([
+      const [queueResponse, specialistsResponse, statsResponse, appointmentsResponse, notificationsResponse, doctorRequestsResponse] = await Promise.all([
         apiService.getQueueStatus(),
         apiService.getSpecialists(),
         apiService.getAdminStats(),
         apiService.getAllAppointments(),
-        apiService.getNotifications()
+        apiService.getNotifications(),
+        apiService.getAdminDoctorRequests('Pending')
       ]);
 
       if (statsResponse) {
@@ -158,6 +174,10 @@ const AdminDashboard = () => {
       if (notificationsResponse) {
         setNotifications(notificationsResponse);
       }
+
+      if (doctorRequestsResponse) {
+        setDoctorRequests(doctorRequestsResponse);
+      }
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {
@@ -177,6 +197,15 @@ const AdminDashboard = () => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const handleReviewDoctorRequest = async (requestId, status) => {
+    try {
+      await apiService.reviewDoctorRequest(requestId, { status });
+      fetchData();
+    } catch (err) {
+      console.error('Failed to review doctor request:', err);
     }
   };
 
@@ -254,6 +283,64 @@ const AdminDashboard = () => {
             <p className="text-3xl font-bold text-on-surface font-display">{stat.value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="bg-white p-8 rounded-[2.5rem] border border-outline-variant/30 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-xl font-bold font-display text-on-surface">Doctor Request Review</h3>
+            <p className="text-sm text-on-surface-variant font-medium mt-1">
+              Approve new sessions, review reschedules, and reject cancellation requests from doctors.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/admin/doctor-requests')}
+            className="px-6 py-3 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
+          >
+            Open Doctor Requests
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {doctorRequests.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-outline-variant/20 bg-slate-50/70 px-5 py-8 text-center">
+              <p className="text-xs font-black uppercase tracking-widest text-outline">No pending doctor requests</p>
+            </div>
+          ) : (
+            doctorRequests.slice(0, 3).map((item) => (
+              <div key={item.id} className="rounded-[1.75rem] border border-slate-100 bg-slate-50/60 px-5 py-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
+                      {formatDoctorRequestType(item.request_type)}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-outline">
+                      {item.department || 'Department N/A'}
+                    </span>
+                  </div>
+                  <h4 className="text-base font-bold text-on-surface">{item.doctor_name}</h4>
+                  <p className="mt-1 text-sm font-medium text-on-surface-variant">
+                    {item.reason || 'No doctor note provided.'}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => handleReviewDoctorRequest(item.id, 'Approved')}
+                    className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleReviewDoctorRequest(item.id, 'Rejected')}
+                    className="px-4 py-2.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-xs font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -1,11 +1,101 @@
-from flask import Blueprint, jsonify
-from ..models import Specialist, Patient, Appointment, Payment, Queue, Review
-from ..extensions import db
+from flask import Blueprint, jsonify, request
+from ..models import Appointment, DoctorSession, DoctorSessionRequest, Patient, Payment, Queue, Review, Specialist
+from ..extensions import db, socketio
 from datetime import datetime, date
 
 from ..utils.response import success_response, error_response
 
 admin_bp = Blueprint("admin_bp", __name__)
+
+
+def _serialize_doctor_request(item):
+    specialist = item.specialist
+    session = item.session
+    return {
+        "id": item.id,
+        "specialist_id": item.specialist_id,
+        "doctor_session_id": item.doctor_session_id,
+        "doctor_name": f"{specialist.title or 'Dr.'} {specialist.name}".strip() if specialist else "Doctor",
+        "department": specialist.department if specialist else None,
+        "specialization": specialist.specialization if specialist else None,
+        "request_type": item.request_type,
+        "requested_date": item.requested_date.strftime("%Y-%m-%d") if item.requested_date else None,
+        "requested_start_time": item.requested_start_time.strftime("%H:%M") if item.requested_start_time else None,
+        "requested_end_time": item.requested_end_time.strftime("%H:%M") if item.requested_end_time else None,
+        "requested_room_number": item.requested_room_number,
+        "requested_max_patients": item.requested_max_patients,
+        "reason": item.reason,
+        "status": item.status,
+        "admin_note": item.admin_note,
+        "created_at": item.created_at.isoformat() if item.created_at else None,
+        "updated_at": item.updated_at.isoformat() if item.updated_at else None,
+        "session": {
+            "id": session.id,
+            "session_date": session.session_date.strftime("%Y-%m-%d") if session and session.session_date else None,
+            "day_of_week": session.day_of_week if session else None,
+            "start_time": session.start_time.strftime("%H:%M") if session and session.start_time else None,
+            "end_time": session.end_time.strftime("%H:%M") if session and session.end_time else None,
+            "room_number": session.room_number if session else None,
+            "status": session.status if session else None,
+            "session_number": session.session_number if session else None,
+        } if session else None,
+    }
+
+
+def _apply_approved_doctor_request(item):
+    request_type = (item.request_type or "").upper()
+
+    if request_type == "NEW_SESSION_REQUEST":
+        new_session = DoctorSession(
+            specialist_id=item.specialist_id,
+            session_date=item.requested_date,
+            day_of_week=item.requested_date.strftime("%A") if item.requested_date else None,
+            start_time=item.requested_start_time or datetime.strptime("08:00", "%H:%M").time(),
+            end_time=item.requested_end_time or datetime.strptime("10:00", "%H:%M").time(),
+            max_patients=item.requested_max_patients or 20,
+            current_count=0,
+            session_number=(db.session.query(db.func.max(DoctorSession.session_number)).filter_by(specialist_id=item.specialist_id).scalar() or 0) + 1,
+            room_number=item.requested_room_number or "TBA",
+            status="NOT_STARTED",
+        )
+        db.session.add(new_session)
+        db.session.flush()
+        item.doctor_session_id = new_session.id
+        return
+
+    if not item.session:
+        return
+
+    if request_type == "RESCHEDULE_REQUEST":
+        if item.requested_date:
+            item.session.session_date = item.requested_date
+            item.session.day_of_week = item.requested_date.strftime("%A")
+        if item.requested_start_time:
+            item.session.start_time = item.requested_start_time
+        if item.requested_end_time:
+            item.session.end_time = item.requested_end_time
+        if item.requested_room_number:
+            item.session.room_number = item.requested_room_number
+        if item.requested_max_patients:
+            item.session.max_patients = item.requested_max_patients
+        if item.requested_date:
+            updated_time = item.requested_start_time or item.session.start_time
+            for appointment in Appointment.query.filter_by(doctor_session_id=item.session.id).all():
+                appointment.appointment_date = datetime.combine(item.requested_date, updated_time)
+                if appointment.status not in {"Completed", "Cancelled"}:
+                    appointment.status = "Rescheduled"
+        return
+
+    if request_type == "CANCEL_REQUEST":
+        item.session.status = "Cancelled"
+        waiting_entries = Queue.query.filter_by(doctor_session_id=item.session.id, status="WAITING").all()
+        for queue_item in waiting_entries:
+            queue_item.status = "NEEDS_RESCHEDULE"
+            if queue_item.appointment:
+                queue_item.appointment.status = "Needs Reschedule"
+        for appointment in Appointment.query.filter_by(doctor_session_id=item.session.id).all():
+            if appointment.status not in {"Completed", "Cancelled"}:
+                appointment.status = "Needs Reschedule"
 
 @admin_bp.route("/stats", methods=["GET"])
 def get_dashboard_stats():
@@ -135,4 +225,58 @@ def get_hospital_analytics():
         
         return success_response("Hospital analytics retrieved", result)
     except Exception as e:
+        return error_response(str(e), 500)
+
+
+@admin_bp.route("/doctor-requests", methods=["GET"])
+def get_doctor_requests():
+    try:
+        status = request.args.get("status")
+        query = DoctorSessionRequest.query.order_by(
+            db.case(
+                (DoctorSessionRequest.status == "Pending", 0),
+                else_=1
+            ),
+            DoctorSessionRequest.created_at.desc()
+        )
+        if status:
+            query = query.filter(DoctorSessionRequest.status == status)
+
+        items = query.all()
+        return success_response("Doctor requests retrieved", [_serialize_doctor_request(item) for item in items])
+    except Exception as e:
+        return error_response(str(e), 500)
+
+
+@admin_bp.route("/doctor-requests/<int:request_id>", methods=["PATCH"])
+def update_doctor_request(request_id):
+    try:
+        item = DoctorSessionRequest.query.get_or_404(request_id)
+        data = request.get_json(silent=True) or {}
+        decision = (data.get("status") or "").strip()
+
+        if decision not in {"Approved", "Rejected"}:
+            return error_response("status must be Approved or Rejected", 400)
+
+        if item.status != "Pending":
+            return error_response("Only pending requests can be reviewed", 400)
+
+        item.status = decision
+        item.admin_note = data.get("admin_note")
+
+        if decision == "Approved":
+            _apply_approved_doctor_request(item)
+
+        db.session.commit()
+
+        socketio.emit("doctor_request_updated", {
+            "id": item.id,
+            "status": item.status,
+            "specialist_id": item.specialist_id,
+        })
+        socketio.emit("queue_updated", {"type": "doctor_request_reviewed", "request_id": item.id})
+
+        return success_response("Doctor request updated", _serialize_doctor_request(item))
+    except Exception as e:
+        db.session.rollback()
         return error_response(str(e), 500)
