@@ -20,7 +20,7 @@ def seed_database():
         # db.create_all()
 
         # 2. Add Departments
-        dept_names = ["Cardiology", "Neurology", "Pediatrics", "Orthopedics", "General Medicine"]
+        dept_names = ["Cardiology", "Neurology", "Pediatrics", "Orthopedics", "General Medicine", "Dental"]
         depts_to_add = []
         for name in dept_names:
             if not Department.query.filter_by(name=name).first():
@@ -55,6 +55,12 @@ def seed_database():
                 "dept": "Pediatrics",
                 "spec": "Pediatrician",
                 "fee": 3000.0
+            },
+            {
+                "name": "Kanishka de Silva",
+                "dept": "Dental",
+                "spec": "Dentist & Dental Surgeon",
+                "fee": 2500.0
             }
         ]
         

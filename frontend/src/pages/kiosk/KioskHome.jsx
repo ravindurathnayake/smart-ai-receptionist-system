@@ -553,7 +553,12 @@ const KioskHome = () => {
                   )}
                 </div>
                 <div className="flex justify-end">
-                   <button onClick={() => {setShowChat(false); setChatHistory([{ role: 'bot', text: 'Ayubowan! I am your MediAssist AI. How can I help you today?' }])}} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Clear Conversation</button>
+                   <button onClick={() => {
+                      setShowChat(false);
+                      setChatHistory([{ role: 'bot', text: 'Ayubowan! I am your MediAssist AI. How can I help you today?' }]);
+                      socketService.emit('clear_chat', { patient_id: patient ? patient.id : null });
+                      apiService.clearChatAI(patient ? patient.id : null).catch(err => console.error(err));
+                    }} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Clear Conversation</button>
                 </div>
               </div>
             )}

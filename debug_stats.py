@@ -36,11 +36,11 @@ with app.app_context():
         
         print("Testing Queue...")
         q_active = Queue.query.filter(
-            Queue.status == "Active",
+            db.func.upper(Queue.status) == "ACTIVE",
             db.func.date(Queue.created_at) == today
         ).count()
         q_completed = Queue.query.filter(
-            Queue.status == "Completed",
+            db.func.upper(Queue.status) == "COMPLETED",
             db.func.date(Queue.completed_at) == today
         ).count()
         print(f"Queue: active={q_active}, completed={q_completed}")

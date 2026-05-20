@@ -16,4 +16,4 @@ from .queue_service import (
 )
 from .face_service import get_face_embedding, find_patient_by_face
 from .recommendation_service import recommend_specialist
-from .chatbot_service import process_message
+from .chatbot_service import process_message, clear_user_state

@@ -40,3 +40,15 @@ def handle_heartbeat(data):
     Relays kiosk heartbeat to all connected clients (Admin Dashboard).
     """
     socketio.emit('kiosk_heartbeat', data)
+
+
+@socketio.on('clear_chat')
+def handle_clear_chat(data):
+    """
+    Clears chatbot state via WebSocket.
+    """
+    patient_id = data.get('patient_id')
+    from app.services.chatbot_service import clear_user_state
+    clear_user_state(patient_id)
+    socketio.emit('chat_cleared', {'status': 'success'}, room=request.sid)
+

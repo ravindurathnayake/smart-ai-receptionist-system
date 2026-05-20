@@ -61,15 +61,17 @@ const PatientLanding = () => {
                 const analytics = await apiService.getHospitalAnalytics();
                 if (analytics) {
                     setStats({
-                        activeDoctors: analytics.active_doctors || 12,
-                        waitTime: analytics.average_wait_time || 15,
-                        servedToday: analytics.patients_served || 240
+                        activeDoctors: analytics.active_doctors ?? 12,
+                        waitTime: analytics.average_wait_time ?? 15,
+                        servedToday: analytics.patients_served ?? 0
                     });
                 }
             } catch (err) {
                 console.error("Failed to fetch hospital analytics:", err);
             }
+        };
 
+        const fetchReviews = async () => {
             try {
                 const reviewResponse = await apiService.getAllReviews();
                 if (reviewResponse && reviewResponse.data) {
@@ -84,6 +86,11 @@ const PatientLanding = () => {
         };
 
         fetchHospitalData();
+        fetchReviews();
+
+        // Real-time update: poll analytics every 5 seconds
+        const interval = setInterval(fetchHospitalData, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleQuickAction = (path) => {
@@ -308,13 +315,6 @@ const PatientLanding = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
                                 {/* Hero Text */}
                                 <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
-                                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/10 rounded-full text-primary font-black text-xs uppercase tracking-widest">
-                                        <span className="flex h-2 w-2 relative">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                                        </span>
-                                        MediAssist Digital Portal is Active
-                                    </div>
                                     <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 font-headline leading-[1.15] sm:leading-[1.1]">
                                         Hospital services <br />
                                         <span className="bg-gradient-to-r from-primary via-blue-700 to-emerald-600 bg-clip-text text-transparent">reimagined for anywhere.</span>
@@ -325,14 +325,14 @@ const PatientLanding = () => {
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                                         <button
                                             onClick={() => handleQuickAction('/patient/book')}
-                                            className="px-8 py-4.5 bg-primary hover:bg-primary-container text-white font-extrabold rounded-2xl transition-all duration-250 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-98 flex items-center justify-center gap-2 group cursor-pointer"
+                                            className="px-8 py-4.5 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-extrabold rounded-2xl transition-all duration-300 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-98 flex items-center justify-center gap-2 group cursor-pointer"
                                         >
                                             <span className="material-symbols-outlined font-black group-hover:rotate-6 transition-transform">calendar_today</span>
                                             Book Appointment Online
                                         </button>
                                         <button
                                             onClick={() => handleQuickAction('/patient/chat')}
-                                            className="px-8 py-4.5 bg-[#86AE3A] hover:opacity-95 text-white font-extrabold rounded-2xl transition-all duration-250 shadow-lg shadow-[#86AE3A]/20 hover:scale-[1.02] active:scale-98 flex items-center justify-center gap-2 group cursor-pointer"
+                                            className="px-8 py-4.5 bg-gradient-to-r from-[#86AE3A] to-emerald-600 hover:from-emerald-600 hover:to-[#86AE3A] text-white font-extrabold rounded-2xl transition-all duration-300 shadow-lg shadow-[#86AE3A]/20 hover:scale-[1.02] active:scale-98 flex items-center justify-center gap-2 group cursor-pointer"
                                         >
                                             <span className="material-symbols-outlined font-black group-hover:animate-bounce transition-all">smart_toy</span>
                                             Consult AI Assistant
@@ -344,9 +344,18 @@ const PatientLanding = () => {
                                 <div className="lg:col-span-5 relative w-full max-w-md mx-auto">
                                     <div className="absolute -inset-3 bg-gradient-to-r from-primary/30 to-emerald-500/20 rounded-[2.5rem] blur-2xl opacity-70 animate-pulse pointer-events-none" />
                                     <div className="relative rounded-[2.5rem] p-8 shadow-2xl bg-white border border-slate-100 flex flex-col space-y-6">
-                                        <h3 className="text-xl font-black text-slate-800 font-headline flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-primary font-black animate-spin duration-1000">insights</span>
-                                            Live Hospital Pulse
+                                        <h3 className="text-xl font-black text-slate-800 font-headline flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-primary font-black animate-pulse">insights</span>
+                                                Live Hospital Pulse
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-100 rounded-full">
+                                                <span className="flex h-2 w-2 relative">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                                                </span>
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Live</span>
+                                            </div>
                                         </h3>
 
                                         <div className="grid grid-cols-3 gap-4">

@@ -68,6 +68,21 @@ const PatientAIChat = () => {
         handleSendMessage(tagText);
     };
 
+    const handleClearChat = async () => {
+        const initialMessages = [
+            {
+                sender: 'ai',
+                text: "Hello! I am your MediAssist Digital Triage Assistant. You can describe symptoms to check clinic referrals, request indoor directions, or ask about general clinic schedules. How may I assist you today?"
+            }
+        ];
+        setMessages(initialMessages);
+        try {
+            await apiService.clearChatAI(patient?.id || null);
+        } catch (err) {
+            console.error("Failed to clear chat on backend:", err);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-body text-slate-800 flex flex-col relative selection:bg-primary selection:text-white overflow-x-hidden">
             <PatientHeader />
@@ -129,18 +144,27 @@ const PatientAIChat = () => {
                                 <h3 className="text-sm font-black text-slate-800 font-headline">Digital Clinic Guide</h3>
                                 <span className="text-[10px] text-emerald-500 font-black uppercase tracking-wider mt-1 block flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                                    Online / NLP Active
+                                    Online
                                 </span>
                             </div>
                         </div>
 
-                        <button 
-                            onClick={() => navigate('/patient/book')}
-                            className="self-start sm:self-auto px-4 py-2 border border-slate-200 hover:border-primary hover:text-primary rounded-xl font-black text-[10px] uppercase tracking-wider transition-all flex items-center gap-1"
-                        >
-                            <span className="material-symbols-outlined text-sm font-bold">calendar_month</span>
-                            Book Doctor
-                        </button>
+                        <div className="flex gap-2 self-start sm:self-auto">
+                            <button 
+                                onClick={handleClearChat}
+                                className="px-4 py-2 border border-slate-200 hover:border-red-500 hover:text-red-500 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-sm font-bold">delete_sweep</span>
+                                Clear Chat
+                            </button>
+                            <button 
+                                onClick={() => navigate('/patient/book')}
+                                className="px-4 py-2 border border-slate-200 hover:border-primary hover:text-primary rounded-xl font-black text-[10px] uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-sm font-bold">calendar_month</span>
+                                Book Doctor
+                            </button>
+                        </div>
                     </div>
 
                     {/* Messages Scroll Panel */}

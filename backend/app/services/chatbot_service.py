@@ -322,7 +322,7 @@ def process_message(message, patient_id=None):
         intent_override = "book_appointment"
     elif any(w in message for w in ["queue", "wait", "position", "turn", "token"]): 
         intent_override = "queue_status"
-    elif any(w in message for w in ["pain", "hurt", "sick", "symptom", "ill", "describe"]): 
+    elif any(w in message for w in ["pain", "hurt", "sick", "symptom", "ill", "describe", "teeth", "tooth", "ache", "fever", "cough", "flu", "rash"]): 
         intent_override = "recommend_specialist"
     elif any(w in message for w in ["check in", "check-in", "arrive", "arrived"]): 
         intent_override = "check_in"
@@ -493,3 +493,24 @@ def process_message(message, patient_id=None):
         }
 
     return {"reply": "I am the MediAssist AI Receptionist. I'm here to help you with symptoms, booking, and hospital information. How can I serve you today?", "actions": [{"label": "Need Help?", "type": "message", "payload": "help"}]}
+
+
+def clear_user_state(patient_id=None):
+    # Safely sanitize and normalize patient_id
+    if patient_id is not None:
+        try:
+            if isinstance(patient_id, str):
+                pid_str = patient_id.strip().lower()
+                if pid_str in ("undefined", "null", ""):
+                    patient_id = None
+                else:
+                    patient_id = int(patient_id)
+            else:
+                patient_id = int(patient_id)
+        except (ValueError, TypeError):
+            patient_id = None
+
+    user_key = str(patient_id) if patient_id else "anonymous"
+    user_states[user_key] = {"step": "idle", "data": {}}
+    user_states["anonymous"] = {"step": "idle", "data": {}}
+

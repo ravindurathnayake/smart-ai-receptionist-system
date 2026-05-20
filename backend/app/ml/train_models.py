@@ -27,6 +27,10 @@ intent_data = [
     ("what doctor for chest pain", "recommend_specialist"), ("i have a heart problem", "recommend_specialist"),
     ("my skin is itchy", "recommend_specialist"), ("my back hurts", "recommend_specialist"),
     ("recommend doctor", "recommend_specialist"), ("symptom check", "recommend_specialist"),
+    ("i have teeth pain", "recommend_specialist"), ("i have a teeth main", "recommend_specialist"),
+    ("i have toothache", "recommend_specialist"), ("my teeth hurt", "recommend_specialist"),
+    ("my tooth hurts", "recommend_specialist"), ("dental clinic", "recommend_specialist"),
+    ("dentist recommendation", "recommend_specialist"),
     
     # Book Appointment
     ("book an appointment", "book_appointment"), ("schedule a visit", "book_appointment"),
@@ -73,6 +77,16 @@ symptom_data = [
     ("chest tightness", "Cardiology"), ("heart surgery", "Cardiology"),
     ("fainting", "Cardiology"), ("short of breath", "Cardiology"),
     ("racing heart", "Cardiology"), ("skipped heart beat", "Cardiology"),
+    ("i have chest pain", "Cardiology"), ("i have a chest pain", "Cardiology"),
+    ("severe chest pain", "Cardiology"),
+    
+    # Dental
+    ("teeth pain", "Dental"), ("toothache", "Dental"), ("teeth main", "Dental"),
+    ("tooth pain", "Dental"), ("bleeding gums", "Dental"), ("dental pain", "Dental"),
+    ("sore gums", "Dental"), ("cavity", "Dental"), ("swollen gums", "Dental"),
+    ("i have teeth pain", "Dental"), ("i have a teeth main", "Dental"),
+    ("i have toothache", "Dental"), ("my teeth hurt", "Dental"), ("my tooth hurts", "Dental"),
+    ("dental checkup", "Dental"), ("tooth extraction", "Dental"),
     
     # Dermatology
     ("skin rash", "Dermatology"), ("itchy skin", "Dermatology"), ("acne", "Dermatology"),
@@ -187,7 +201,7 @@ def train_and_save():
     
     intent_model = Pipeline([
         ('tfidf', TfidfVectorizer(ngram_range=(1, 2))),
-        ('clf', LogisticRegression(max_iter=1000))
+        ('clf', LogisticRegression(C=50.0, max_iter=1000))
     ])
     intent_model.fit(intent_texts, intent_labels)
     
@@ -197,7 +211,7 @@ def train_and_save():
     
     symptom_model = Pipeline([
         ('tfidf', TfidfVectorizer(ngram_range=(1, 2))),
-        ('clf', LogisticRegression(max_iter=1000))
+        ('clf', LogisticRegression(C=50.0, max_iter=1000))
     ])
     symptom_model.fit(symptom_texts, symptom_labels)
     

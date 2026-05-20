@@ -173,6 +173,10 @@ export const apiService = {
         const response = await api.post('/chat', { message, patient_id: patientId });
         return response.data;
     },
+    clearChatAI: async (patientId = null) => {
+        const response = await api.post('/chat/clear', { patient_id: patientId });
+        return response.data;
+    },
     checkInPatient: async (patientId, appointmentId = null) => {
         const response = await api.post(`/check-in/${patientId}`, { appointment_id: appointmentId });
         return response.data.data;

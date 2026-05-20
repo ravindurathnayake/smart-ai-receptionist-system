@@ -276,6 +276,9 @@ const KioskAIAssistant = () => {
         setChatHistory(initialChat);
         if (patient?.id) {
             localStorage.setItem(`chatHistory_${patient.id}`, JSON.stringify(initialChat));
+            apiService.clearChatAI(patient.id).catch(err => console.error(err));
+        } else {
+            apiService.clearChatAI(null).catch(err => console.error(err));
         }
     };
 

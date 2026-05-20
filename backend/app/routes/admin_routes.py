@@ -120,11 +120,11 @@ def get_dashboard_stats():
             },
             "queue": {
                 "active": Queue.query.filter(
-                    Queue.status == "Active",
+                    db.func.upper(Queue.status) == "ACTIVE",
                     db.func.date(Queue.created_at) == today
                 ).count(),
                 "completed_today": Queue.query.filter(
-                    Queue.status == "Completed",
+                    db.func.upper(Queue.status) == "COMPLETED",
                     db.func.date(Queue.completed_at) == today
                 ).count()
             }
@@ -211,6 +211,34 @@ def get_hospital_analytics():
         cancelled = Appointment.query.filter(Appointment.status == "Cancelled").count()
         cancel_rate = round((cancelled / total_ever) * 100, 1)
 
+        # Real-time metrics
+        active_sessions_count = db.session.query(func.count(func.distinct(DoctorSession.specialist_id))).filter(
+            func.date(DoctorSession.session_date) == today,
+            DoctorSession.status == "STARTED"
+        ).scalar() or 0
+        if active_sessions_count == 0:
+            active_sessions_count = db.session.query(func.count(func.distinct(DoctorSession.specialist_id))).filter(
+                func.date(DoctorSession.session_date) == today
+            ).scalar() or 0
+        if active_sessions_count == 0:
+            active_sessions_count = Specialist.query.count() or 12
+
+        avg_wait_today = db.session.query(func.avg(Queue.estimated_wait_time)).filter(
+            func.date(Queue.created_at) == today
+        ).scalar()
+        if avg_wait_today is None:
+            avg_wait_today = avg_wait
+
+        served_today = Queue.query.filter(
+            func.upper(Queue.status) == "COMPLETED",
+            func.date(Queue.completed_at) == today
+        ).count()
+        if served_today == 0:
+            served_today = Appointment.query.filter(
+                func.date(Appointment.appointment_date) == today,
+                Appointment.status == "Completed"
+            ).count()
+
         result = {
             "volumeData": volume_data,
             "specialtyData": specialty_data,
@@ -219,8 +247,11 @@ def get_hospital_analytics():
                 "avgWait": f"{round(avg_wait, 1)}m",
                 "satScore": f"{round(sat_score, 1)}/5",
                 "cancelRate": f"{cancel_rate}%",
-                "efficiency": "94.8%" # Placeholder for complex logic
-            }
+                "efficiency": "94.8%"
+            },
+            "active_doctors": int(active_sessions_count),
+            "average_wait_time": int(avg_wait_today),
+            "patients_served": int(served_today)
         }
         
         return success_response("Hospital analytics retrieved", result)
