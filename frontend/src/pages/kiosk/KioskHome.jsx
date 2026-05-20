@@ -456,7 +456,6 @@ const KioskHome = () => {
       <main className="flex-grow flex flex-col items-center justify-center relative px-8 gap-4 pt-2 pb-8 overflow-hidden h-full">
         {/* Background Ambient Element */}
         <div className="absolute inset-0 ai-pulse-bg -z-10"></div>
-        <div className="cyber-grid"></div>
 
         {/* Emergency Assistance Button - Top Right Positioning */}
         <div className="absolute top-4 right-8 z-20">
@@ -474,26 +473,26 @@ const KioskHome = () => {
           {/* Friendly AI Bot Avatar */}
           <div className="relative group cursor-pointer" onClick={() => setShowChat(!showChat)}>
             <div className="absolute -inset-8 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700"></div>
-            <div className="floating-bot relative">
-              <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-white shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] glow-effect flex items-center justify-center overflow-hidden border-4 border-white relative">
+            <div className="relative">
+              <div className="w-48 h-48 md:w-56 md:h-56 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden border-4 border-slate-100/80 relative">
                 <img 
                   alt="Friendly AI Robot Avatar" 
                   className="w-full h-full object-cover rounded-full" 
                   src={AvatarImage} 
                 />
               </div>
-              <div className="absolute -bottom-2 right-1/2 translate-x-1/2 glass-panel border border-primary/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
-                <div className="w-2.5 h-2.5 bg-secondary rounded-full animate-pulse"></div>
-                <span className="text-xs font-bold text-primary tracking-widest uppercase">{translations[language].smartAIActive}</span>
+              <div className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-white/95 border border-slate-200/80 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-md">
+                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] font-bold text-slate-700 tracking-widest uppercase">{translations[language].smartAIActive}</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
-            <h2 className="font-headline text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight leading-tight">
+            <h2 className="font-headline text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
               {patientName ? `${translations[language].howCanIHelp.replace('you', patientName.split(' ')[0])}` : translations[language].howCanIHelp}
             </h2>
-            <p className="text-on-surface-variant text-lg max-w-2xl mx-auto font-medium">
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto font-medium">
               {translations[language].description}
             </p>
           </div>
@@ -501,7 +500,7 @@ const KioskHome = () => {
           {/* Chat Input Area */}
           <div className="w-full max-w-2xl space-y-3">
             {showChat && (
-              <div className="glass-panel w-full p-6 mb-4 rounded-[2rem] border border-white/50 text-left bg-white/40 backdrop-blur-xl shadow-2xl">
+              <div className="w-full p-6 mb-4 rounded-3xl border border-slate-200/60 text-left bg-white/90 backdrop-blur-xl shadow-xl">
                 <div 
                   ref={scrollRef}
                   className="max-h-[300px] overflow-y-auto no-scrollbar space-y-4 mb-4 scroll-smooth"
@@ -511,7 +510,7 @@ const KioskHome = () => {
                       <div className={`max-w-[85%] p-4 rounded-2xl ${
                         chat.role === 'user' 
                           ? 'bg-primary text-white rounded-tr-none' 
-                          : 'bg-white/80 text-on-surface rounded-tl-none shadow-sm'
+                          : 'bg-slate-100 text-slate-800 rounded-tl-none shadow-sm'
                       }`}>
                         <p className="text-sm font-medium leading-relaxed">{chat.text}</p>
                         {chat.actions && chat.actions.length > 0 && (
@@ -545,7 +544,7 @@ const KioskHome = () => {
                   ))}
                   {isTyping && (
                     <div className="flex justify-start">
-                      <div className="bg-white/80 p-4 rounded-2xl rounded-tl-none shadow-sm flex gap-1">
+                      <div className="bg-slate-100 p-4 rounded-2xl rounded-tl-none shadow-sm flex gap-1">
                         <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></div>
                         <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]"></div>
                         <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]"></div>
@@ -554,15 +553,15 @@ const KioskHome = () => {
                   )}
                 </div>
                 <div className="flex justify-end">
-                   <button onClick={() => {setShowChat(false); setChatHistory([{ role: 'bot', text: 'Ayubowan! I am your MediAssist AI. How can I help you today?' }])}} className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest hover:text-primary transition-colors">Clear Conversation</button>
+                   <button onClick={() => {setShowChat(false); setChatHistory([{ role: 'bot', text: 'Ayubowan! I am your MediAssist AI. How can I help you today?' }])}} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Clear Conversation</button>
                 </div>
               </div>
             )}
 
-            <div className="glass-panel p-2 rounded-[2.5rem] shadow-2xl border border-white/50 flex items-center gap-2">
+            <div className="p-2 rounded-full shadow-lg border border-slate-200/80 bg-white flex items-center gap-2">
               <div className="flex-grow relative">
                 <input 
-                  className="w-full bg-transparent border-none focus:outline-none text-xl py-4 px-8 font-medium placeholder:text-on-surface-variant/40" 
+                  className="w-full bg-transparent border-none focus:outline-none text-xl py-4 px-8 font-medium placeholder:text-slate-400" 
                   placeholder={translations[language].typeMessage} 
                   type="text" 
                   value={inputValue}
@@ -571,20 +570,14 @@ const KioskHome = () => {
                 />
               </div>
               <button 
-                onClick={() => navigate('/assistant')}
-                className="bg-primary text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all flex-shrink-0 relative mic-ripple"
-              >
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
-              </button>
-              <button 
                 onClick={() => handleSend()}
-                className="bg-primary text-white px-8 py-3 md:py-4 rounded-full font-bold text-lg shadow-xl hover:bg-primary-container transition-all active:scale-95 flex-shrink-0 mr-1"
+                className="bg-primary text-white px-8 py-3 md:py-4 rounded-full font-bold text-lg shadow-md hover:bg-primary/90 transition-all active:scale-95 flex-shrink-0 mr-1"
               >
                 {translations[language].send}
               </button>
             </div>
             <div className="flex justify-center gap-3">
-              <span className="text-xs font-bold text-on-surface-variant/60 tracking-widest uppercase mb-4">{translations[language].tryLabel} "Where is the pharmacy?" • "Check me in" • "Doctor directory"</span>
+              <span className="text-xs font-bold text-slate-400 tracking-widest uppercase mb-4">{translations[language].tryLabel} "Where is the pharmacy?" • "Check me in" • "Doctor directory"</span>
             </div>
           </div>
         </div>
@@ -595,21 +588,18 @@ const KioskHome = () => {
             {/* Personal Dashboard */}
             <button 
               onClick={() => navigate(patient ? '/patient-dashboard' : '/patient-login')}
-              className={`group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in ${patient ? 'ring-2 ring-primary/20 bg-primary/5' : ''}`}
+              className={`group p-6 rounded-2xl bg-white border border-slate-100 shadow-md hover:shadow-lg hover:border-primary/20 transition-all text-left flex flex-col gap-4 service-card animate-fade-in ${patient ? 'ring-2 ring-primary/20 bg-primary/5' : ''}`}
             >
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <span className="material-symbols-outlined text-8xl">account_circle</span>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-primary-container flex items-center justify-center text-primary shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner">
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
               </div>
               <div>
-                <h3 className="text-lg font-bold font-headline text-on-surface">
+                <h3 className="text-lg font-bold font-headline text-slate-800">
                   {patient ? (language === 'si' ? 'උපකරණ පුවරුව බලන්න' : language === 'ta' ? 'டாஷ்போர்டைப் பார்க்கவும்' : 'View Dashboard') : translations[language].personalDashboard}
                 </h3>
                 <p className="text-xs text-slate-500 font-body mt-1">{translations[language].medicalHistory}</p>
               </div>
-              <div className="flex items-center text-primary font-semibold text-xs mt-auto">
+              <div className="flex items-center text-blue-600 font-semibold text-xs mt-auto">
                 <span>{patient ? translations[language].viewProfile : translations[language].accessProfile}</span>
                 <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
@@ -618,19 +608,16 @@ const KioskHome = () => {
             {/* Check-in */}
             <button 
               onClick={() => navigate('/checkin-out')}
-              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in [animation-delay:0.1s]"
+              className="group p-6 rounded-2xl bg-white border border-slate-100 shadow-md hover:shadow-lg hover:border-secondary/20 transition-all text-left flex flex-col gap-4 service-card animate-fade-in [animation-delay:0.1s]"
             >
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <span className="material-symbols-outlined text-8xl">check_circle</span>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-secondary-container flex items-center justify-center text-on-secondary-container">
+              <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600">
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               </div>
               <div>
-                <h3 className="text-lg font-bold font-headline text-on-surface">{translations[language].quickCheckIn}</h3>
+                <h3 className="text-lg font-bold font-headline text-slate-800">{translations[language].quickCheckIn}</h3>
                 <p className="text-xs text-slate-500 font-body mt-1">{translations[language].scanAppointment}</p>
               </div>
-              <div className="flex items-center text-secondary font-semibold text-xs mt-auto">
+              <div className="flex items-center text-teal-600 font-semibold text-xs mt-auto">
                 <span>{translations[language].checkInNow}</span>
                 <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
@@ -639,19 +626,16 @@ const KioskHome = () => {
             {/* New Patient */}
             <button 
               onClick={() => navigate('/register/step1')}
-              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in [animation-delay:0.2s]"
+              className="group p-6 rounded-2xl bg-white border border-slate-100 shadow-md hover:shadow-lg hover:border-primary/20 transition-all text-left flex flex-col gap-4 service-card animate-fade-in [animation-delay:0.2s]"
             >
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <span className="material-symbols-outlined text-8xl">person_add</span>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-primary-fixed flex items-center justify-center text-primary">
+              <div className="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600">
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>person_add</span>
               </div>
               <div>
-                <h3 className="text-lg font-bold font-headline text-on-surface">{translations[language].newPatient}</h3>
+                <h3 className="text-lg font-bold font-headline text-slate-800">{translations[language].newPatient}</h3>
                 <p className="text-xs text-slate-500 font-body mt-1">{translations[language].registerFirstTime}</p>
               </div>
-              <div className="flex items-center text-primary font-semibold text-xs mt-auto">
+              <div className="flex items-center text-sky-600 font-semibold text-xs mt-auto">
                 <span>{translations[language].getStarted}</span>
                 <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
@@ -660,19 +644,16 @@ const KioskHome = () => {
             {/* Find Doctor */}
             <button 
               onClick={() => navigate('/doctors')}
-              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in [animation-delay:0.3s]"
+              className="group p-6 rounded-2xl bg-white border border-slate-100 shadow-md hover:shadow-lg hover:border-tertiary/20 transition-all text-left flex flex-col gap-4 service-card animate-fade-in [animation-delay:0.3s]"
             >
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <span className="material-symbols-outlined text-8xl">medical_information</span>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-tertiary-fixed flex items-center justify-center text-tertiary">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>medical_information</span>
               </div>
               <div>
-                <h3 className="text-lg font-bold font-headline text-on-surface">{translations[language].findDoctors}</h3>
+                <h3 className="text-lg font-bold font-headline text-slate-800">{translations[language].findDoctors}</h3>
                 <p className="text-xs text-slate-500 font-body mt-1">{translations[language].specialistsAvailability}</p>
               </div>
-              <div className="flex items-center text-tertiary font-semibold text-xs mt-auto">
+              <div className="flex items-center text-indigo-600 font-semibold text-xs mt-auto">
                 <span>{translations[language].searchDirectory}</span>
                 <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
@@ -681,19 +662,16 @@ const KioskHome = () => {
             {/* Hospital Map */}
             <button 
               onClick={() => navigate('/hospital-map')}
-              className="group relative p-6 rounded-[2rem] bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl hover:bg-white/80 transition-all text-left flex flex-col gap-4 overflow-hidden service-card animate-fade-in [animation-delay:0.4s]"
+              className="group p-6 rounded-2xl bg-white border border-slate-100 shadow-md hover:shadow-lg hover:border-slate-300 transition-all text-left flex flex-col gap-4 service-card animate-fade-in [animation-delay:0.4s]"
             >
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <span className="material-symbols-outlined text-8xl">map</span>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600">
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>map</span>
               </div>
               <div>
-                <h3 className="text-lg font-bold font-headline text-on-surface">{translations[language].hospitalMap}</h3>
+                <h3 className="text-lg font-bold font-headline text-slate-800">{translations[language].hospitalMap}</h3>
                 <p className="text-xs text-slate-500 font-body mt-1">{translations[language].facilitiesNavigation}</p>
               </div>
-              <div className="flex items-center text-on-surface-variant font-semibold text-xs mt-auto">
+              <div className="flex items-center text-slate-600 font-semibold text-xs mt-auto">
                 <span>{translations[language].viewMap}</span>
                 <span className="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
               </div>
@@ -703,8 +681,8 @@ const KioskHome = () => {
       </main>
 
       {/* Bottom Queue Ticker */}
-      <footer className="bg-white/90 backdrop-blur-lg h-16 flex items-center overflow-hidden border-t border-outline-variant/10 relative z-50 shrink-0 cursor-pointer" onClick={() => navigate('/queue')}>
-        <div className="px-10 h-full flex items-center bg-primary text-white font-headline font-bold text-lg whitespace-nowrap shadow-[10px_0_30px_rgba(0,0,0,0.1)] relative z-10 gap-3">
+      <footer className="bg-white/95 backdrop-blur-lg h-16 flex items-center overflow-hidden border-t border-slate-200/80 relative z-50 shrink-0 cursor-pointer" onClick={() => navigate('/queue')}>
+        <div className="px-10 h-full flex items-center bg-primary text-white font-headline font-bold text-lg whitespace-nowrap shadow-[10px_0_30px_rgba(0,0,0,0.05)] relative z-10 gap-3">
           <div className="live-dot"></div>
           {translations[language].liveQueue}
         </div>
@@ -715,7 +693,7 @@ const KioskHome = () => {
                 [...queueStatus, ...queueStatus].map((item, idx) => (
                     <React.Fragment key={idx}>
                         <div className="flex items-center gap-4 w-max">
-                            <span className="text-on-surface-variant font-medium">
+                            <span className="text-slate-600 font-medium">
                                 {item.department} {item.room !== 'TBA' ? `(${item.room})` : ''}:
                             </span>
                             <span className={`px-3 py-1 rounded-lg font-bold ${
@@ -729,60 +707,53 @@ const KioskHome = () => {
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                                     item.session_status === 'PAUSED' ? 'bg-warning-container text-on-warning-container' : 
                                     item.session_status === 'ENDED' ? 'bg-error-container text-on-error-container' : 
-                                    'bg-outline-variant/20 text-on-surface-variant'
+                                    'bg-slate-200 text-slate-700'
                                 }`}>
                                     {item.session_status.replace('_', ' ')}
                                 </span>
                             )}
                         </div>
-                        <div className="w-1.5 h-1.5 bg-outline-variant/30 rounded-full flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 bg-slate-300 rounded-full flex-shrink-0"></div>
                     </React.Fragment>
                 ))
             ) : (
-                <div className="flex items-center gap-4 w-max text-on-surface-variant/40 font-bold italic uppercase tracking-widest text-xs">
+                <div className="flex items-center gap-4 w-max text-slate-400 font-bold italic uppercase tracking-widest text-xs">
                    No active queues at the moment • Updates automatically
                 </div>
             )}
           </div>
         </div>
 
-        <div className="h-full flex items-center px-8 bg-surface-container-low/50 border-l border-outline-variant/10 min-w-[200px]">
+        <div className="h-full flex items-center px-8 bg-slate-50/50 border-l border-slate-200/80 min-w-[200px]">
           <div className="flex flex-col items-end w-full">
             <span className="text-2xl font-bold font-headline leading-none text-primary">{formattedTime}</span>
-            <span className="text-xs font-bold text-on-surface-variant tracking-tighter mt-1">{formattedDate}</span>
+            <span className="text-xs font-bold text-slate-500 tracking-tighter mt-1">{formattedDate}</span>
           </div>
         </div>
       </footer>
 
       {/* Side Navigation Accessibility Hub */}
-      <aside className="fixed left-6 top-1/2 -translate-y-1/2 h-auto w-20 flex flex-col gap-6 py-8 z-50">
-        <button 
-          onClick={() => navigate(patient ? '/patient-dashboard' : '/patient-login')}
-          className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
-        >
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
-          <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{patient ? translations[language].viewProfile : translations[language].login}</span>
-        </button>
+      <aside className="fixed left-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 p-3 bg-white/95 backdrop-blur-md rounded-[2rem] shadow-xl border border-slate-200/80 z-50">
         <button 
           onClick={() => navigate('/checkin-out', { state: { mode: 'checkout' } })}
-          className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
+          className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-700 hover:bg-primary hover:text-white transition-all border border-slate-100 flex flex-col items-center justify-center group shadow-sm"
         >
           <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>logout</span>
-          <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{translations[language].checkOut}</span>
+          <span className="text-[9px] font-bold mt-1 uppercase tracking-tighter">{translations[language].checkOut}</span>
         </button>
         <button 
           onClick={() => navigate('/admin/login')}
-          className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
+          className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-700 hover:bg-primary hover:text-white transition-all border border-slate-100 flex flex-col items-center justify-center group shadow-sm"
         >
           <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
-          <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{translations[language].admin}</span>
+          <span className="text-[9px] font-bold mt-1 uppercase tracking-tighter">{translations[language].admin}</span>
         </button>
         <button 
           onClick={() => setShowHelpModal(true)}
-          className="w-16 h-16 rounded-[1.25rem] bg-white shadow-2xl flex flex-col items-center justify-center text-primary hover:bg-primary hover:text-white transition-all border border-outline-variant/10 group"
+          className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-700 hover:bg-primary hover:text-white transition-all border border-slate-100 flex flex-col items-center justify-center group shadow-sm"
         >
           <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>live_help</span>
-          <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{translations[language].help}</span>
+          <span className="text-[9px] font-bold mt-1 uppercase tracking-tighter">{translations[language].help}</span>
         </button>
       </aside>
 
