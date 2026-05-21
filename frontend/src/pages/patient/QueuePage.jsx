@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/common/Logo';
 import PatientHeader from '../../components/common/PatientHeader';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 
 const QueuePage = () => {
     const navigate = useNavigate();
@@ -25,28 +26,83 @@ const QueuePage = () => {
         fetchQueueStatus(parsed.id);
     }, [navigate]);
 
-    const fetchQueueStatus = async (patientId) => {
-        setLoading(true);
+    const fetchQueueStatusSilent = async (patientId) => {
         try {
-            // 1. Fetch general hospital active queues status
-            const boardData = await apiService.getQueueStatus();
-            if (boardData) setAllQueues(boardData);
+            // 1. Fetch active clinic sessions for the public board
+            const [boardData, queueOverview] = await Promise.all([
+                apiService.getSessionsQueues(),
+                apiService.getQueueStatus()
+            ]);
+            if (Array.isArray(boardData)) {
+                const liveSessions = boardData.filter((session) => {
+                    const normalizedStatus = session.status?.toUpperCase();
+                    return normalizedStatus === 'ACTIVE' ||
+                        normalizedStatus === 'PAUSED' ||
+                        Boolean(session.current_patient) ||
+                        (session.waiting_count || 0) > 0;
+                });
+
+                setAllQueues(liveSessions.map((session) => ({
+                    id: session.session_id,
+                    department: session.department,
+                    doctor_name: session.doctor,
+                    room_number: session.room,
+                    serving_token_number: session.current_patient?.token || '---',
+                    waiting_count: session.waiting_count || 0,
+                    estimated_wait_time: (session.waiting_count || 0) * 10,
+                    session_status: session.status
+                })));
+            } else {
+                setAllQueues([]);
+            }
 
             // 2. Fetch personal queue if logged in
             if (patientId) {
                 const myData = await apiService.getPatientQueueStatus(patientId);
-                if (myData) {
-                    setMyQueue(myData);
+                if (myData && myData.status === 'In Queue') {
+                    setMyQueue({
+                        ...myData,
+                        doctor_name: myData.doctor || myData.doctor_name || myData.specialist_name,
+                        specialist_name: myData.doctor || myData.specialist_name,
+                        room_number: myData.room || myData.room_number,
+                        token_number: myData.token || myData.token_number,
+                        estimated_wait_time: myData.estimated_wait ?? myData.estimated_wait_time,
+                        position_in_queue: myData.people_ahead ?? myData.position_in_queue,
+                        department_name: myData.department || myData.department_name,
+                        serving_token_number: queueOverview?.current_serving || null
+                    });
                 } else {
                     setMyQueue(null);
                 }
             }
         } catch (err) {
-            console.error("Failed to load real-time queue boards:", err);
-        } finally {
-            setLoading(false);
+            console.error("Failed to silently update queue boards:", err);
         }
     };
+
+    const fetchQueueStatus = async (patientId) => {
+        setLoading(true);
+        await fetchQueueStatusSilent(patientId);
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        if (!patient?.id) return;
+
+        socketService.connect();
+
+        const handleQueueUpdate = () => {
+            fetchQueueStatusSilent(patient.id);
+        };
+
+        socketService.on('queue_updated', handleQueueUpdate);
+        socketService.on('session_status_changed', handleQueueUpdate);
+
+        return () => {
+            socketService.off('queue_updated', handleQueueUpdate);
+            socketService.off('session_status_changed', handleQueueUpdate);
+        };
+    }, [patient?.id]);
 
     const handleRefresh = () => {
         fetchQueueStatus(patient?.id || null);

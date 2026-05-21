@@ -21,11 +21,12 @@ def chat():
         data = request.get_json()
         message = data.get("message")
         patient_id = data.get("patient_id")
+        is_web_client = data.get("is_web_client", False)
 
         if not message:
             return jsonify({"error": "Message is required"}), 400
 
-        reply_data = process_message(message, patient_id)
+        reply_data = process_message(message, patient_id, is_web_client=is_web_client)
         import sys
         print(f"CHATBOT REPLY: {reply_data}", file=sys.stderr)
 

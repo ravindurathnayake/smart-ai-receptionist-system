@@ -10,6 +10,116 @@ from ..utils.response import success_response, error_response
 
 specialist_bp = Blueprint("specialist_bp", __name__)
 
+TIME_INPUT_FORMATS = ("%H:%M", "%H:%M:%S", "%I:%M %p", "%I:%M:%S %p")
+
+
+def _parse_session_time(value, field_name):
+    if value is None:
+        raise ValueError(f"{field_name} is required")
+
+    if hasattr(value, "hour") and hasattr(value, "minute") and not isinstance(value, str):
+        return value
+
+    raw_value = str(value).strip()
+    if not raw_value:
+        raise ValueError(f"{field_name} is required")
+
+    for time_format in TIME_INPUT_FORMATS:
+        try:
+            return datetime.strptime(raw_value, time_format).time()
+        except ValueError:
+            continue
+
+    raise ValueError(f"Invalid {field_name} format: {raw_value}")
+
+
+def _parse_session_date(value):
+    if value in (None, ""):
+        return None
+
+    if isinstance(value, datetime):
+        return value.date()
+
+    if isinstance(value, date):
+        return value
+
+    raw_value = str(value).strip()
+    if not raw_value:
+        return None
+
+    try:
+        return date.fromisoformat(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"Invalid session_date format: {raw_value}") from exc
+
+
+def _normalize_session_status(value):
+    if value in (None, ""):
+        return "NOT_STARTED"
+
+    normalized = str(value).strip().replace(" ", "_").upper()
+    status_map = {
+        "NOT_STARTED": "NOT_STARTED",
+        "ACTIVE": "ACTIVE",
+        "PAUSED": "PAUSED",
+        "ENDED": "ENDED",
+        "CANCELLED": "Cancelled",
+        "NEEDS_RESCHEDULE": "NEEDS_RESCHEDULE",
+    }
+    return status_map.get(normalized, str(value).strip())
+
+
+def _coerce_int(value, default=None):
+    if value in (None, ""):
+        return default
+
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid numeric value: {value}") from exc
+
+
+def _build_session_model(specialist_id, sess, fallback_session_number=None):
+    start_t = _parse_session_time(sess.get("start_time"), "start_time")
+    end_t = _parse_session_time(sess.get("end_time"), "end_time")
+    s_date = _parse_session_date(sess.get("session_date"))
+    d_of_w = sess.get("day_of_week")
+
+    if s_date:
+        d_of_w = s_date.strftime("%A")
+
+    return DoctorSession(
+        specialist_id=specialist_id,
+        day_of_week=d_of_w,
+        session_date=s_date,
+        start_time=start_t,
+        end_time=end_t,
+        max_patients=_coerce_int(sess.get("max_patients"), 20) or 20,
+        session_number=_coerce_int(sess.get("session_number"), fallback_session_number),
+        room_number=sess.get("room_number"),
+        status=_normalize_session_status(sess.get("status")),
+    )
+
+
+def _apply_session_payload(session, sess, fallback_session_number=None):
+    start_t = _parse_session_time(sess.get("start_time"), "start_time")
+    end_t = _parse_session_time(sess.get("end_time"), "end_time")
+    s_date = _parse_session_date(sess.get("session_date"))
+    d_of_w = sess.get("day_of_week")
+
+    if s_date:
+        d_of_w = s_date.strftime("%A")
+
+    session.day_of_week = d_of_w
+    session.session_date = s_date
+    session.start_time = start_t
+    session.end_time = end_t
+    session.max_patients = _coerce_int(sess.get("max_patients"), 20) or 20
+    session.session_number = _coerce_int(sess.get("session_number"), fallback_session_number)
+    session.room_number = sess.get("room_number")
+    session.status = _normalize_session_status(sess.get("status") or session.status)
+    return session
+
 @specialist_bp.route("/", methods=["GET"])
 def get_specialists():
     try:
@@ -110,7 +220,7 @@ def get_specialist(specialist_id):
 @specialist_bp.route("/", methods=["POST"])
 def add_specialist():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         new_s = Specialist(
             name=data.get("name"),
             title=data.get("title", "Dr."),
@@ -132,32 +242,16 @@ def add_specialist():
         
         # Handle sessions if provided in the same request
         sessions_data = data.get("sessions", [])
-        for sess in sessions_data:
-            start_t = datetime.strptime(sess.get("start_time"), "%H:%M").time()
-            end_t = datetime.strptime(sess.get("end_time"), "%H:%M").time()
-            s_date = None
-            d_of_w = sess.get("day_of_week")
-            
-            if sess.get("session_date"):
-                s_date = datetime.strptime(sess.get("session_date"), "%Y-%m-%d").date()
-                # Automatically set day_of_week from date for compatibility
-                d_of_w = s_date.strftime("%A")
-                
-            new_sess = DoctorSession(
-                specialist_id=new_s.id,
-                day_of_week=d_of_w,
-                session_date=s_date,
-                start_time=start_t,
-                end_time=end_t,
-                max_patients=sess.get("max_patients", 20),
-                session_number=sess.get("session_number"),
-                room_number=sess.get("room_number")
-            )
+        for index, sess in enumerate(sessions_data, start=1):
+            new_sess = _build_session_model(new_s.id, sess, index)
             db.session.add(new_sess)
         db.session.commit()
         from ..extensions import socketio
         socketio.emit('specialist_updated', {'specialist_id': new_s.id}, namespace='/')
         return success_response("Specialist added successfully", {"id": new_s.id}, 201)
+    except ValueError as e:
+        db.session.rollback()
+        return error_response(str(e), 400)
     except Exception as e:
         db.session.rollback()
         return error_response(str(e), 500)
@@ -166,7 +260,7 @@ def add_specialist():
 def update_specialist(specialist_id):
     try:
         s = Specialist.query.get_or_404(specialist_id)
-        data = request.get_json()
+        data = request.get_json() or {}
         
         s.name = data.get("name", s.name)
         s.title = data.get("title", s.title)
@@ -183,50 +277,57 @@ def update_specialist(specialist_id):
         s.bio = data.get("bio", s.bio)
         s.availability_status = data.get("availability_status", s.availability_status)
         
-        # Handle sessions update (simplified: replace all for now if provided)
+        # Handle sessions update by reconciling existing rows instead of replacing all.
         if "sessions" in data:
             from ..models.appointment import Appointment
-            
-            # Get old sessions
-            old_sessions = DoctorSession.query.filter_by(specialist_id=s.id).all()
-            old_doctor_session_ids = [sess.id for sess in old_sessions]
-            
-            # Set doctor_session_id to NULL in linked appointments and queues to avoid FK constraint error
-            if old_doctor_session_ids:
-                Appointment.query.filter(Appointment.doctor_session_id.in_(old_doctor_session_ids)).update({Appointment.doctor_session_id: None}, synchronize_session=False)
-                from ..models.queue import Queue
-                Queue.query.filter(Queue.doctor_session_id.in_(old_doctor_session_ids)).update({Queue.doctor_session_id: None}, synchronize_session=False)
-            
-            # Delete old sessions
-            DoctorSession.query.filter(DoctorSession.id.in_(old_doctor_session_ids)).delete(synchronize_session=False)
+            from ..models.queue import Queue
+            from ..models.doctor_portal import DoctorSessionRequest
             
             sessions_data = data.get("sessions", [])
-            for sess in sessions_data:
-                start_t = datetime.strptime(sess.get("start_time"), "%H:%M").time()
-                end_t = datetime.strptime(sess.get("end_time"), "%H:%M").time()
-                s_date = None
-                d_of_w = sess.get("day_of_week")
-                
-                if sess.get("session_date"):
-                    s_date = datetime.strptime(sess.get("session_date"), "%Y-%m-%d").date()
-                    # Automatically set day_of_week from date for compatibility
-                    d_of_w = s_date.strftime("%A")
+            existing_sessions = {
+                sess.id: sess for sess in DoctorSession.query.filter_by(specialist_id=s.id).all()
+            }
+            retained_session_ids = set()
 
-                new_sess = DoctorSession(
-                    specialist_id=s.id,
-                    day_of_week=d_of_w,
-                    session_date=s_date,
-                    start_time=start_t,
-                    end_time=end_t,
-                    max_patients=sess.get("max_patients", 20),
-                    session_number=sess.get("session_number"),
-                    room_number=sess.get("room_number")
+            for index, sess in enumerate(sessions_data, start=1):
+                session_id = _coerce_int(sess.get("id"))
+                existing_session = existing_sessions.get(session_id) if session_id else None
+
+                if existing_session:
+                    _apply_session_payload(existing_session, sess, index)
+                    retained_session_ids.add(existing_session.id)
+                else:
+                    new_sess = _build_session_model(s.id, sess, index)
+                    db.session.add(new_sess)
+
+            removed_session_ids = [
+                session_id for session_id in existing_sessions.keys()
+                if session_id not in retained_session_ids
+            ]
+
+            if removed_session_ids:
+                Appointment.query.filter(Appointment.doctor_session_id.in_(removed_session_ids)).update(
+                    {Appointment.doctor_session_id: None},
+                    synchronize_session=False,
                 )
-                db.session.add(new_sess)
+                Queue.query.filter(Queue.doctor_session_id.in_(removed_session_ids)).update(
+                    {Queue.doctor_session_id: None},
+                    synchronize_session=False,
+                )
+                DoctorSessionRequest.query.filter(DoctorSessionRequest.doctor_session_id.in_(removed_session_ids)).update(
+                    {DoctorSessionRequest.doctor_session_id: None},
+                    synchronize_session=False,
+                )
+                DoctorSession.query.filter(DoctorSession.id.in_(removed_session_ids)).delete(
+                    synchronize_session=False,
+                )
         db.session.commit()
         from ..extensions import socketio
         socketio.emit('specialist_updated', {'specialist_id': specialist_id}, namespace='/')
         return success_response("Specialist updated successfully")
+    except ValueError as e:
+        db.session.rollback()
+        return error_response(str(e), 400)
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -249,24 +350,16 @@ def delete_specialist(specialist_id):
 @specialist_bp.route("/<int:specialist_id>/sessions", methods=["POST"])
 def add_session(specialist_id):
     try:
-        data = request.get_json()
-        start_t = datetime.strptime(data.get("start_time"), "%H:%M").time()
-        end_t = datetime.strptime(data.get("end_time"), "%H:%M").time()
-        
-        new_sess = DoctorSession(
-            specialist_id=specialist_id,
-            day_of_week=data.get("day_of_week"),
-            start_time=start_t,
-            end_time=end_t,
-            max_patients=data.get("max_patients", 20),
-            session_number=data.get("session_number"),
-            room_number=data.get("room_number")
-        )
+        data = request.get_json() or {}
+        new_sess = _build_session_model(specialist_id, data, 1)
         db.session.add(new_sess)
         db.session.commit()
         from ..extensions import socketio
         socketio.emit('specialist_updated', {'specialist_id': specialist_id})
         return success_response("Session added successfully", {"id": new_sess.id}, 201)
+    except ValueError as e:
+        db.session.rollback()
+        return error_response(str(e), 400)
     except Exception as e:
         db.session.rollback()
         return error_response(str(e), 500)

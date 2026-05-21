@@ -35,7 +35,7 @@ jobs:
       - name: Run Backend Unit Tests
         env:
           SECRET_KEY: test-secret-key-123
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: "sqlite:///:memory:"
           FLASK_ENV: testing
         run: |
           cd backend

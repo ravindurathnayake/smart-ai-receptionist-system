@@ -147,7 +147,8 @@ const AdminPatients = () => {
       setPatientToDelete(null);
     } catch (err) {
       console.error("Delete failed:", err);
-      alert("Failed to delete patient record.");
+      const errMsg = err.response?.data?.message || err.message || "Failed to delete patient record.";
+      alert(errMsg);
     }
   };
 

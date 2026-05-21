@@ -49,7 +49,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Kiosk Routes */}
+        {/* VIVA NAVIGATION: Public kiosk screen routes start here. */}
         <Route path="/" element={<KioskHome />} />
         <Route path="/assistant" element={<KioskAIAssistant />} />
         <Route path="/queue" element={<KioskQueueStatus />} />
@@ -67,7 +67,7 @@ function App() {
         <Route path="/payment" element={<KioskPayment />} />
         <Route path="/hospital-map" element={<HospitalMap />} />
 
-        {/* Remote Patient Web Routes */}
+        {/* VIVA NAVIGATION: Remote patient portal routes start here. */}
         <Route path="/patient" element={<PatientLanding />} />
         <Route path="/patient/login" element={<PatientLogin />} />
         <Route path="/patient/register" element={<PatientRegister />} />
@@ -80,7 +80,7 @@ function App() {
         <Route path="/doctor/login" element={<DoctorLogin />} />
         <Route path="/doctor" element={<DoctorDashboard />} />
 
-        {/* Admin Routes */}
+        {/* VIVA NAVIGATION: Admin dashboard routes start here. */}
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminSearchProvider><AdminLayout /></AdminSearchProvider>}>
           <Route index element={<AdminDashboard />} />

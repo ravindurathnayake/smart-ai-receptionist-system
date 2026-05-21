@@ -134,19 +134,34 @@ def update_patient(patient_id):
 @patient_bp.route("/<int:patient_id>", methods=["DELETE"])
 def delete_patient(patient_id):
     try:
-        from ..models import Patient, Appointment, Review, Queue, Payment
+        from ..models import (
+            Appointment,
+            LabReport,
+            Notification,
+            Patient,
+            Payment,
+            Prescription,
+            Queue,
+            Review,
+            VitalRecord,
+        )
         patient = Patient.query.get_or_404(patient_id)
-        
-        # Manually cascade delete associated records
+
+        # Manually cascade delete associated records for schemas without DB-level cascade rules.
         appointments = Appointment.query.filter_by(patient_id=patient_id).all()
         for appt in appointments:
             Queue.query.filter_by(appointment_id=appt.id).delete()
             Payment.query.filter_by(appointment_id=appt.id).delete()
             Review.query.filter_by(appointment_id=appt.id).delete()
             db.session.delete(appt)
-            
+
+        Queue.query.filter_by(patient_id=patient_id).delete()
         Review.query.filter_by(patient_id=patient_id).delete()
-        
+        Prescription.query.filter_by(patient_id=patient_id).delete()
+        LabReport.query.filter_by(patient_id=patient_id).delete()
+        VitalRecord.query.filter_by(patient_id=patient_id).delete()
+        Notification.query.filter_by(patient_id=patient_id).update({"patient_id": None})
+
         # Handle linked children
         linked_children = Patient.query.filter_by(guardian_id=patient_id).all()
         for child in linked_children:

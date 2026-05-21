@@ -170,7 +170,7 @@ export const apiService = {
     
     // AI Chat (Uses standard jsonify in chat_routes.py)
     chatAI: async (message, patientId = null) => {
-        const response = await api.post('/chat', { message, patient_id: patientId });
+        const response = await api.post('/chat', { message, patient_id: patientId, is_web_client: true });
         return response.data;
     },
     clearChatAI: async (patientId = null) => {

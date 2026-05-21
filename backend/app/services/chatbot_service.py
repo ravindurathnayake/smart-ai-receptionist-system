@@ -48,7 +48,7 @@ def parse_date_simple(text):
         except ValueError: continue
     return now
 
-def process_message(message, patient_id=None):
+def process_message(message, patient_id=None, is_web_client=False):
     # Safely sanitize and normalize patient_id
     if patient_id is not None:
         try:

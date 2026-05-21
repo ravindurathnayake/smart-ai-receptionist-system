@@ -6,6 +6,41 @@ import { useAdminSearch } from '../../context/AdminSearchContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import './AdminDoctors.css';
 
+const normalizeSessionTimeForApi = (value) => {
+  if (!value) return '';
+
+  const raw = String(value).trim();
+  if (/^\d{2}:\d{2}$/.test(raw)) return raw;
+  if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) return raw.slice(0, 5);
+
+  const amPmMatch = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
+  if (amPmMatch) {
+    let hours = Number(amPmMatch[1]);
+    const minutes = amPmMatch[2];
+    const meridiem = amPmMatch[3].toUpperCase();
+
+    if (meridiem === 'AM' && hours === 12) hours = 0;
+    if (meridiem === 'PM' && hours !== 12) hours += 12;
+
+    return `${String(hours).padStart(2, '0')}:${minutes}`;
+  }
+
+  return raw;
+};
+
+const sanitizeDrawerSessionsForApi = (sessions = []) =>
+  sessions.map((session, index) => ({
+    id: session.id,
+    day_of_week: session.day_of_week || '',
+    session_date: session.session_date || null,
+    start_time: normalizeSessionTimeForApi(session.start_time),
+    end_time: normalizeSessionTimeForApi(session.end_time),
+    max_patients: Number(session.max_patients) || 0,
+    session_number: session.session_number ?? index + 1,
+    room_number: session.room_number || '',
+    status: session.status || 'NOT_STARTED'
+  }));
+
 const AdminDoctors = () => {
   const navigate = useNavigate();
   const { searchQuery } = useAdminSearch();
@@ -253,16 +288,21 @@ const AdminDoctors = () => {
     if (!activeDetailsDoctor) return;
     setIsSavingDrawer(true);
     try {
+      const sanitizedSessions = sanitizeDrawerSessionsForApi(drawerSessions);
       const updatedRaw = {
         ...activeDetailsDoctor.raw,
-        sessions: drawerSessions
+        sessions: sanitizedSessions
       };
       await apiService.updateSpecialist(activeDetailsDoctor.id, updatedRaw);
       setIsEditingSessions(false);
       await fetchData(true);
     } catch (err) {
       console.error('Failed to save session changes:', err);
-      alert('Failed to save session changes. Please check time formats and date fields.');
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        'Failed to save session changes. Please check time formats and date fields.';
+      alert(errorMessage);
     } finally {
       setIsSavingDrawer(false);
     }

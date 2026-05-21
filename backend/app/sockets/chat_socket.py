@@ -10,12 +10,13 @@ def handle_message(data):
     """
     message = data.get('message')
     patient_id = data.get('patient_id')
+    is_web_client = data.get('is_web_client', False)
     
     if not message:
         return
 
     # Get the full response from the existing service
-    response_data = process_message(message, patient_id)
+    response_data = process_message(message, patient_id, is_web_client=is_web_client)
     full_reply = response_data.get('reply', "")
     actions = response_data.get('actions', [])
 

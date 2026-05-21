@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PatientHeader from '../../components/common/PatientHeader';
 import { apiService } from '../../services/apiService';
+import { socketService } from '../../services/socketService';
 
 const PatientAIChat = () => {
     const navigate = useNavigate();
@@ -21,6 +22,13 @@ const PatientAIChat = () => {
         if (savedPatient) {
             setPatient(JSON.parse(savedPatient));
         }
+
+        socketService.connect();
+        return () => {
+            socketService.off('chat_start');
+            socketService.off('chat_chunk');
+            socketService.off('chat_end');
+        };
     }, []);
 
     useEffect(() => {
@@ -46,20 +54,66 @@ const PatientAIChat = () => {
             // Determine if it is a specialist recommendation request or general triage chat
             const isRec = msg.toLowerCase().includes('recommend') || msg.toLowerCase().includes('specialist') || msg.toLowerCase().includes('doctor for');
             
-            let response;
             if (isRec) {
-                response = await apiService.recommendSpecialist(msg);
-            } else {
-                response = await apiService.chatAI(msg, patient?.id || null);
-            }
+                const response = await apiService.recommendSpecialist(msg);
+                const aiText = response.department 
+                    ? `Based on your query, I recommend seeing a specialist in the ${response.department} department (Confidence: ${Math.round(response.confidence * 100)}%).`
+                    : "No suitable specialist department could be determined. Please consult booking directly.";
+                
+                const actions = response.department 
+                    ? [{ label: `Book ${response.department}`, type: 'message', payload: `book ${response.department}` }] 
+                    : [];
 
-            const aiText = response.data || response.response || response.message || "I have compiled your details, but the response could not be parsed. Please consult booking directly.";
-            
-            setMessages(prev => [...prev, { sender: 'ai', text: aiText }]);
+                setMessages(prev => [...prev, { sender: 'ai', text: aiText, actions }]);
+                setLoading(false);
+            } else {
+                // Emitting to WebSocket
+                socketService.emit('message_sent', {
+                    message: msg,
+                    patient_id: patient?.id || null,
+                    is_web_client: true
+                });
+
+                let currentActions = [];
+
+                const onChatStart = (data) => {
+                    currentActions = data.actions || [];
+                    setMessages(prev => [...prev, { sender: 'ai', text: '', actions: [] }]);
+                    setLoading(false);
+                };
+
+                const onChatChunk = (data) => {
+                    setMessages(prev => {
+                        const history = [...prev];
+                        const lastMsg = history[history.length - 1];
+                        if (lastMsg && lastMsg.sender === 'ai') {
+                            lastMsg.text = data.text;
+                        }
+                        return history;
+                    });
+                };
+
+                const onChatEnd = () => {
+                    setMessages(prev => {
+                        const history = [...prev];
+                        const lastMsg = history[history.length - 1];
+                        if (lastMsg && lastMsg.sender === 'ai') {
+                            lastMsg.actions = currentActions;
+                        }
+                        return history;
+                    });
+                    socketService.off('chat_start', onChatStart);
+                    socketService.off('chat_chunk', onChatChunk);
+                    socketService.off('chat_end', onChatEnd);
+                };
+
+                socketService.on('chat_start', onChatStart);
+                socketService.on('chat_chunk', onChatChunk);
+                socketService.on('chat_end', onChatEnd);
+            }
         } catch (err) {
             console.error("AI receptionist error:", err);
             setMessages(prev => [...prev, { sender: 'ai', text: "Apologies, I am experiencing temporary sync issues with the clinic triage servers. Please proceed to booking directly." }]);
-        } finally {
             setLoading(false);
         }
     };
@@ -77,6 +131,7 @@ const PatientAIChat = () => {
         ];
         setMessages(initialMessages);
         try {
+            socketService.emit('clear_chat', { patient_id: patient ? patient.id : null });
             await apiService.clearChatAI(patient?.id || null);
         } catch (err) {
             console.error("Failed to clear chat on backend:", err);
@@ -178,11 +233,41 @@ const PatientAIChat = () => {
                                 }`}>
                                     <p className="whitespace-pre-line">{m.text}</p>
                                     
-                                    {m.sender === 'ai' && (m.text.toLowerCase().includes('recommend') || m.text.toLowerCase().includes('refer')) && (
+                                    {m.sender === 'ai' && m.actions && m.actions.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100 mt-3">
+                                            {m.actions.map((act, actIdx) => (
+                                                <button
+                                                    key={actIdx}
+                                                    onClick={() => {
+                                                        if (act.type === 'navigate') {
+                                                            navigate(act.payload);
+                                                        } else if (act.type === 'message') {
+                                                            handleSendMessage(act.payload);
+                                                        }
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                                        act.variant === 'primary' || !act.variant
+                                                        ? 'bg-primary text-white hover:bg-primary/95 shadow-sm'
+                                                        : act.variant === 'secondary'
+                                                        ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/50'
+                                                        : act.variant === 'outline'
+                                                        ? 'border border-slate-200 hover:border-primary hover:text-primary text-slate-600'
+                                                        : act.variant === 'danger'
+                                                        ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                    }`}
+                                                >
+                                                    {act.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {m.sender === 'ai' && (!m.actions || m.actions.length === 0) && (m.text.toLowerCase().includes('recommend') || m.text.toLowerCase().includes('refer')) && (
                                         <div className="pt-2 border-t border-slate-100 mt-2">
                                             <button 
                                                 onClick={() => navigate('/patient/book')}
-                                                className="px-3.5 py-1.5 bg-primary/5 hover:bg-primary hover:text-white border border-primary/10 text-primary rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                                                className="px-3.5 py-1.5 bg-primary/5 hover:bg-primary hover:text-white border border-primary/10 text-primary rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                             >
                                                 Book This Doctor Now
                                             </button>
